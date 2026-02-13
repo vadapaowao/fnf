@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>The Arena Sports & Grid</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff2800", // Merging definitions: Base primary
+                        "grid-primary": "#f91f1f", // Specific for Grid screen
+                        "secondary": "#000000",
+                        "accent-green": "#00ff00",
+                        "accent-gold": "#ffd700",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#0a0a0a",
+                        "surface-dark": "#151515",
+                        "sector-1": "#FFD700",
+                        "sector-2": "#00FF00",
+                        "sector-3": "#9C27B0",
+                    },
+                    fontFamily: {
+                        "display": ["Chakra Petch", "sans-serif"],
+                        "body": ["Space Grotesk", "sans-serif"],
+                        "grid-display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                    backdropBlur: {
+                        'xs': '2px',
+                    },
+                    backgroundImage: {
+                        'grid-pattern': "linear-gradient(to right, #333 1px, transparent 1px), linear-gradient(to bottom, #333 1px, transparent 1px)",
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        /* Shared and Merged Styles */
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            overflow-x: hidden;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Landing Page Specific */
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 40, 0, 0.1);
+        }
+        .glass-card {
+            background: rgba(21, 21, 21, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glass-button {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-button:hover {
+            background: rgba(255, 40, 0, 0.2);
+            border-color: rgba(255, 40, 0, 0.5);
+            color: white;
+        }
+        .text-outline {
+            -webkit-text-stroke: 1px rgba(255,255,255,0.3);
+            color: transparent;
+        }
+        .bg-grid-pattern-landing {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 40, 0, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 40, 0, 0.05) 1px, transparent 1px);
+        }
+        .logo-text {
+            font-family: 'Chakra Petch', sans-serif;
+            font-weight: 700;
+        }
+
+        /* Grid Page Specific */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .neon-text {
+            text-shadow: 0 0 10px rgba(249, 31, 31, 0.5);
+        }
+        .neon-border {
+            box-shadow: 0 0 15px rgba(249, 31, 31, 0.3);
+        }
+        .track-glow {
+            filter: drop-shadow(0 0 8px rgba(249, 31, 31, 0.6));
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #230f0f;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #f91f1f;
+            border-radius: 4px;
+        }
+        .bg-stripes {
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(249, 31, 31, 0.05) 10px, rgba(249, 31, 31, 0.05) 20px);
+        }
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+        }
+    </style>
+    
+    <!-- React Dependencies -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/history@5/umd/history.development.js"></script>
+    <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+    <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-white font-body antialiased selection:bg-primary selection:text-white">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { createRoot } = ReactDOM;
+        const { MemoryRouter, Routes, Route, Link, useNavigate, useLocation } = ReactRouterDOM;
+
+        // --- Screen 1 Components (Landing Page) ---
+
+        const LandingNav = () => (
+            <nav className="fixed top-6 left-0 right-0 z-50 flex justify-center px-4">
+                <div className="glass-panel rounded-full px-6 py-3 flex items-center justify-between gap-8 max-w-2xl w-full shadow-2xl shadow-primary/20 border-t border-white/10">
+                    <div className="flex items-center gap-0.5 logo-text text-xl tracking-tighter">
+                        <span className="text-primary font-bold">F</span><span className="text-white">n</span><span className="text-black bg-white px-1 rounded-sm ml-0.5 font-bold">F</span>
+                    </div>
+                    <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400 font-display uppercase tracking-widest">
+                        <Link to="/grid" className="hover:text-primary transition-colors cursor-pointer">The Grid</Link>
+                        <a href="#" className="hover:text-accent-green transition-colors">The Pitch</a>
+                        <a href="#" className="hover:text-accent-gold transition-colors">Drops</a>
+                    </div>
+                    <button className="bg-white text-black text-xs font-bold px-4 py-2 rounded-full hover:bg-primary hover:text-white transition-colors uppercase tracking-wider font-display">
+                        Sign In
+                    </button>
+                </div>
+            </nav>
+        );
+
+        const LandingHeader = () => (
+            <header className="relative min-h-screen flex flex-col justify-center items-center overflow-hidden pt-20">
+                <div className="absolute inset-0 z-0 grid grid-cols-1 md:grid-cols-2">
+                    <div className="relative h-full w-full overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-background-dark via-background-dark/90 to-transparent z-10"></div>
+                        <img alt="Formula 1 racing car" className="h-full w-full object-cover opacity-50 grayscale contrast-125" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2YbjwN_MPiai-wqID9DBercdCu1g2oqQzBo1Rwxj3czAGNYht7AaaNffmLjUvEJvgQx-I8lKv41HBNMDdyLQ64zpDmzaTjthJPR-DaLzq3dGL3MmNW18-SJRSYFPDaZ5CrGkUISfvd19FP8n6WFcQ-Zp4_2R5vpqEbo6k8kWuJsGl-fQ_xYTRK-AOZp1um2n6fV6F0umkwxe5t40aRcg5RzF7qUFD9gi66yhjMNMdzPO8u0rxSoyM2S1oecLZl5wGrdzzMWoSaQ"/>
+                    </div>
+                    <div className="relative h-full w-full overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-l from-background-dark via-background-dark/90 to-transparent z-10"></div>
+                        <img alt="Football player" className="h-full w-full object-cover opacity-50 grayscale contrast-125" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCARNpFb_b74KHvD2v0njm8NH7yLXwCwfA14-_wWCLufFf2z90uXuTH9pnrmtQakSfbNxaQ5AJnr3p5YTn-Bg_8K1YlR7A-3vn75EGH41BoSd_lkvBFAfxkk72pm6Lmx6GYFp3M9ZPdG_v1m15g2Tj9s6yMCFEcjeTuofGj91rUJDVPNAa1dS12tZk-1CnQywbgxsVlW3D7sevzqsjCertkS3uW3DESAXrHvdIcndqI4Gz0m1AI91iEbPleu-w7gJltvIk0X98WCA"/>
+                    </div>
+                </div>
+                <div className="relative z-20 container mx-auto px-4 text-center">
+                    <div className="mb-4 flex justify-center">
+                        <span className="inline-block px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest font-display">
+                            Welcome to <span className="text-primary">THE</span> Arena
+                        </span>
+                    </div>
+                    <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold leading-[0.85] tracking-tighter font-display mt-8">
+                        <span className="block text-white drop-shadow-[0_0_25px_rgba(255,40,0,0.6)] italic">THE GRID</span>
+                        <span className="block text-transparent bg-clip-text bg-gradient-to-r from-gray-600 via-gray-400 to-gray-600 font-light italic text-7xl md:text-8xl my-2">&</span>
+                        <span className="block text-white drop-shadow-[0_0_25px_rgba(0,255,0,0.4)] italic">THE PITCH</span>
+                    </h1>
+                    <p className="mt-8 text-lg md:text-xl text-gray-400 max-w-xl mx-auto font-light leading-relaxed font-body">
+                        Where precision meets passion. The ultimate hub for the fans.
+                    </p>
+                    <div className="mt-12 flex flex-col md:flex-row gap-4 justify-center items-center">
+                        <Link to="/grid" className="group relative px-8 py-4 rounded-xl bg-primary text-white font-bold uppercase tracking-widest overflow-hidden hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(255,40,0,0.4)] font-display">
+                            <span className="relative z-10">Join the Arena HUB</span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        </Link>
+                        <button className="glass-button px-8 py-4 rounded-xl text-white font-medium uppercase tracking-widest flex items-center gap-2 group font-display">
+                            <span>Explore</span>
+                            <span className="material-icons text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50 z-20">
+                    <span className="text-[10px] uppercase tracking-widest font-display text-primary">Scroll</span>
+                    <div className="w-[1px] h-12 bg-gradient-to-b from-primary to-transparent"></div>
+                </div>
+            </header>
+        );
+
+        const GridPreviewSection = () => (
+            <section className="relative py-24 bg-background-dark overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern-landing opacity-10 pointer-events-none"></div>
+                <div className="absolute -left-40 top-20 w-96 h-96 bg-primary/10 rounded-full blur-[100px]"></div>
+                <div className="container mx-auto px-4 relative z-10">
+                    <div className="flex flex-col md:flex-row justify-between items-end mb-12">
+                        <div>
+                            <h2 className="text-5xl md:text-7xl font-bold tracking-tighter text-white mb-2 font-display italic">ON THE GRID</h2>
+                            <p className="text-gray-400 max-w-md font-body">Upcoming Grand Prix schedule. Don't miss the lights out.</p>
+                        </div>
+                        <div className="hidden md:flex gap-2 mt-4 md:mt-0">
+                            <button className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 hover:border-primary transition-colors text-white"><span className="material-icons text-sm">chevron_left</span></button>
+                            <button className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 hover:border-primary transition-colors text-white"><span className="material-icons text-sm">chevron_right</span></button>
+                        </div>
+                    </div>
+                    <div className="flex overflow-x-auto gap-6 pb-8 scrollbar-hide snap-x snap-mandatory">
+                        <Link to="/grid" className="min-w-[320px] md:min-w-[400px] snap-center cursor-pointer block">
+                            <div className="glass-card rounded-2xl p-6 h-full relative overflow-hidden group hover:border-primary/50 transition-colors bg-gradient-to-br from-surface-dark to-black">
+                                <div className="absolute top-0 right-0 p-4">
+                                    <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-primary animate-pulse font-display">
+                                        <span className="w-2 h-2 rounded-full bg-primary"></span> Live Countdown
+                                    </span>
+                                </div>
+                                <div className="mt-8 mb-4 h-32 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
+                                    <svg className="w-full h-full stroke-white stroke-2 drop-shadow-[0_0_8px_rgba(255,40,0,0.5)]" fill="none" preserveAspectRatio="xMidYMid meet" viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M25,50 L25,45 L35,40 L40,42 L55,40 L60,35 L58,25 L65,20 L75,22 L80,25 L75,35 L70,38 L72,45 L65,55 L55,52 L45,60 L35,62 L25,58 L20,55 Z" strokeLinecap="round" strokeLinejoin="round" transform="translate(5, 5) scale(1.1)"></path>
+                                    </svg>
+                                </div>
+                                <div className="space-y-1 mb-6">
+                                    <h3 className="text-3xl font-bold text-white font-display">MONACO GP</h3>
+                                    <p className="text-gray-400 text-sm uppercase tracking-wider font-body">Circuit de Monaco</p>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4">
+                                    <div>
+                                        <span className="block text-xs text-gray-500 uppercase font-display">Days</span>
+                                        <span className="text-2xl font-mono text-primary">04</span>
+                                    </div>
+                                    <div>
+                                        <span className="block text-xs text-gray-500 uppercase font-display">Hrs</span>
+                                        <span className="text-2xl font-mono text-primary">12</span>
+                                    </div>
+                                    <div>
+                                        <span className="block text-xs text-gray-500 uppercase font-display">Mins</span>
+                                        <span className="text-2xl font-mono text-primary">33</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </Link>
+                        {/* More cards could go here, simplified for React conversion */}
+                    </div>
+                </div>
+            </section>
+        );
+
+        const PitchSection = () => (
+            <section className="relative py-24 bg-gradient-to-b from-background-dark to-black overflow-hidden">
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-accent-green/10 rounded-full blur-[120px] pointer-events-none"></div>
+                <div className="container mx-auto px-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                        <div className="lg:col-span-5">
+                            <h2 className="text-5xl md:text-7xl font-bold tracking-tighter text-white mb-6 leading-[0.9] font-display italic">
+                                THE<br/>
+                                <span className="text-outline">BEAUTIFUL</span><br/>
+                                GAME
+                            </h2>
+                            <p className="text-gray-400 mb-8 text-lg leading-relaxed font-body">
+                                Track your squad with real-time stats, transfer news, and match highlights. Customized for the die-hard supporter.
+                            </p>
+                            <button className="flex items-center gap-3 text-white font-bold uppercase tracking-widest hover:text-accent-green transition-colors group font-display">
+                                <span className="border-b border-accent-green pb-1">Customize Feed</span>
+                                <span className="material-icons text-accent-green text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                            </button>
+                        </div>
+                        <div className="lg:col-span-7 relative">
+                            <div className="glass-card rounded-3xl p-8 relative z-10 transform hover:-translate-y-2 transition-transform duration-500 shadow-2xl shadow-black/80 border-t border-accent-green/20">
+                                <div className="flex justify-between items-start mb-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center border border-white/10 p-3">
+                                            <span className="material-icons text-3xl text-sky-400">shield</span>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-accent-gold uppercase tracking-widest mb-1 font-display">My Team</p>
+                                            <h3 className="text-2xl font-bold text-white font-display">Man. City</h3>
+                                        </div>
+                                    </div>
+                                    <span className="px-3 py-1 rounded-full bg-accent-green/10 text-accent-green text-xs font-bold uppercase tracking-wider border border-accent-green/20 font-display">In Form</span>
+                                </div>
+                                <div className="bg-black/60 rounded-xl p-6 mb-6 border border-white/5">
+                                    <div className="flex justify-between items-center text-sm text-gray-500 uppercase tracking-widest mb-4 font-display">
+                                        <span>Premier League</span>
+                                        <span>FT</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <div className="text-center">
+                                            <span className="block text-4xl font-bold text-white mb-1 font-mono">3</span>
+                                            <span className="text-xs text-gray-400 font-display">MCI</span>
+                                        </div>
+                                        <div className="h-px w-12 bg-white/20"></div>
+                                        <div className="text-center opacity-50">
+                                            <span className="block text-4xl font-bold text-white mb-1 font-mono">1</span>
+                                            <span className="text-xs text-gray-400 font-display">MUN</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <h4 className="text-xs text-gray-400 uppercase tracking-widest mb-4 font-display">Upcoming Fixtures</h4>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer border-l-2 border-transparent hover:border-accent-green">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold">LIV</div>
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-white font-display">vs Liverpool</span>
+                                                <span className="text-xs text-gray-500 font-body">Home • Premier League</span>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="block text-sm font-mono text-white">SAT 14:00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="absolute -top-10 -right-10 w-full h-full z-0 opacity-20 mix-blend-overlay">
+                                    <img alt="Abstract football stadium" className="w-full h-full object-cover rounded-3xl grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3MA3yP2aZ1yUod21NeTikXIcuJAcfygEzPn-FtDe1ERE-GUfSl9S-jcUu3Nc9WHHBg7j6cSu2FuWq1nxyd9OlLh6TdEVbLFAcIwJba6waNXoG5LA45kFOJtl-5TSLSUuOuEdoSD9k_b6HGAU868Dkkbxjv4oIdg1wXbPHHlyN75fwZZTn-TOaGylmWQngvxiaGmWpJfi7FsWQ_AzDiUVQD_Syn3-Zz-sCuPjx4B0o0tNEaNN63wrD4Qd0hn6ITnIRwruXNBfAGw"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        );
+
+        const LandingFooter = () => (
+            <footer className="bg-background-dark border-t border-white/5 pt-20 pb-10">
+                <div className="container mx-auto px-4">
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-16">
+                        <h2 className="text-3xl font-bold tracking-tighter text-white mb-6 md:mb-0 font-display">
+                            ARENA<span className="text-primary">.</span>
+                        </h2>
+                        <div className="flex gap-8">
+                            {['IG', 'TW', 'YT'].map(social => (
+                                <a key={social} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-primary hover:text-white transition-all text-gray-400" href="#">
+                                    <span className="font-bold text-xs">{social}</span>
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex flex-col md:flex-row justify-between items-center border-t border-white/5 pt-8 text-sm text-gray-500">
+                        <p>© 2024 Arena Sports. All rights reserved.</p>
+                        <div className="flex gap-6 mt-4 md:mt-0 font-display uppercase tracking-wider text-xs">
+                            <a className="hover:text-white transition-colors" href="#">Privacy</a>
+                            <a className="hover:text-white transition-colors" href="#">Terms</a>
+                            <a className="hover:text-white transition-colors" href="#">Support</a>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        const LandingPage = () => (
+            <div className="bg-background-light dark:bg-background-dark">
+                <LandingNav />
+                <LandingHeader />
+                <GridPreviewSection />
+                <PitchSection />
+                <LandingFooter />
+            </div>
+        );
+
+        // --- Screen 2 Components (Grid / F1 Calendar) ---
+
+        const GridNav = () => (
+            <header className="h-16 border-b border-white/10 flex items-center justify-between px-6 bg-background-light dark:bg-background-dark z-20 shrink-0">
+                <div className="flex items-center gap-4">
+                    <Link to="/" className="flex items-center gap-0.5 logo-text text-xl tracking-tighter cursor-pointer group">
+                        <span className="text-primary font-bold group-hover:text-white transition-colors">F</span><span className="text-white group-hover:text-primary transition-colors">n</span><span className="text-black bg-white px-1 rounded-sm ml-0.5 font-bold group-hover:bg-primary group-hover:text-white transition-colors">F</span>
+                    </Link>
+                    <h1 className="text-xl font-bold tracking-widest uppercase neon-text border-l border-white/20 pl-4 ml-2">The Grid</h1>
+                </div>
+                <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
+                    <a className="hover:text-grid-primary transition-colors" href="#">NEWS</a>
+                    <a className="text-white border-b-2 border-grid-primary pb-5 mt-5" href="#">CALENDAR</a>
+                    <a className="hover:text-grid-primary transition-colors" href="#">DRIVERS</a>
+                    <a className="hover:text-grid-primary transition-colors" href="#">TEAMS</a>
+                </nav>
+                <div className="flex items-center gap-4">
+                    <span className="text-xs text-gray-500 uppercase">Season 2024</span>
+                    <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center border border-gray-700">
+                        <img alt="User avatar" className="w-full h-full rounded-full object-cover opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmj4J4LHjzQ8BlRKL6GaEhv5h31DUj3uf6TNYmzJFu016rTauQzcGqIVYKwqAVCcQLpfJKEz4a1tUaKh4rENJAwRiUaIxdmdN7NuhPoAQ8FoX9Tf9DAXXaLyFUY6D8fNiiXAGwFJ8hFNzqgfs_i1mhLulLEq4yF8ZAEuYxvJzWf8pMIgbOn5lMuxVhGg5s9Lvu8HA8-53NQeNkixAi5v5c7brjalQLPxgp5UYwl_dOc5W_d621X4GHrrAOeztO-1UqqmHBPEU7KA"/>
+                    </div>
+                </div>
+            </header>
+        );
+
+        const GridSidebar = () => (
+            <aside className="w-80 border-r border-white/10 flex flex-col bg-background-light/50 dark:bg-background-dark/80 backdrop-blur-sm z-10 shrink-0 h-full">
+                <div className="p-6 border-b border-white/10">
+                    <h2 className="text-xs font-bold text-grid-primary uppercase tracking-widest mb-1">Select Race</h2>
+                    <div className="relative">
+                        <span className="material-icons absolute left-3 top-2.5 text-gray-500 text-sm">search</span>
+                        <input className="w-full bg-surface-dark/50 border border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm focus:border-grid-primary focus:ring-0 placeholder-gray-600 text-white" placeholder="Filter Grand Prix..." type="text"/>
+                    </div>
+                </div>
+                <div className="overflow-y-auto custom-scrollbar flex-1 p-4 space-y-3">
+                    <div className="group cursor-pointer p-4 rounded-lg border border-white/5 hover:bg-white/5 transition-all opacity-60">
+                        <div className="flex justify-between items-start mb-2">
+                            <span className="text-[10px] font-mono text-gray-500">R01 • MAR 02</span>
+                            <span className="text-xs text-gray-500 font-mono">FINISHED</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-1 bg-gray-700 h-8 rounded-full"></div>
+                            <div>
+                                <h3 className="font-bold text-sm uppercase text-white">Bahrain GP</h3>
+                                <p className="text-xs text-gray-500">Sakhir</p>
+                            </div>
+                        </div>
+                    </div>
+                     <div className="group cursor-pointer p-4 rounded-lg border border-white/5 hover:bg-white/5 transition-all opacity-60">
+                        <div className="flex justify-between items-start mb-2">
+                            <span className="text-[10px] font-mono text-gray-500">R02 • MAR 09</span>
+                            <span className="text-xs text-gray-500 font-mono">FINISHED</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-1 bg-gray-700 h-8 rounded-full"></div>
+                            <div>
+                                <h3 className="font-bold text-sm uppercase text-white">Saudi Arabian GP</h3>
+                                <p className="text-xs text-gray-500">Jeddah</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="group cursor-pointer p-4 rounded-lg border border-grid-primary bg-grid-primary/10 bg-stripes relative overflow-hidden neon-border transition-all transform scale-[1.02]">
+                        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-grid-primary/20 to-transparent rounded-bl-full -mr-8 -mt-8"></div>
+                        <div className="flex justify-between items-start mb-2 relative z-10">
+                            <span className="text-[10px] font-mono text-grid-primary font-bold">R12 • JUL 07</span>
+                            <span className="flex items-center gap-1 text-[10px] bg-grid-primary text-black px-1.5 py-0.5 rounded font-bold animate-pulse">
+                                <span className="material-icons text-[10px]">live_tv</span> LIVE
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 relative z-10">
+                            <div className="w-1 bg-grid-primary h-10 rounded-full shadow-[0_0_10px_#f91f1f]"></div>
+                            <div className="flex-1">
+                                <h3 className="font-bold text-lg uppercase text-white leading-tight">British GP</h3>
+                                <p className="text-xs text-gray-400">Silverstone Circuit</p>
+                            </div>
+                            <img alt="Flag of Great Britain" className="w-8 h-auto rounded opacity-80 shadow-lg" src="https://lh3.googleusercontent.com/aida-public/AB6AXuACEEBSF4fKVCOgPAzQSrz4s_rDh0i1XUOK4yfyKMZf-YHlIXLX74o6aNT6JEtxWh2se69wkRJxYM-ljjzYS9J5ObaEXjQ_RxYItAYlwbZZ9sjB-kzS6ICXH5FbHaZyci19zeRmD5Um1omwbyouwLbvZlgdmKeVpZ1a85HToQdzlqVgs9_LXxfpIOIj3Zdn2Kd7VDGYxRParApOPG7LPHpRfQ0vlRlBfiTumSEv2x6bKbAQtB-DAwg4Ex5wOGZRgTc3j3k5cfT8oQ"/>
+                        </div>
+                    </div>
+                    <div className="group cursor-pointer p-4 rounded-lg border border-white/5 hover:bg-white/5 transition-all hover:border-grid-primary/50">
+                        <div className="flex justify-between items-start mb-2">
+                            <span className="text-[10px] font-mono text-gray-400">R13 • JUL 21</span>
+                            <span className="text-xs text-gray-600 font-mono">UPCOMING</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-1 bg-gray-600 h-8 rounded-full group-hover:bg-grid-primary transition-colors"></div>
+                            <div>
+                                <h3 className="font-bold text-sm uppercase text-white group-hover:text-grid-primary transition-colors">Hungarian GP</h3>
+                                <p className="text-xs text-gray-500">Hungaroring</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        );
+
+        const GridMap = () => (
+            <section className="flex-1 relative flex flex-col z-0">
+                <div className="absolute top-8 left-8 z-10">
+                    <div className="flex items-center gap-2 text-xs font-mono text-grid-primary mb-1">
+                        <span className="material-icons text-sm">public</span> EUROPE / UNITED KINGDOM
+                    </div>
+                    <h2 className="text-5xl font-bold uppercase tracking-tighter text-white drop-shadow-xl">Silverstone</h2>
+                    <div className="flex gap-4 mt-2">
+                        <span className="px-2 py-1 rounded bg-white/5 border border-white/10 text-xs text-gray-300 font-mono">cw CLOCKWISE</span>
+                        <span className="px-2 py-1 rounded bg-white/5 border border-white/10 text-xs text-gray-300 font-mono">FIA GRADE 1</span>
+                    </div>
+                </div>
+                <div className="flex-1 flex items-center justify-center relative bg-gradient-radial from-surface-dark/40 to-transparent">
+                    <div className="absolute w-[500px] h-[500px] bg-grid-primary/10 rounded-full blur-[100px] pointer-events-none"></div>
+                    <div className="relative w-full max-w-3xl aspect-video transform scale-90 md:scale-100 hover:scale-105 transition-transform duration-700 ease-out">
+                        <svg className="w-full h-full" fill="none" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <filter id="glow">
+                                    <feGaussianBlur result="coloredBlur" stdDeviation="2.5"></feGaussianBlur>
+                                    <feMerge>
+                                        <feMergeNode in="coloredBlur"></feMergeNode>
+                                        <feMergeNode in="SourceGraphic"></feMergeNode>
+                                    </feMerge>
+                                </filter>
+                            </defs>
+                            <path d="M250,380 L350,380 C370,380 380,390 390,410 L400,430 C410,450 430,450 440,430 L500,320 L550,330 C570,335 590,320 590,300 L580,200 L650,180 C680,170 680,140 650,130 L450,100 C430,95 410,110 405,130 L380,200 L300,180 C280,175 260,190 255,210 L240,280 C235,300 210,310 190,300 L150,280 C130,270 110,290 115,310 L130,350 C140,370 160,380 180,380 Z" stroke="#1a1a1a" strokeLinecap="round" strokeLinejoin="round" strokeWidth="22"></path>
+                            
+                            {/* Base Track in Red */}
+                            <path d="M250,380 L350,380 C370,380 380,390 390,410 L400,430 C410,450 430,450 440,430 L500,320 L550,330 C570,335 590,320 590,300 L580,200 L650,180 C680,170 680,140 650,130 L450,100 C430,95 410,110 405,130 L380,200 L300,180 C280,175 260,190 255,210 L240,280 C235,300 210,310 190,300 L150,280 C130,270 110,290 115,310 L130,350 C140,370 160,380 180,380 Z" stroke="#f91f1f" strokeLinecap="round" strokeLinejoin="round" strokeWidth="6" className="opacity-50"></path>
+
+                            {/* Sectors with Hover Effects */}
+                            <path className="cursor-pointer hover:stroke-[#ff2800] hover:opacity-100 opacity-0 transition-all duration-300" d="M380,200 L300,180 C280,175 260,190 255,210 L240,280 C235,300 210,310 190,300 L150,280 C130,270 110,290 115,310 L130,350 C140,370 160,380 180,380 L250,380" stroke="#f91f1f" strokeLinecap="round" strokeLinejoin="round" strokeWidth="6"></path>
+                            <path className="cursor-pointer hover:stroke-[#00ff00] hover:opacity-100 opacity-0 transition-all duration-300" d="M250,380 L350,380 C370,380 380,390 390,410 L400,430 C410,450 430,450 440,430 L500,320 L550,330" stroke="#f91f1f" strokeLinecap="round" strokeLinejoin="round" strokeWidth="6"></path>
+                            <path className="cursor-pointer hover:stroke-[#ffd700] hover:opacity-100 opacity-0 transition-all duration-300" d="M550,330 C570,335 590,320 590,300 L580,200 L650,180 C680,170 680,140 650,130 L450,100 C430,95 410,110 405,130 L380,200" stroke="#f91f1f" strokeLinecap="round" strokeLinejoin="round" strokeWidth="6"></path>
+
+                            {/* DRS Zones with Hover */}
+                            <path className="cursor-pointer hover:stroke-white transition-colors duration-300" d="M450,100 L550,115" stroke="#f91f1f" strokeDasharray="8 4" strokeWidth="4"></path>
+                            <path className="cursor-pointer hover:stroke-white transition-colors duration-300" d="M250,380 L350,380" stroke="#f91f1f" strokeDasharray="8 4" strokeWidth="4"></path>
+                            
+                            <line stroke="white" strokeWidth="4" x1="380" x2="380" y1="190" y2="210"></line>
+                            <g className="font-mono text-xs font-bold fill-white pointer-events-none select-none">
+                                <text className="fill-sector-1" x="180" y="250">SECTOR 1</text>
+                                <text className="fill-sector-2" x="400" y="480">SECTOR 2</text>
+                                <text className="fill-sector-3" x="550" y="150">SECTOR 3</text>
+                                <text className="fill-primary text-[10px]" x="300" y="410">DRS ZONE</text>
+                                <text className="fill-primary text-[10px]" x="480" y="80">DRS ZONE</text>
+                            </g>
+                        </svg>
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 bg-surface-dark/80 backdrop-blur border border-white/10 rounded-full px-6 py-2 flex gap-6 items-center shadow-2xl">
+                            <div className="flex items-center gap-2">
+                                <span className="w-3 h-3 rounded-full bg-primary shadow-[0_0_5px_#ff2800]"></span>
+                                <span className="text-[10px] font-mono text-gray-300">SEC 1</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="w-3 h-3 rounded-full bg-accent-green shadow-[0_0_5px_#00ff00]"></span>
+                                <span className="text-[10px] font-mono text-gray-300">SEC 2</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="w-3 h-3 rounded-full bg-accent-gold shadow-[0_0_5px_#ffd700]"></span>
+                                <span className="text-[10px] font-mono text-gray-300">SEC 3</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="absolute bottom-8 left-8 right-[400px] z-10 flex gap-4 hidden lg:flex">
+                    <button className="bg-grid-primary hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg shadow-[0_0_20px_rgba(249,31,31,0.4)] flex items-center gap-2 transition-all hover:scale-105">
+                        <span className="material-icons text-sm">confirmation_number</span> GET TICKETS
+                    </button>
+                    <button className="bg-surface-dark hover:bg-gray-800 text-white border border-white/20 font-bold py-3 px-6 rounded-lg flex items-center gap-2 transition-all">
+                        <span className="material-icons text-sm">play_circle</span> WATCH PREVIEW
+                    </button>
+                </div>
+            </section>
+        );
+
+        const GridIntelPanel = () => (
+            <aside className="w-96 bg-surface-dark/95 border-l border-white/10 p-6 z-20 overflow-y-auto custom-scrollbar shadow-2xl relative">
+                <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+                    <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase">Race Intel</h3>
+                    <span className="text-xs bg-grid-primary/20 text-grid-primary px-2 py-1 rounded font-mono">ROUND 12</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                    {[
+                        {icon: 'straighten', label: 'Length', val: '5.891', unit: 'km'},
+                        {icon: 'repeat', label: 'Laps', val: '52', unit: ''},
+                        {icon: 'alt_route', label: 'Turns', val: '18', unit: ''},
+                        {icon: 'bolt', label: 'DRS', val: '2', unit: 'Zones'},
+                    ].map((stat, idx) => (
+                        <div key={idx} className="bg-background-dark/50 p-4 rounded-lg border border-white/5 hover:border-grid-primary/30 transition-colors group">
+                            <div className="flex items-center gap-2 mb-2 text-gray-500">
+                                <span className="material-icons text-sm group-hover:text-grid-primary transition-colors">{stat.icon}</span>
+                                <span className="text-[10px] uppercase font-bold tracking-wider">{stat.label}</span>
+                            </div>
+                            <p className="text-2xl font-mono font-bold text-white">{stat.val}<span className="text-sm text-gray-500 ml-1">{stat.unit}</span></p>
+                        </div>
+                    ))}
+                </div>
+                <div className="mb-8">
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Defending Champion</h4>
+                    <div className="relative rounded-xl overflow-hidden h-32 group border border-white/10">
+                        <div className="absolute inset-0 bg-gradient-to-r from-grid-primary/80 to-background-dark z-0"></div>
+                        <div className="absolute right-0 bottom-0 h-full w-2/3 bg-[url('https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-overlay"></div>
+                        <div className="relative z-10 p-4 h-full flex flex-col justify-center">
+                            <span className="text-[10px] font-mono text-white/70 mb-1">2023 WINNER</span>
+                            <h3 className="text-xl font-bold uppercase text-white leading-none mb-1">Max Verstappen</h3>
+                            <p className="text-xs text-white/60">Red Bull Racing</p>
+                        </div>
+                        <div className="absolute top-2 right-2 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+                            <span className="material-icons text-white text-xs">emoji_events</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="mb-8 p-5 rounded-xl bg-gradient-to-br from-surface-dark to-background-dark border border-white/5 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <span className="material-icons text-6xl text-white">timer</span>
+                    </div>
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 relative z-10">Lap Record</h4>
+                    <div className="relative z-10">
+                        <p className="text-3xl font-mono font-bold text-grid-primary neon-text">1:27.097</p>
+                        <div className="flex items-center gap-2 mt-2">
+                            <span className="w-1.5 h-1.5 bg-grid-primary rounded-full"></span>
+                            <p className="text-xs text-gray-300">Max Verstappen (2020)</p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Weekend Schedule</h4>
+                    <div className="space-y-4 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[1px] before:bg-white/10">
+                        {[
+                            {day: 'FRI', time: '12:30', name: 'Practice 1', active: false},
+                            {day: 'SAT', time: '15:00', name: 'Qualifying', active: false},
+                            {day: 'SUN', time: '15:00', name: 'Grand Prix', active: true},
+                        ].map((event, idx) => (
+                            <div key={idx} className="flex items-center gap-4 relative">
+                                <div className={`w-10 text-[10px] font-mono font-bold text-right ${event.active ? 'text-grid-primary' : 'text-gray-500'}`}>{event.day}</div>
+                                <div className={`w-2.5 h-2.5 rounded-full border-2 border-surface-dark z-10 ${event.active ? 'bg-grid-primary shadow-[0_0_8px_#f91f1f]' : 'bg-gray-700'}`}></div>
+                                <div className={`flex-1 p-3 rounded-lg border relative overflow-hidden ${event.active ? 'bg-background-dark/80 border-grid-primary/30' : 'bg-background-dark/30 border-white/5'}`}>
+                                    {event.active && <div className="absolute left-0 top-0 bottom-0 w-1 bg-grid-primary"></div>}
+                                    <div className="flex justify-between items-center">
+                                        <span className={`text-xs font-bold ${event.active ? 'text-white uppercase' : 'text-gray-300'}`}>{event.name}</span>
+                                        <span className={`text-[10px] font-mono ${event.active ? 'text-grid-primary font-bold' : 'text-gray-500'}`}>{event.time}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="mt-8 pt-4 border-t border-white/10 flex justify-center">
+                    <button className="text-xs text-gray-500 hover:text-white flex items-center gap-1 transition-colors">
+                        FULL STATS BREAKDOWN <span className="material-icons text-sm">arrow_forward</span>
+                    </button>
+                </div>
+            </aside>
+        );
+
+        const GridPage = () => (
+            <div className="h-screen flex flex-col overflow-hidden bg-background-light dark:bg-background-dark">
+                <GridNav />
+                <main className="flex-1 flex overflow-hidden relative">
+                    <div className="absolute inset-0 bg-grid opacity-20 pointer-events-none z-0"></div>
+                    <GridSidebar />
+                    <GridMap />
+                    <GridIntelPanel />
+                </main>
+            </div>
+        );
+
+        // --- App ---
+
+        const App = () => {
+            return (
+                <MemoryRouter>
+                    <Routes>
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/grid" element={<GridPage />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

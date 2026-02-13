@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-chakra-petch: 'Chakra Petch', sans-serif;
+    --font-space-grotesk: 'Space Grotesk', sans-serif;
+  }
+
+  body {
+    font-family: var(--font-space-grotesk), sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+
+  /* Glassmorphism Effects */
+  .glass-panel {
+    background: rgba(10, 10, 10, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 40, 0, 0.1);
+  }
+
+  .glass-card {
+    background: rgba(21, 21, 21, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-button {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .glass-button:hover {
+    background: rgba(255, 40, 0, 0.2);
+    border-color: rgba(255, 40, 0, 0.5);
+    color: white;
+  }
+
+  /* Neon Effects */
+  .neon-text {
+    text-shadow: 0 0 10px rgba(249, 31, 31, 0.5);
+  }
+
+  .neon-border {
+    box-shadow: 0 0 15px rgba(249, 31, 31, 0.3);
+  }
+
+  .track-glow {
+    filter: drop-shadow(0 0 8px rgba(249, 31, 31, 0.6));
+  }
+
+  /* Text Outline */
+  .text-outline {
+    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
+    color: transparent;
+  }
+
+  /* Logo Styling */
+  .logo-text {
+    font-family: var(--font-chakra-petch), sans-serif;
+    font-weight: 700;
+  }
+
+  /* Scrollbar Utilities */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #230f0f;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #f91f1f;
+    border-radius: 4px;
+  }
+
+  /* Background Patterns */
+  .bg-grid-pattern-size {
+    background-size: 40px 40px;
+  }
+}

@@ -1,0 +1,1221 @@
+export const F1_SEASON = "2026";
+const REVALIDATE_SECONDS = 3600;
+const ERGAST_BASE_URL = "https://api.jolpi.ca/ergast/f1";
+const UNAVAILABLE = "Data unavailable";
+
+/**
+ * Generate F1 official driver image URL
+ * Format: https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/{Initial}/{DRIVERID}_FullName/driverid.png.transform/2col/image.png
+ */
+export function getDriverImageUrl(driver: { driverId: string; givenName: string; familyName: string }): string {
+  const initial = driver.familyName.charAt(0).toUpperCase();
+  const fullNameFormatted = `${driver.givenName}_${driver.familyName}`;
+  const driverIdUpper = driver.driverId.toUpperCase();
+
+  // Construct the official F1 media URL
+  return `https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/${initial}/${driverIdUpper}_${fullNameFormatted}/${driver.driverId}.png.transform/2col/image.png`;
+}
+
+export type Race = {
+  season: string;
+  round: string;
+  raceName: string;
+  circuitId: string;
+  apiCircuitId?: string;
+  circuitName: string;
+  country: string;
+  locality: string;
+  date: string;
+  time: string;
+};
+
+export type TrackSector = {
+  id: "S1" | "S2" | "S3";
+  name: string;
+  telemetry: string;
+};
+
+export type RaceSession = {
+  code: "FP1" | "FP2" | "FP3" | "QUALI" | "RACE";
+  label: string;
+  startsAt: string;
+};
+
+export type WinnerStat = {
+  driver: string;
+  constructor: string;
+  year: string;
+};
+
+export type FastestLapStat = {
+  driver: string;
+  time: string;
+  year: string;
+};
+
+export type RaceDetail = {
+  race: Race;
+  circuit: {
+    circuitId: string;
+    name: string;
+    location: string;
+    country: string;
+    lengthKm: string;
+    turns: string;
+    drsZones: string;
+    firstGrandPrix: string;
+    trackSvgPath: string | null;
+    sectors: TrackSector[];
+  };
+  stats: {
+    lastWinner: WinnerStat;
+    fastestLap: FastestLapStat;
+  };
+};
+
+export type Driver = {
+  driverId: string;
+  permanentNumber: string;
+  code: string;
+  givenName: string;
+  familyName: string;
+  dateOfBirth: string;
+  nationality: string;
+};
+
+export type Constructor = {
+  constructorId: string;
+  name: string;
+  nationality: string;
+};
+
+// API response types
+type ErgastDriversResponse = {
+  MRData: {
+    DriverTable: {
+      Drivers: {
+        driverId: string;
+        permanentNumber?: string;
+        code: string;
+        givenName: string;
+        familyName: string;
+        dateOfBirth: string;
+        nationality: string;
+      }[];
+    };
+  };
+};
+
+export type DriverStanding = {
+  position: string;
+  points: string;
+  wins: string;
+  driver: Driver;
+  constructors: Constructor[];
+};
+
+export type ConstructorStanding = {
+  position: string;
+  points: string;
+  wins: string;
+  constructor: Constructor;
+};
+
+export type DriverCareerEvent = {
+  year: string;
+  team: string;
+  event: string;
+  active?: boolean;
+  highlight?: boolean;
+};
+
+export type DriverCareerStats = {
+  totalWins: number;
+  totalPodiums: number;
+  totalPoles: number;
+  championships: number;
+  currentTeam: string;
+  currentTeamId: string;
+};
+
+export type DriverCareerEvent = {
+  year: string;
+  team: string;
+  event: string;
+  highlight?: boolean;
+  active?: boolean;
+};
+
+export type TeamStatistics = {
+  constructorChampionships: number;
+  driversChampionships: number;
+  raceWins: number;
+  polePositions: number;
+  firstEntry: string;
+};
+
+type ErgastRace = {
+  season: string;
+  round: string;
+  raceName: string;
+  date: string;
+  time?: string;
+  Circuit: {
+    circuitId: string;
+    circuitName: string;
+    Location: {
+      locality: string;
+      country: string;
+    };
+  };
+};
+
+type ErgastScheduleResponse = {
+  MRData?: {
+    RaceTable?: {
+      season?: string;
+      Races?: ErgastRace[];
+    };
+  };
+};
+
+type ErgastResult = {
+  Driver?: {
+    givenName?: string;
+    familyName?: string;
+  };
+  Constructor?: {
+    name?: string;
+  };
+  FastestLap?: {
+    Time?: {
+      time?: string;
+    };
+  };
+};
+
+type ErgastResultRace = {
+  season: string;
+  round: string;
+  Results?: ErgastResult[];
+};
+
+type ErgastResultResponse = {
+  MRData?: {
+    RaceTable?: {
+      Races?: ErgastResultRace[];
+    };
+  };
+};
+
+type CircuitStatic = {
+  lengthKm: string;
+  turns: string;
+  drsZones: number;
+  firstGrandPrix: string;
+  trackSvgFile: string;
+};
+
+// Temporary fallback: only used for missing rounds when the 2026 endpoint is partial/unavailable.
+const TEMP_FALLBACK_2026_CALENDAR: Race[] = [
+  {
+    season: "2026",
+    round: "1",
+    raceName: "Australian Grand Prix",
+    circuitId: "albert_park",
+    circuitName: "Albert Park Grand Prix Circuit",
+    country: "Australia",
+    locality: "Melbourne",
+    date: "2026-03-08",
+    time: "04:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "2",
+    raceName: "Saudi Arabian Grand Prix",
+    circuitId: "jeddah",
+    circuitName: "Jeddah Corniche Circuit",
+    country: "Saudi Arabia",
+    locality: "Jeddah",
+    date: "2026-04-19",
+    time: "17:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "3",
+    raceName: "Bahrain Grand Prix",
+    circuitId: "bahrain",
+    circuitName: "Bahrain International Circuit",
+    country: "Bahrain",
+    locality: "Sakhir",
+    date: "2026-04-26",
+    time: "15:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "4",
+    raceName: "Japanese Grand Prix",
+    circuitId: "suzuka",
+    circuitName: "Suzuka Circuit",
+    country: "Japan",
+    locality: "Suzuka",
+    date: "2026-05-10",
+    time: "05:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "5",
+    raceName: "Chinese Grand Prix",
+    circuitId: "shanghai",
+    circuitName: "Shanghai International Circuit",
+    country: "China",
+    locality: "Shanghai",
+    date: "2026-05-24",
+    time: "07:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "6",
+    raceName: "Miami Grand Prix",
+    circuitId: "miami",
+    circuitName: "Miami International Autodrome",
+    country: "United States",
+    locality: "Miami",
+    date: "2026-06-07",
+    time: "19:30:00Z"
+  },
+  {
+    season: "2026",
+    round: "7",
+    raceName: "Emilia Romagna Grand Prix",
+    circuitId: "imola",
+    circuitName: "Autodromo Enzo e Dino Ferrari",
+    country: "Italy",
+    locality: "Imola",
+    date: "2026-06-14",
+    time: "13:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "8",
+    raceName: "Monaco Grand Prix",
+    circuitId: "monaco",
+    circuitName: "Circuit de Monaco",
+    country: "Monaco",
+    locality: "Monte Carlo",
+    date: "2026-06-28",
+    time: "13:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "9",
+    raceName: "Spanish Grand Prix",
+    circuitId: "catalunya",
+    circuitName: "Circuit de Barcelona-Catalunya",
+    country: "Spain",
+    locality: "Barcelona",
+    date: "2026-07-05",
+    time: "13:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "10",
+    raceName: "Canadian Grand Prix",
+    circuitId: "villeneuve",
+    circuitName: "Circuit Gilles-Villeneuve",
+    country: "Canada",
+    locality: "Montreal",
+    date: "2026-07-19",
+    time: "18:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "11",
+    raceName: "Austrian Grand Prix",
+    circuitId: "red_bull_ring",
+    circuitName: "Red Bull Ring",
+    country: "Austria",
+    locality: "Spielberg",
+    date: "2026-07-26",
+    time: "13:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "12",
+    raceName: "British Grand Prix",
+    circuitId: "silverstone",
+    circuitName: "Silverstone Circuit",
+    country: "United Kingdom",
+    locality: "Silverstone",
+    date: "2026-08-02",
+    time: "14:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "13",
+    raceName: "Belgian Grand Prix",
+    circuitId: "spa",
+    circuitName: "Circuit de Spa-Francorchamps",
+    country: "Belgium",
+    locality: "Spa",
+    date: "2026-08-30",
+    time: "13:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "14",
+    raceName: "Hungarian Grand Prix",
+    circuitId: "hungaroring",
+    circuitName: "Hungaroring",
+    country: "Hungary",
+    locality: "Budapest",
+    date: "2026-09-06",
+    time: "13:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "15",
+    raceName: "Dutch Grand Prix",
+    circuitId: "zandvoort",
+    circuitName: "Circuit Zandvoort",
+    country: "Netherlands",
+    locality: "Zandvoort",
+    date: "2026-09-20",
+    time: "13:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "16",
+    raceName: "Italian Grand Prix",
+    circuitId: "monza",
+    circuitName: "Autodromo Nazionale Monza",
+    country: "Italy",
+    locality: "Monza",
+    date: "2026-09-27",
+    time: "13:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "17",
+    raceName: "Azerbaijan Grand Prix",
+    circuitId: "baku",
+    circuitName: "Baku City Circuit",
+    country: "Azerbaijan",
+    locality: "Baku",
+    date: "2026-10-11",
+    time: "11:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "18",
+    raceName: "Singapore Grand Prix",
+    circuitId: "marina_bay",
+    circuitName: "Marina Bay Street Circuit",
+    country: "Singapore",
+    locality: "Singapore",
+    date: "2026-10-25",
+    time: "12:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "19",
+    raceName: "United States Grand Prix",
+    circuitId: "americas",
+    circuitName: "Circuit of the Americas",
+    country: "United States",
+    locality: "Austin",
+    date: "2026-11-01",
+    time: "20:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "20",
+    raceName: "Mexico City Grand Prix",
+    circuitId: "rodriguez",
+    circuitName: "Autodromo Hermanos Rodriguez",
+    country: "Mexico",
+    locality: "Mexico City",
+    date: "2026-11-08",
+    time: "20:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "21",
+    raceName: "Sao Paulo Grand Prix",
+    circuitId: "interlagos",
+    circuitName: "Autodromo Jose Carlos Pace",
+    country: "Brazil",
+    locality: "Sao Paulo",
+    date: "2026-11-15",
+    time: "17:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "22",
+    raceName: "Las Vegas Grand Prix",
+    circuitId: "las_vegas",
+    circuitName: "Las Vegas Strip Circuit",
+    country: "United States",
+    locality: "Las Vegas",
+    date: "2026-11-22",
+    time: "06:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "23",
+    raceName: "Qatar Grand Prix",
+    circuitId: "losail",
+    circuitName: "Lusail International Circuit",
+    country: "Qatar",
+    locality: "Lusail",
+    date: "2026-11-29",
+    time: "16:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "24",
+    raceName: "Abu Dhabi Grand Prix",
+    circuitId: "yas_marina",
+    circuitName: "Yas Marina Circuit",
+    country: "United Arab Emirates",
+    locality: "Abu Dhabi",
+    date: "2026-12-06",
+    time: "13:00:00Z"
+  }
+];
+
+const CIRCUIT_STATIC: Record<string, CircuitStatic> = {
+  albert_park: { lengthKm: "5.278", turns: "14", drsZones: 4, firstGrandPrix: "1996", trackSvgFile: "albert_park.svg" },
+  jeddah: { lengthKm: "6.174", turns: "27", drsZones: 3, firstGrandPrix: "2021", trackSvgFile: "jeddah.svg" },
+  bahrain: { lengthKm: "5.412", turns: "15", drsZones: 3, firstGrandPrix: "2004", trackSvgFile: "bahrain.svg" },
+  suzuka: { lengthKm: "5.807", turns: "18", drsZones: 1, firstGrandPrix: "1987", trackSvgFile: "suzuka.svg" },
+  shanghai: { lengthKm: "5.451", turns: "16", drsZones: 2, firstGrandPrix: "2004", trackSvgFile: "shanghai.svg" },
+  miami: { lengthKm: "5.412", turns: "19", drsZones: 3, firstGrandPrix: "2022", trackSvgFile: "miami.svg" },
+  imola: { lengthKm: "4.909", turns: "19", drsZones: 1, firstGrandPrix: "1980", trackSvgFile: "imola.svg" },
+  monaco: { lengthKm: "3.337", turns: "19", drsZones: 1, firstGrandPrix: "1950", trackSvgFile: "monaco.svg" },
+  catalunya: { lengthKm: "4.657", turns: "14", drsZones: 2, firstGrandPrix: "1991", trackSvgFile: "catalunya.svg" },
+  villeneuve: { lengthKm: "4.361", turns: "14", drsZones: 3, firstGrandPrix: "1978", trackSvgFile: "villeneuve.svg" },
+  red_bull_ring: { lengthKm: "4.318", turns: "10", drsZones: 3, firstGrandPrix: "1970", trackSvgFile: "red_bull_ring.svg" },
+  silverstone: { lengthKm: "5.891", turns: "18", drsZones: 2, firstGrandPrix: "1950", trackSvgFile: "silverstone.svg" },
+  spa: { lengthKm: "7.004", turns: "19", drsZones: 2, firstGrandPrix: "1950", trackSvgFile: "spa.svg" },
+  hungaroring: { lengthKm: "4.381", turns: "14", drsZones: 2, firstGrandPrix: "1986", trackSvgFile: "hungaroring.svg" },
+  zandvoort: { lengthKm: "4.259", turns: "14", drsZones: 2, firstGrandPrix: "1952", trackSvgFile: "zandvoort.svg" },
+  monza: { lengthKm: "5.793", turns: "11", drsZones: 2, firstGrandPrix: "1950", trackSvgFile: "monza.svg" },
+  baku: { lengthKm: "6.003", turns: "20", drsZones: 2, firstGrandPrix: "2016", trackSvgFile: "baku.svg" },
+  marina_bay: { lengthKm: "4.940", turns: "19", drsZones: 3, firstGrandPrix: "2008", trackSvgFile: "marina_bay.svg" },
+  americas: { lengthKm: "5.513", turns: "20", drsZones: 2, firstGrandPrix: "2012", trackSvgFile: "americas.svg" },
+  rodriguez: { lengthKm: "4.304", turns: "17", drsZones: 3, firstGrandPrix: "1963", trackSvgFile: "rodriguez.svg" },
+  interlagos: { lengthKm: "4.309", turns: "15", drsZones: 2, firstGrandPrix: "1973", trackSvgFile: "interlagos.svg" },
+  las_vegas: { lengthKm: "6.201", turns: "17", drsZones: 2, firstGrandPrix: "2023", trackSvgFile: "las_vegas.svg" },
+  losail: { lengthKm: "5.419", turns: "16", drsZones: 1, firstGrandPrix: "2021", trackSvgFile: "losail.svg" },
+  yas_marina: { lengthKm: "5.281", turns: "16", drsZones: 2, firstGrandPrix: "2009", trackSvgFile: "yas_marina.svg" }
+};
+
+const DEFAULT_SECTORS: TrackSector[] = [
+  {
+    id: "S1",
+    name: "Sector 1",
+    telemetry: "Launch-limited opening section with high setup sensitivity."
+  },
+  {
+    id: "S2",
+    name: "Sector 2",
+    telemetry: "High-speed middle sector where drag and stability decide lap delta."
+  },
+  {
+    id: "S3",
+    name: "Sector 3",
+    telemetry: "Low-speed exits and braking zones with traction-critical deployment."
+  }
+];
+
+const CIRCUIT_SECTOR_COPY: Record<string, TrackSector[]> = {
+  jeddah: [
+    {
+      id: "S1",
+      name: "Sector 1",
+      telemetry: "Flat-out sweeps; minimum steering delay on entry is critical."
+    },
+    {
+      id: "S2",
+      name: "Sector 2",
+      telemetry: "Long acceleration arcs; DRS deployment timing decides top speed."
+    },
+    {
+      id: "S3",
+      name: "Sector 3",
+      telemetry: "Heavy braking into late rotation; rear stability defines exit pace."
+    }
+  ]
+};
+
+let hasLoggedCalendarValidation = false;
+
+function toCircuitKey(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function resolveCanonicalCircuitId(race: Pick<Race, "circuitId" | "circuitName" | "raceName" | "country">): string {
+  const rawId = toCircuitKey(race.circuitId);
+  const circuitName = toCircuitKey(race.circuitName);
+  const raceName = toCircuitKey(race.raceName);
+  const country = toCircuitKey(race.country);
+  const haystack = `${rawId}_${circuitName}_${raceName}_${country}`;
+
+  const directAliases: Record<string, string> = {
+    albert_park: "albert_park",
+    melbourne_grand_prix_circuit: "albert_park",
+    jeddah: "jeddah",
+    jeddah_corniche_circuit: "jeddah",
+    bahrain: "bahrain",
+    bahrain_international_circuit: "bahrain",
+    suzuka: "suzuka",
+    suzuka_circuit: "suzuka",
+    shanghai: "shanghai",
+    shanghai_international_circuit: "shanghai",
+    miami: "miami",
+    miami_international_autodrome: "miami",
+    imola: "imola",
+    autodromo_enzo_e_dino_ferrari: "imola",
+    monaco: "monaco",
+    circuit_de_monaco: "monaco",
+    gilles_villeneuve: "villeneuve",
+    circuit_gilles_villeneuve: "villeneuve",
+    catalunya: "catalunya",
+    barcelona_catalunya: "catalunya",
+    red_bull_ring: "red_bull_ring",
+    spielberg: "red_bull_ring",
+    silverstone: "silverstone",
+    hungaroring: "hungaroring",
+    spa: "spa",
+    spa_francorchamps: "spa",
+    zandvoort: "zandvoort",
+    monza: "monza",
+    baku: "baku",
+    marina_bay: "marina_bay",
+    americas: "americas",
+    circuit_of_the_americas: "americas",
+    rodriguez: "rodriguez",
+    hermanos_rodriguez: "rodriguez",
+    interlagos: "interlagos",
+    jose_carlos_pace: "interlagos",
+    las_vegas: "las_vegas",
+    losail: "losail",
+    lusail: "losail",
+    yas_marina: "yas_marina"
+  };
+
+  const directHit = directAliases[rawId] ?? directAliases[circuitName];
+
+  if (directHit) {
+    return directHit;
+  }
+
+  if (haystack.includes("monaco")) {
+    return "monaco";
+  }
+
+  if (haystack.includes("monza")) {
+    return "monza";
+  }
+
+  if (haystack.includes("villeneuve")) {
+    return "villeneuve";
+  }
+
+  if (haystack.includes("catalunya") || haystack.includes("barcelona")) {
+    return "catalunya";
+  }
+
+  if (haystack.includes("americas") || haystack.includes("austin")) {
+    return "americas";
+  }
+
+  if (haystack.includes("hermanos") || haystack.includes("rodriguez") || haystack.includes("mexico")) {
+    return "rodriguez";
+  }
+
+  if (haystack.includes("interlagos") || haystack.includes("jose_carlos_pace") || haystack.includes("sao_paulo")) {
+    return "interlagos";
+  }
+
+  if (haystack.includes("losail") || haystack.includes("lusail") || haystack.includes("qatar")) {
+    return "losail";
+  }
+
+  if (haystack.includes("yas") || haystack.includes("abu_dhabi")) {
+    return "yas_marina";
+  }
+
+  return rawId;
+}
+
+function normalizeRace(race: ErgastRace): Race {
+  const raceBase = {
+    season: race.season,
+    round: race.round,
+    raceName: race.raceName,
+    circuitId: race.Circuit.circuitId,
+    circuitName: race.Circuit.circuitName,
+    country: race.Circuit.Location.country,
+    locality: race.Circuit.Location.locality,
+    date: race.date,
+    time: race.time ?? "00:00:00Z"
+  };
+
+  return {
+    ...raceBase,
+    apiCircuitId: race.Circuit.circuitId,
+    circuitId: resolveCanonicalCircuitId(raceBase)
+  };
+}
+
+function sortByRound(races: Race[]): Race[] {
+  return [...races].sort((a, b) => Number(a.round) - Number(b.round));
+}
+
+function mergeWithFallbackRaces(apiRaces: Race[]): Race[] {
+  const byRound = new Map<string, Race>();
+
+  for (const race of apiRaces) {
+    byRound.set(race.round, race);
+  }
+
+  for (const fallbackRace of TEMP_FALLBACK_2026_CALENDAR) {
+    if (!byRound.has(fallbackRace.round)) {
+      byRound.set(fallbackRace.round, fallbackRace);
+    }
+  }
+
+  return sortByRound(Array.from(byRound.values()));
+}
+
+async function fetchJson<T>(url: string): Promise<T | null> {
+  try {
+    const response = await fetch(url, {
+      next: { revalidate: REVALIDATE_SECONDS }
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+function formatDriverName(result?: ErgastResult): string {
+  const first = result?.Driver?.givenName?.trim();
+  const last = result?.Driver?.familyName?.trim();
+
+  if (!first && !last) {
+    return UNAVAILABLE;
+  }
+
+  return [first, last].filter(Boolean).join(" ");
+}
+
+function pickLatestRace(races: ErgastResultRace[]): ErgastResultRace | null {
+  if (races.length === 0) {
+    return null;
+  }
+
+  const sorted = [...races].sort((a, b) => {
+    const seasonDiff = Number(b.season) - Number(a.season);
+    if (seasonDiff !== 0) {
+      return seasonDiff;
+    }
+
+    return Number(b.round) - Number(a.round);
+  });
+
+  return sorted[0] ?? null;
+}
+
+function lapTimeToMilliseconds(lapTime: string): number {
+  const [minutesPart, secondsPart] = lapTime.split(":");
+
+  if (!minutesPart || !secondsPart) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const minutes = Number(minutesPart);
+  const seconds = Number(secondsPart);
+
+  if (!Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return minutes * 60 * 1000 + seconds * 1000;
+}
+
+function resolveTrackSvgPath(circuitId: string): string | null {
+  const file = CIRCUIT_STATIC[circuitId]?.trackSvgFile;
+  return file ? `/tracks/${file}` : null;
+}
+
+function resolveCircuitStatic(circuitId: string) {
+  const staticData = CIRCUIT_STATIC[circuitId];
+
+  return {
+    lengthKm: staticData?.lengthKm ?? UNAVAILABLE,
+    turns: staticData?.turns ?? UNAVAILABLE,
+    drsZones: staticData ? String(staticData.drsZones) : UNAVAILABLE,
+    firstGrandPrix: staticData?.firstGrandPrix ?? UNAVAILABLE,
+    trackSvgPath: resolveTrackSvgPath(circuitId),
+    sectors: CIRCUIT_SECTOR_COPY[circuitId] ?? DEFAULT_SECTORS
+  };
+}
+
+async function fetchMostRecentWinner(circuitId: string): Promise<WinnerStat> {
+  const data = await fetchJson<ErgastResultResponse>(
+    `${ERGAST_BASE_URL}/circuits/${circuitId}/results/1.json?limit=200`
+  );
+
+  const races = data?.MRData?.RaceTable?.Races ?? [];
+  const latestRace = pickLatestRace(races);
+  const topResult = latestRace?.Results?.[0];
+
+  return {
+    driver: formatDriverName(topResult),
+    constructor: topResult?.Constructor?.name ?? UNAVAILABLE,
+    year: latestRace?.season ?? UNAVAILABLE
+  };
+}
+
+async function fetchFastestLap(circuitId: string): Promise<FastestLapStat> {
+  const data = await fetchJson<ErgastResultResponse>(
+    `${ERGAST_BASE_URL}/circuits/${circuitId}/fastest/1/results.json?limit=200`
+  );
+
+  const races = data?.MRData?.RaceTable?.Races ?? [];
+
+  const candidates = races
+    .map((race) => {
+      const result = race.Results?.[0];
+      const lapTime = result?.FastestLap?.Time?.time;
+
+      return {
+        race,
+        driver: formatDriverName(result),
+        lapTime: lapTime ?? UNAVAILABLE,
+        lapMs: lapTime ? lapTimeToMilliseconds(lapTime) : Number.POSITIVE_INFINITY
+      };
+    })
+    .filter((candidate) => candidate.lapTime !== UNAVAILABLE);
+
+  const best = candidates.sort((a, b) => a.lapMs - b.lapMs)[0];
+
+  if (!best) {
+    return {
+      driver: UNAVAILABLE,
+      time: UNAVAILABLE,
+      year: UNAVAILABLE
+    };
+  }
+
+  return {
+    driver: best.driver,
+    time: best.lapTime,
+    year: best.race.season
+  };
+}
+
+export async function getRaceCalendar(): Promise<Race[]> {
+  const data = await fetchJson<ErgastScheduleResponse>(`${ERGAST_BASE_URL}/${F1_SEASON}.json`);
+
+  const apiRaces = data?.MRData?.RaceTable?.Races?.map(normalizeRace) ?? [];
+  const mergedRaces = mergeWithFallbackRaces(apiRaces);
+
+  if (!hasLoggedCalendarValidation) {
+    const fetchedSeason = apiRaces[0]?.season ?? "none";
+    const roundOne = mergedRaces.find((race) => race.round === "1");
+
+    console.log(`[f1] requested season: ${F1_SEASON}; fetched season: ${fetchedSeason}`);
+    console.log(`[f1] 2026 race count: ${mergedRaces.length}`);
+
+    if (roundOne) {
+      console.log(`[f1] round 1 check: ${roundOne.raceName} (${roundOne.date})`);
+    }
+
+    hasLoggedCalendarValidation = true;
+  }
+
+  return mergedRaces;
+}
+
+export async function getRaceByRound(round: string): Promise<Race | null> {
+  const races = await getRaceCalendar();
+  return races.find((race) => race.round === round) ?? null;
+}
+
+export async function getRaceDetailByRound(round: string): Promise<RaceDetail | null> {
+  const race = await getRaceByRound(round);
+
+  if (!race) {
+    return null;
+  }
+
+  const [lastWinner, fastestLap] = await Promise.all([
+    fetchMostRecentWinner(race.apiCircuitId ?? race.circuitId),
+    fetchFastestLap(race.apiCircuitId ?? race.circuitId)
+  ]);
+
+  const circuitStatic = resolveCircuitStatic(race.circuitId);
+
+  return {
+    race,
+    circuit: {
+      circuitId: race.circuitId,
+      name: race.circuitName,
+      location: race.locality,
+      country: race.country,
+      lengthKm: circuitStatic.lengthKm,
+      turns: circuitStatic.turns,
+      drsZones: circuitStatic.drsZones,
+      firstGrandPrix: circuitStatic.firstGrandPrix,
+      trackSvgPath: circuitStatic.trackSvgPath,
+      sectors: circuitStatic.sectors
+    },
+    stats: {
+      lastWinner,
+      fastestLap
+    }
+  };
+}
+
+export function getRaceDateTimeIso(race: Pick<Race, "date" | "time">): string {
+  return `${race.date}T${race.time}`;
+}
+
+export function formatRaceDateTime(date: string, time: string): string {
+  const eventDate = new Date(getRaceDateTimeIso({ date, time }));
+
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short"
+  }).format(eventDate);
+}
+
+export function formatRaceWeekendRange(date: string): string {
+  const raceDate = new Date(`${date}T00:00:00Z`);
+  const weekendStart = new Date(raceDate);
+  weekendStart.setUTCDate(raceDate.getUTCDate() - 2);
+
+  const sameMonth = weekendStart.getUTCMonth() === raceDate.getUTCMonth();
+  const sameYear = weekendStart.getUTCFullYear() === raceDate.getUTCFullYear();
+
+  const startDay = weekendStart.getUTCDate();
+  const endDay = raceDate.getUTCDate();
+
+  const startMonth = new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(weekendStart);
+  const endMonth = new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(raceDate);
+  const endYear = raceDate.getUTCFullYear();
+
+  if (sameMonth && sameYear) {
+    return `${startDay}-${endDay} ${endMonth} ${endYear}`;
+  }
+
+  return `${startDay} ${startMonth} - ${endDay} ${endMonth} ${endYear}`;
+}
+
+export function isUpcomingRace(race: Pick<Race, "date" | "time">): boolean {
+  return new Date(getRaceDateTimeIso(race)).getTime() >= Date.now();
+}
+
+export function getRaceWeekendSessions(race: Pick<Race, "date" | "time">): RaceSession[] {
+  const raceStart = new Date(getRaceDateTimeIso(race));
+
+  const withOffset = (hoursOffset: number) => {
+    return new Date(raceStart.getTime() + hoursOffset * 60 * 60 * 1000).toISOString();
+  };
+
+  return [
+    { code: "FP1", label: "Practice 1", startsAt: withOffset(-52) },
+    { code: "FP2", label: "Practice 2", startsAt: withOffset(-48) },
+    { code: "FP3", label: "Practice 3", startsAt: withOffset(-28) },
+    { code: "QUALI", label: "Qualifying", startsAt: withOffset(-24) },
+    { code: "RACE", label: "Race", startsAt: withOffset(0) }
+  ];
+}
+// ============================================
+// Driver & Constructor API Functions
+// ============================================
+
+type ErgastDriverStandingsResponse = {
+  MRData?: {
+    StandingsTable?: {
+      StandingsLists?: Array<{
+        DriverStandings?: Array<{
+          position: string;
+          points: string;
+          wins: string;
+          Driver: {
+            driverId: string;
+            permanentNumber?: string;
+            code?: string;
+            givenName: string;
+            familyName: string;
+            dateOfBirth: string;
+            nationality: string;
+          };
+          Constructors: Array<{
+            constructorId: string;
+            name: string;
+            nationality: string;
+          }>;
+        }>;
+      }>;
+    };
+  };
+};
+
+type ErgastConstructorStandingsResponse = {
+  MRData?: {
+    StandingsTable?: {
+      StandingsLists?: Array<{
+        ConstructorStandings?: Array<{
+          position: string;
+          points: string;
+          wins: string;
+          Constructor: {
+            constructorId: string;
+            name: string;
+            nationality: string;
+          };
+        }>;
+      }>;
+    };
+  };
+};
+
+/**
+ * Get driver standings for a given season
+ * Falls back to 2025 for unavailable 2026 data
+ */
+export async function getDriverStandings(
+  season: string = F1_SEASON
+): Promise<DriverStanding[]> {
+  // Use 2023 as fallback for 2026 (2024/2025 data not available in Ergast API)
+  const fetchSeason = season === "2026" ? "2023" : season;
+
+  try {
+    const url = `${ERGAST_BASE_URL}/${fetchSeason}/driverStandings.json`;
+    const res = await fetch(url, {
+      next: { revalidate: REVALIDATE_SECONDS },
+    });
+
+    if (!res.ok) throw new Error(`Failed to fetch driver standings: ${res.status}`);
+
+    const data: ErgastDriverStandingsResponse = await res.json();
+    const standings =
+      data?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || [];
+
+    return standings.map((standing) => ({
+      position: standing.position,
+      points: standing.points,
+      wins: standing.wins,
+      driver: {
+        driverId: standing.Driver.driverId,
+        permanentNumber: standing.Driver.permanentNumber || "—",
+        code: standing.Driver.code || "—",
+        givenName: standing.Driver.givenName,
+        familyName: standing.Driver.familyName,
+        dateOfBirth: standing.Driver.dateOfBirth,
+        nationality: standing.Driver.nationality,
+      },
+      constructors: standing.Constructors,
+    }));
+  } catch (error) {
+    console.error("Error fetching driver standings:", error);
+    return [];
+  }
+}
+
+/**
+ * Get all drivers for a given season (without standings data)
+ * Use this for 2026 season to get actual driver list
+ */
+export async function getAllDrivers(
+  season: string = F1_SEASON
+): Promise<Driver[]> {
+  try {
+    const url = `${ERGAST_BASE_URL}/${season}/drivers.json`;
+    const res = await fetch(url, {
+      next: { revalidate: REVALIDATE_SECONDS },
+    });
+
+    if (!res.ok) throw new Error(`Failed to fetch drivers: ${res.status}`);
+
+    const data: ErgastDriversResponse = await res.json();
+    const drivers = data?.MRData?.DriverTable?.Drivers || [];
+
+    return drivers.map((driver) => ({
+      driverId: driver.driverId,
+      permanentNumber: driver.permanentNumber || "—",
+      code: driver.code || "—",
+      givenName: driver.givenName,
+      familyName: driver.familyName,
+      dateOfBirth: driver.dateOfBirth,
+      nationality: driver.nationality,
+    }));
+  } catch (error) {
+    console.error("Error fetching drivers:", error);
+    return [];
+  }
+}
+
+/**
+ * Get a single driver's standing details
+ */
+export async function getDriverById(
+  driverId: string,
+  season: string = F1_SEASON
+): Promise<DriverStanding | null> {
+  const standings = await getDriverStandings(season);
+  return standings.find((s) => s.driver.driverId === driverId) || null;
+}
+
+/**
+ * Get driver career statistics (aggregated historical data)
+ * This is a simplified version - in production you'd aggregate multiple seasons
+ */
+export async function getDriverCareerStats(
+  driverId: string
+): Promise<DriverCareerStats | null> {
+  try {
+    // Get the driver's most recent standing for current team info
+    const standing = await getDriverById(driverId, "2023");
+
+    if (!standing) return null;
+
+    // For now, use the standing data as a baseline
+    // In production, you'd aggregate historical seasons
+    return {
+      totalWins: parseInt(standing.wins) || 0,
+      totalPodiums: 0, // Would need to aggregate from race results
+      totalPoles: 0, // Would need to aggregate from qualifying results
+      championships: 0, // Would need to check championship wins across seasons
+      currentTeam: standing.constructors[0]?.name || "Unknown",
+      currentTeamId: standing.constructors[0]?.constructorId || "unknown",
+    };
+  } catch (error) {
+    console.error("Error fetching driver career stats:", error);
+    return null;
+  }
+}
+
+/**
+ * Get driver career timeline
+ * This is a simplified placeholder - in production you'd fetch actual team history
+ */
+export async function getDriverCareerHistory(
+  driverId: string
+): Promise<DriverCareerEvent[]> {
+  // Placeholder: would need to aggregate historical data
+  // For now, return recent history based on current standing
+  const standing = await getDriverById(driverId, "2023");
+
+  if (!standing) return [];
+
+  return [
+    {
+      year: "2023",
+      team: standing.constructors[0]?.name || "Unknown",
+      event: "Current Season",
+      active: true,
+    },
+  ];
+}
+
+/**
+ * Get constructor standings for a given season
+ * Falls back to 2025 for unavailable 2026 data
+ */
+export async function getConstructorStandings(
+  season: string = F1_SEASON
+): Promise<ConstructorStanding[]> {
+  const fetchSeason = season === "2026" ? "2023" : season;
+
+  try {
+    const url = `${ERGAST_BASE_URL}/${fetchSeason}/constructorStandings.json`;
+    const res = await fetch(url, {
+      next: { revalidate: REVALIDATE_SECONDS },
+    });
+
+    if (!res.ok) throw new Error(`Failed to fetch constructor standings: ${res.status}`);
+
+    const data: ErgastConstructorStandingsResponse = await res.json();
+    const standings =
+      data?.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings || [];
+
+    return standings.map((standing) => ({
+      position: standing.position,
+      points: standing.points,
+      wins: standing.wins,
+      constructor: standing.Constructor,
+    }));
+  } catch (error) {
+    console.error("Error fetching constructor standings:", error);
+    return [];
+  }
+}
+
+/**
+ * Get a single constructor's standing details
+ */
+export async function getConstructorById(
+  constructorId: string,
+  season: string = F1_SEASON
+): Promise<ConstructorStanding | null> {
+  const standings = await getConstructorStandings(season);
+  return standings.find((s) => s.constructor.constructorId === constructorId) || null;
+}
+
+/**
+ * Get team statistics (historical aggregate)
+ * Simplified placeholder - would need to aggregate across seasons
+ */
+export async function getTeamStatistics(
+  constructorId: string
+): Promise<TeamStatistics | null> {
+  const standing = await getConstructorById(constructorId, "2023");
+
+  if (!standing) return null;
+
+  return {
+    constructorChampionships: 0, // Would aggregate championship wins
+    driversChampionships: 0, // Would count driver championships won with this team
+    raceWins: parseInt(standing.wins) || 0,
+    polePositions: 0, // Would aggregate qualifying data
+    firstEntry: "TBD", // Would need historical data
+  };
+}
+
+/**
+ * Get team drivers for current season
+ */
+export async function getTeamDrivers(
+  constructorId: string,
+  season: string = F1_SEASON
+): Promise<Driver[]> {
+  const driverStandings = await getDriverStandings(season);
+
+  return driverStandings
+    .filter((standing) =>
+      standing.constructors.some((c) => c.constructorId === constructorId)
+    )
+    .map((standing) => standing.driver);
+}

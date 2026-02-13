@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Arena F1 Drivers Overview</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff2800",
+                        "grid-primary": "#f91f1f",
+                        "secondary": "#000000",
+                        "accent-green": "#00ff00",
+                        "accent-gold": "#ffd700",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#0a0a0a",
+                        "surface-dark": "#151515",
+                        "sector-1": "#FFD700",
+                        "sector-2": "#00FF00",
+                        "sector-3": "#9C27B0",
+                    },
+                    fontFamily: {
+                        "display": ["Chakra Petch", "sans-serif"],
+                        "body": ["Space Grotesk", "sans-serif"],
+                        "grid-display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                    backdropBlur: {
+                        'xs': '2px',
+                    },
+                    backgroundImage: {
+                        'grid-pattern': "linear-gradient(to right, #333 1px, transparent 1px), linear-gradient(to bottom, #333 1px, transparent 1px)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            overflow-x: hidden;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 40, 0, 0.1);
+        }
+        .glass-card {
+            background: rgba(21, 21, 21, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glass-button {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-button:hover {
+            background: rgba(255, 40, 0, 0.2);
+            border-color: rgba(255, 40, 0, 0.5);
+            color: white;
+        }
+        .text-outline {
+            -webkit-text-stroke: 1px rgba(255,255,255,0.3);
+            color: transparent;
+        }
+        .bg-grid-pattern-landing {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 40, 0, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 40, 0, 0.05) 1px, transparent 1px);
+        }
+        .logo-text {
+            font-family: 'Chakra Petch', sans-serif;
+            font-weight: 700;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .neon-text {
+            text-shadow: 0 0 10px rgba(249, 31, 31, 0.5);
+        }
+        .neon-border {
+            box-shadow: 0 0 15px rgba(249, 31, 31, 0.3);
+        }
+        .track-glow {
+            filter: drop-shadow(0 0 8px rgba(249, 31, 31, 0.6));
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #230f0f;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #f91f1f;
+            border-radius: 4px;
+        }
+        .bg-stripes {
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(249, 31, 31, 0.05) 10px, rgba(249, 31, 31, 0.05) 20px);
+        }
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+        }
+        .kinetic-text-shadow {
+            text-shadow: 4px 4px 0px rgba(255, 255, 255, 0.1);
+        }
+        .driver-card-hover:hover .driver-number {
+            transform: scale(1.1) translate(-10px, -10px);
+        }
+        .driver-card-hover:hover .driver-image {
+            transform: scale(1.05) translateY(-5px);
+            filter: grayscale(0%);
+        }
+        .driver-image {
+            filter: grayscale(100%);
+            transition: all 0.5s ease;
+        }
+        .team-card-hover:hover {
+            border-color: rgba(255, 40, 0, 0.5);
+            background: rgba(255, 40, 0, 0.05);
+        }
+    </style>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/history@5/umd/history.development.js"></script>
+<script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+<script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-white font-body antialiased selection:bg-primary selection:text-white">
+<div id="root"></div>
+<script type="text/babel">
+        const { useState, useEffect } = React;
+        const { createRoot } = ReactDOM;
+        const { MemoryRouter, Routes, Route, Link, useNavigate, useLocation } = ReactRouterDOM;
+        // --- Updated Nav Component ---
+        const Nav = () => (
+             <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between bg-background-dark/95 backdrop-blur-md border-b border-white/5">
+                <div className="flex items-center gap-2 logo-text text-xl tracking-tighter cursor-pointer group">
+                    <Link to="/" className="flex items-center gap-0.5">
+                        {}
+                         <span className="text-primary font-bold text-2xl group-hover:text-white transition-colors">F</span>
+                         <span className="text-white font-bold text-2xl mx-[-2px]">n</span>
+                         <span className="text-black font-bold text-2xl bg-white px-1 rounded-sm ml-1 group-hover:bg-primary transition-colors">F</span>
+                    </Link>
+                </div>
+                <div className="hidden md:flex items-center gap-8 text-sm font-medium font-display uppercase tracking-widest">
+                    <Link to="/" className="text-gray-400 hover:text-white transition-colors">Home</Link>
+                    <Link to="/calendar" className="text-gray-400 hover:text-white transition-colors">Calendar</Link>
+                    <Link to="/teams" className="text-gray-400 hover:text-white transition-colors">Teams</Link>
+                    <Link to="/drivers" className="text-primary relative after:absolute after:left-0 after:-bottom-2 after:w-full after:h-0.5 after:bg-primary after:shadow-[0_0_8px_#ff2800]">Drivers</Link>
+                    <button className="px-4 py-1.5 rounded bg-primary text-white border border-primary font-bold text-xs uppercase tracking-wider hover:bg-primary/80 transition-all shadow-[0_0_15px_rgba(255,40,0,0.4)]">ARENA HUB</button>
+                </div>
+                <div className="flex items-center gap-4">
+                    <button className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+                        <span className="material-icons text-gray-400">notifications</span>
+                    </button>
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-orange-500 p-[1px]">
+                        <img alt="User avatar" className="w-full h-full rounded-full object-cover" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80"/>
+                    </div>
+                </div>
+            </nav>
+        );
+        // --- Drivers View Components ---
+        const DriverCard = ({ driver }) => (
+            <div className="driver-card-hover group relative w-full h-[450px] rounded-2xl overflow-hidden bg-surface-dark/40 border border-white/5 hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-primary/20">
+                <div className="driver-number absolute -right-4 -top-8 text-[200px] font-display font-bold text-white/5 group-hover:text-primary/10 transition-all duration-500 z-0 leading-none select-none">
+                    {driver.number}
+                </div>
+                <div className="absolute inset-x-0 bottom-0 h-5/6 z-10 flex items-end justify-center overflow-hidden">
+                     <img 
+                        src={driver.image} 
+                        alt={driver.name}
+                        className="driver-image w-auto h-full object-contain object-bottom drop-shadow-2xl"
+                     />
+                </div>
+                <div className="absolute inset-0 z-20 flex flex-col justify-end p-6 bg-gradient-to-b from-transparent via-transparent to-black/95">
+                    <div className="flex justify-between items-end mb-2">
+                        <div className="flex flex-col">
+                            <span className="text-xl font-light text-gray-300 font-display uppercase tracking-widest">{driver.firstName}</span>
+                            <span className="text-5xl font-bold font-display text-white italic tracking-tighter leading-none kinetic-text-shadow">{driver.lastName.toUpperCase()}</span>
+                        </div>
+                    </div>
+                    <div className="w-full h-px bg-white/10 mb-4"></div>
+                    <div className="flex justify-between items-end">
+                         <div className="flex flex-col">
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Rank</p>
+                            <p className="text-2xl font-bold text-primary font-display">#{driver.rank}</p>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <img src={driver.flag} alt={driver.nationality} className="w-6 h-4 rounded-sm object-cover mb-1 opacity-80" />
+                            <span className="text-[10px] text-gray-500 uppercase font-mono">{driver.nationality}</span>
+                        </div>
+                         <div className="flex flex-col items-end">
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Points</p>
+                            <p className="text-2xl font-bold text-white font-mono">{driver.points}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+        // --- Main Page Component ---
+        const DriversTeamsPage = () => {
+            // Mock Data - Drivers Only now
+            const drivers = [
+                { id: 1, firstName: 'Max', lastName: 'Verstappen', number: '1', points: 285, rank: 1, nationality: 'NED', flag: 'https://flagcdn.com/nl.svg', image: 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/2col/image.png' },
+                { id: 2, firstName: 'Lando', lastName: 'Norris', number: '4', points: 195, rank: 2, nationality: 'GBR', flag: 'https://flagcdn.com/gb.svg', image: 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png.transform/2col/image.png' },
+                { id: 3, firstName: 'Charles', lastName: 'Leclerc', number: '16', points: 172, rank: 3, nationality: 'MON', flag: 'https://flagcdn.com/mc.svg', image: 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png.transform/2col/image.png' },
+                { id: 4, firstName: 'Oscar', lastName: 'Piastri', number: '81', points: 154, rank: 4, nationality: 'AUS', flag: 'https://flagcdn.com/au.svg', image: 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png.transform/2col/image.png' },
+                { id: 5, firstName: 'Carlos', lastName: 'Sainz', number: '55', points: 148, rank: 5, nationality: 'ESP', flag: 'https://flagcdn.com/es.svg', image: 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CARSAI01_Carlos_Sainz/carsai01.png.transform/2col/image.png' },
+                { id: 6, firstName: 'Lewis', lastName: 'Hamilton', number: '44', points: 110, rank: 6, nationality: 'GBR', flag: 'https://flagcdn.com/gb.svg', image: 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png.transform/2col/image.png' },
+                { id: 7, firstName: 'George', lastName: 'Russell', number: '63', points: 102, rank: 7, nationality: 'GBR', flag: 'https://flagcdn.com/gb.svg', image: 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/G/GEORUS01_George_Russell/georus01.png.transform/2col/image.png' },
+                { id: 8, firstName: 'Sergio', lastName: 'Perez', number: '11', points: 98, rank: 8, nationality: 'MEX', flag: 'https://flagcdn.com/mx.svg', image: 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/S/SERPER01_Sergio_Perez/serper01.png.transform/2col/image.png' },
+            ];
+            return (
+                <div className="min-h-screen bg-background-dark text-white pt-24 pb-12 relative overflow-x-hidden">
+                    <Nav />
+                    <div className="fixed inset-0 z-0 bg-grid opacity-20 pointer-events-none"></div>
+                    <div className="fixed top-20 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none"></div>
+                    <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[150px] pointer-events-none"></div>
+                    <div className="container mx-auto px-6 relative z-10">
+                        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-8 border-b border-white/5 pb-8">
+                            <div>
+                                <h1 className="text-6xl md:text-9xl font-bold font-display tracking-tighter italic text-white mb-2 leading-[0.85]">
+                                    DRIVERS
+                                </h1>
+                                <p className="text-gray-400 font-body max-w-md text-lg mt-4 pl-2 border-l-2 border-primary">
+                                    The 20 heroes of the grid. Speed, skill, and pure adrenaline.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="min-h-[600px]">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in">
+                                {drivers.map(driver => (
+                                    <DriverCard key={driver.id} driver={driver} />
+                                ))}
+                            </div>
+                        </div>
+                         <div className="mt-20 flex justify-center">
+                            <button className="glass-button px-10 py-5 rounded-xl text-white font-bold uppercase tracking-widest group flex items-center gap-3 font-display border border-white/20 hover:border-primary">
+                                <span>See Full Championship Standings</span>
+                                <span className="material-icons text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        const App = () => {
+            return (
+                <MemoryRouter initialEntries={["/drivers"]}>
+                    <Routes>
+                        <Route path="/" element={<div className="h-screen flex items-center justify-center text-white">Landing Page Mockup - Click <Link to="/drivers" className="text-primary underline ml-1">here</Link> for Drivers</div>} />
+                        <Route path="/calendar" element={<div className="h-screen flex items-center justify-center text-white">Calendar Page Mockup - Click <Link to="/drivers" className="text-primary underline ml-1">here</Link> for Drivers</div>} />
+                        <Route path="/teams" element={<div className="h-screen flex items-center justify-center text-white">Teams Page Mockup - Click <Link to="/drivers" className="text-primary underline ml-1">here</Link> for Drivers</div>} />
+                        <Route path="/drivers" element={<DriversTeamsPage />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+        };
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body></html>
