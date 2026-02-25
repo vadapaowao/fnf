@@ -17,6 +17,7 @@ type TrackMapProps = {
 type TrackSvgData = {
   viewBox: string;
   pathData: string;
+  nativeStrokeWidth: number | null;
 };
 
 type TrackLayout = {
@@ -37,11 +38,36 @@ type SectorDisplay = {
   end: number;
 };
 
+type SegmentPath = {
+  id: string;
+  pathData: string;
+};
+
 const TRACK_LAYOUTS: Record<string, TrackLayout> = {
-  bahrain: { sectorStops: [0, 0.34, 0.67, 1], drsFractions: [0.14, 0.46, 0.81] },
-  jeddah: { sectorStops: [0, 0.33, 0.66, 1], drsFractions: [0.12, 0.43, 0.76] },
-  albert_park: { sectorStops: [0, 0.31, 0.64, 1], drsFractions: [0.16, 0.49, 0.78] },
-  suzuka: { sectorStops: [0, 0.36, 0.7, 1], drsFractions: [0.18] }
+  albert_park: { sectorStops: [0, 0.32, 0.66, 1], drsFractions: [0.08, 0.36, 0.62, 0.86] },
+  jeddah: { sectorStops: [0, 0.3, 0.63, 1], drsFractions: [0.1, 0.42, 0.78] },
+  bahrain: { sectorStops: [0, 0.34, 0.68, 1], drsFractions: [0.14, 0.47, 0.82] },
+  suzuka: { sectorStops: [0, 0.37, 0.71, 1], drsFractions: [0.19] },
+  shanghai: { sectorStops: [0, 0.35, 0.69, 1], drsFractions: [0.16, 0.56] },
+  miami: { sectorStops: [0, 0.33, 0.66, 1], drsFractions: [0.13, 0.48, 0.79] },
+  imola: { sectorStops: [0, 0.31, 0.66, 1], drsFractions: [0.55] },
+  monaco: { sectorStops: [0, 0.34, 0.67, 1], drsFractions: [0.58] },
+  catalunya: { sectorStops: [0, 0.3, 0.65, 1], drsFractions: [0.15, 0.72] },
+  villeneuve: { sectorStops: [0, 0.33, 0.68, 1], drsFractions: [0.19, 0.51, 0.86] },
+  red_bull_ring: { sectorStops: [0, 0.3, 0.63, 1], drsFractions: [0.08, 0.39, 0.74] },
+  silverstone: { sectorStops: [0, 0.36, 0.71, 1], drsFractions: [0.22, 0.63] },
+  spa: { sectorStops: [0, 0.33, 0.69, 1], drsFractions: [0.09, 0.58] },
+  hungaroring: { sectorStops: [0, 0.34, 0.67, 1], drsFractions: [0.17, 0.74] },
+  zandvoort: { sectorStops: [0, 0.35, 0.69, 1], drsFractions: [0.21, 0.73] },
+  monza: { sectorStops: [0, 0.32, 0.67, 1], drsFractions: [0.16, 0.62] },
+  baku: { sectorStops: [0, 0.31, 0.64, 1], drsFractions: [0.14, 0.79] },
+  marina_bay: { sectorStops: [0, 0.34, 0.68, 1], drsFractions: [0.18, 0.47, 0.81] },
+  americas: { sectorStops: [0, 0.33, 0.67, 1], drsFractions: [0.1, 0.57] },
+  rodriguez: { sectorStops: [0, 0.31, 0.66, 1], drsFractions: [0.09, 0.44, 0.84] },
+  interlagos: { sectorStops: [0, 0.34, 0.69, 1], drsFractions: [0.15, 0.72] },
+  las_vegas: { sectorStops: [0, 0.34, 0.67, 1], drsFractions: [0.11, 0.43] },
+  losail: { sectorStops: [0, 0.35, 0.69, 1], drsFractions: [0.17] },
+  yas_marina: { sectorStops: [0, 0.32, 0.66, 1], drsFractions: [0.23, 0.77] }
 };
 
 const DEFAULT_LAYOUT: TrackLayout = {
@@ -69,6 +95,36 @@ const DEFAULT_SECTORS: TrackSector[] = [
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function buildSegmentPolyline(
+  pathElement: SVGPathElement | null,
+  pathLength: number,
+  startFraction: number,
+  endFraction: number
+): string | null {
+  if (!pathElement || pathLength <= 0) {
+    return null;
+  }
+
+  const start = clamp(startFraction, 0, 1) * pathLength;
+  const end = clamp(endFraction, 0, 1) * pathLength;
+
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+    return null;
+  }
+
+  const span = end - start;
+  const sampleCount = Math.max(20, Math.ceil(span / 6));
+  const chunks: string[] = [];
+
+  for (let index = 0; index <= sampleCount; index += 1) {
+    const distance = start + (span * index) / sampleCount;
+    const point = pathElement.getPointAtLength(distance);
+    chunks.push(`${index === 0 ? "M" : "L"} ${point.x.toFixed(3)} ${point.y.toFixed(3)}`);
+  }
+
+  return chunks.join(" ");
 }
 
 function parseDrsCount(value: number | string | undefined, fallback: number) {
@@ -107,6 +163,39 @@ function parseStrokeOnlyClasses(svgText: string): Set<string> {
   return classes;
 }
 
+function parseFillNoneClasses(svgText: string): Set<string> {
+  const classes = new Set<string>();
+  const styleBlocks = Array.from(svgText.matchAll(/\.([a-zA-Z0-9_-]+)\s*\{([^}]*)\}/g));
+
+  for (const [, className, rules] of styleBlocks) {
+    const normalizedRules = rules.toLowerCase().replace(/\s+/g, "");
+    if (normalizedRules.includes("fill:none")) {
+      classes.add(className);
+    }
+  }
+
+  return classes;
+}
+
+function parseStrokeWidth(value: string | null): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const numeric = Number(value.trim());
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+}
+
+function resolvePrimarySubpath(d: string): string {
+  const chunks = d.match(/[Mm][^Mm]*/g);
+
+  if (!chunks || chunks.length <= 1) {
+    return d;
+  }
+
+  return chunks.sort((a, b) => b.length - a.length)[0]?.trim() ?? d;
+}
+
 function parseSvgDimension(rawValue: string | null): number | null {
   if (!rawValue) {
     return null;
@@ -141,6 +230,7 @@ function resolveViewBox(svgElement: SVGElement | null): string | null {
 
 function resolveMainTrackPath(parsed: Document, svgText: string): string | null {
   const strokeOnlyClasses = parseStrokeOnlyClasses(svgText);
+  const fillNoneClasses = parseFillNoneClasses(svgText);
   const allPaths = Array.from(parsed.querySelectorAll("path[d]"));
 
   if (allPaths.length === 0) {
@@ -150,22 +240,53 @@ function resolveMainTrackPath(parsed: Document, svgText: string): string | null 
   const ranked = allPaths
     .map((pathElement) => {
       const d = pathElement.getAttribute("d")?.trim() ?? "";
+      const stroke = pathElement.getAttribute("stroke")?.trim()?.toLowerCase() ?? "";
+      const fill = pathElement.getAttribute("fill")?.trim()?.toLowerCase() ?? "";
+      const strokeWidth = parseStrokeWidth(pathElement.getAttribute("stroke-width"));
       const classNames = (pathElement.getAttribute("class") ?? "")
         .split(/\s+/)
         .map((className) => className.trim())
         .filter(Boolean);
 
       const isStrokePath = classNames.some((className) => strokeOnlyClasses.has(className));
+      const hasFillNoneClass = classNames.some((className) => fillNoneClasses.has(className));
+      const hasStrokeAttribute = Boolean(stroke && stroke !== "none");
+      const hasNoFillAttribute = fill === "none";
+      const hasNoFill = hasFillNoneClass || hasNoFillAttribute;
+      const pathScore =
+        d.length +
+        (isStrokePath || hasStrokeAttribute ? 12000 : 0) +
+        (hasNoFill ? 6000 : 0) +
+        (strokeWidth ? strokeWidth * 32 : 0);
 
       return {
-        d,
-        score: (isStrokePath ? 100000 : 0) + d.length
+        d: resolvePrimarySubpath(d),
+        score: pathScore,
+        strokeWidth
       };
     })
     .filter((entry) => entry.d.length > 0)
     .sort((a, b) => b.score - a.score);
 
   return ranked[0]?.d ?? null;
+}
+
+function resolveNativeStrokeWidth(parsed: Document): number | null {
+  const paths = Array.from(parsed.querySelectorAll("path[d]"));
+
+  if (paths.length === 0) {
+    return null;
+  }
+
+  const widths = paths
+    .map((pathElement) => parseStrokeWidth(pathElement.getAttribute("stroke-width")))
+    .filter((width): width is number => width !== null);
+
+  if (widths.length === 0) {
+    return null;
+  }
+
+  return widths.sort((a, b) => b - a)[0] ?? null;
 }
 
 export default function TrackMap({ circuitId, trackSvgPath, className, sectors, drsZoneCount }: TrackMapProps) {
@@ -240,13 +361,14 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
 
         const viewBox = resolveViewBox(svg);
         const pathData = resolveMainTrackPath(parsed, svgText);
+        const nativeStrokeWidth = resolveNativeStrokeWidth(parsed);
 
         if (!viewBox || !pathData) {
           throw new Error("Invalid SVG shape");
         }
 
         if (!isCancelled) {
-          setSvgData({ viewBox, pathData });
+          setSvgData({ viewBox, pathData, nativeStrokeWidth });
           setHasError(false);
         }
       } catch {
@@ -303,6 +425,74 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
       };
     });
   }, [drsFractions, pathLength]);
+
+  const sectorPaths = useMemo(() => {
+    const element = pathRef.current;
+
+    if (!element || pathLength <= 0) {
+      return [] as SegmentPath[];
+    }
+
+    return sectorSegments
+      .map((segment) => {
+        const pathData = buildSegmentPolyline(element, pathLength, segment.start, segment.end);
+
+        if (!pathData) {
+          return null;
+        }
+
+        return { id: segment.id, pathData };
+      })
+      .filter((segment): segment is SegmentPath => segment !== null);
+  }, [pathLength, sectorSegments]);
+
+  const drsPaths = useMemo(() => {
+    const element = pathRef.current;
+
+    if (!element || pathLength <= 0) {
+      return [] as SegmentPath[];
+    }
+
+    return drsSegments
+      .map((segment) => {
+        const pathData = buildSegmentPolyline(element, pathLength, segment.start, segment.end);
+
+        if (!pathData) {
+          return null;
+        }
+
+        return { id: segment.id, pathData };
+      })
+      .filter((segment): segment is SegmentPath => segment !== null);
+  }, [drsSegments, pathLength]);
+
+  const strokeScale = useMemo(() => {
+    const native = svgData?.nativeStrokeWidth;
+
+    if (!native) {
+      return {
+        base: 6.2,
+        red: 6.8,
+        sector: 7.2,
+        sectorActive: 8.4,
+        drs: 7.4,
+        drsActive: 9,
+        hitbox: 22
+      };
+    }
+
+    const base = clamp(native * 0.88, 5, 9.2);
+
+    return {
+      base,
+      red: base + 0.6,
+      sector: base + 1,
+      sectorActive: base + 2.2,
+      drs: base + 1.2,
+      drsActive: base + 2.8,
+      hitbox: clamp(base + 15, 18, 26)
+    };
+  }, [svgData?.nativeStrokeWidth]);
 
   const drsPoints = useMemo(() => {
     const element = pathRef.current;
@@ -428,7 +618,7 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
             d={svgData.pathData}
             fill="none"
             stroke="#1C1C1C"
-            strokeWidth={6.2}
+            strokeWidth={strokeScale.base}
             strokeLinecap="round"
             strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
@@ -438,49 +628,44 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
             d={svgData.pathData}
             fill="none"
             stroke="#E10600"
-            strokeWidth={6.8}
+            strokeWidth={strokeScale.red}
             strokeLinecap="round"
             strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 0.9, ease: "easeOut" }}
+            initial={{ opacity: 0.92 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
             style={{ filter: "drop-shadow(0 0 8px rgba(225,6,0,0.45))" }}
           />
 
           {pathLength > 0 &&
-            sectorSegments.map((segment) => {
-              const segmentLength = Math.max((segment.end - segment.start) * pathLength, 1);
-              const dashArray = `${segmentLength} ${Math.max(pathLength - segmentLength, 1)}`;
-              const dashOffset = -segment.start * pathLength;
+            sectorPaths.map((segment) => {
               const isActive = activeSectorId === segment.id;
 
               return (
                 <g key={segment.id}>
-                  <path
-                    d={svgData.pathData}
-                    fill="none"
-                    stroke={isActive ? "#FF5D55" : "rgba(225,6,0,0.38)"}
-                    strokeWidth={isActive ? 8.4 : 7.2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                    strokeDasharray={dashArray}
-                    strokeDashoffset={dashOffset}
-                    style={isActive ? { filter: "drop-shadow(0 0 10px rgba(225,6,0,0.55))" } : undefined}
-                    pointerEvents="none"
-                  />
+                  {isActive ? (
+                    <path
+                      d={segment.pathData}
+                      fill="none"
+                      stroke="#FF5D55"
+                      strokeWidth={strokeScale.sectorActive}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      vectorEffect="non-scaling-stroke"
+                      style={{ filter: "drop-shadow(0 0 10px rgba(225,6,0,0.55))" }}
+                      pointerEvents="none"
+                    />
+                  ) : null}
 
                   <path
-                    d={svgData.pathData}
+                    d={segment.pathData}
                     fill="none"
                     stroke="transparent"
-                    strokeWidth={22}
+                    strokeWidth={strokeScale.hitbox}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     vectorEffect="non-scaling-stroke"
-                    strokeDasharray={dashArray}
-                    strokeDashoffset={dashOffset}
                     onMouseEnter={() => activateSector(segment.id, true)}
                     onMouseMove={updateTooltipPosition}
                   />
@@ -489,28 +674,23 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
             })}
 
           {pathLength > 0 &&
-            drsSegments.map((segment) => {
-              const segmentLength = Math.max((segment.end - segment.start) * pathLength, 1);
-              const dashArray = `${segmentLength} ${Math.max(pathLength - segmentLength, 1)}`;
-              const dashOffset = -segment.start * pathLength;
+            drsPaths.map((segment) => {
               const isActive = activeDrsId === segment.id;
 
-              return (
+              return isActive ? (
                 <path
                   key={segment.id}
-                  d={svgData.pathData}
+                  d={segment.pathData}
                   fill="none"
-                  stroke={isActive ? "#FFD4D2" : "rgba(225,6,0,0.22)"}
-                  strokeWidth={isActive ? 9 : 7.4}
+                  stroke="#FFD4D2"
+                  strokeWidth={strokeScale.drsActive}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   vectorEffect="non-scaling-stroke"
-                  strokeDasharray={dashArray}
-                  strokeDashoffset={dashOffset}
-                  style={isActive ? { filter: "drop-shadow(0 0 9px rgba(225,6,0,0.45))" } : undefined}
+                  style={{ filter: "drop-shadow(0 0 9px rgba(225,6,0,0.45))" }}
                   pointerEvents="none"
                 />
-              );
+              ) : null;
             })}
 
           {drsPoints.map((point) => {

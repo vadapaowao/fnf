@@ -48,6 +48,8 @@ export default async function RaceDetailPage({ params }: RaceDetailPageProps) {
       <TrackHero
         race={detail.race}
         trackSvgPath={detail.circuit.trackSvgPath}
+        sectors={detail.circuit.sectors}
+        drsZoneCount={detail.circuit.drsZones}
       />
       <RaceIntelPanel
         race={detail.race}

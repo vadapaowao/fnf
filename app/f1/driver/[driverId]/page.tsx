@@ -1,28 +1,45 @@
 import { notFound } from "next/navigation";
-import { getDriverById, getDriverStandings, getDriverCareerStats } from "@/lib/f1";
-import DriverProfileClient from "./DriverProfileClient";
 
-interface Params {
+import DriverProfileClient from "@/app/f1/driver/[driverId]/DriverProfileClient";
+import { getDriverProfile } from "@/lib/driver-profile";
+import { F1_SEASON, getDriverStandings } from "@/lib/f1";
+
+type DriverPageProps = {
+  params: {
     driverId: string;
+  };
+};
+
+export async function generateStaticParams() {
+  const standings = await getDriverStandings(F1_SEASON);
+
+  return standings.map((standing) => ({
+    driverId: standing.driver.driverId
+  }));
 }
 
-// Generate static params for all drivers
-export async function generateStaticParams(): Promise<Params[]> {
-    const drivers = await getDriverStandings("2023");
-    return drivers.map((standing) => ({
-        driverId: standing.driver.driverId,
-    }));
+export async function generateMetadata({ params }: DriverPageProps) {
+  const profile = await getDriverProfile(params.driverId, F1_SEASON);
+
+  if (!profile) {
+    return {
+      title: "Driver Not Found"
+    };
+  }
+
+  return {
+    title: `${profile.standing.driver.givenName} ${profile.standing.driver.familyName} - Arena F1`,
+    description: `${profile.standing.driver.givenName} ${profile.standing.driver.familyName} profile and career statistics.`
+  };
 }
 
-export default async function DriverPage({ params }: { params: Params }) {
-    const standing = await getDriverById(params.driverId, "2026");
+export default async function DriverPage({ params }: DriverPageProps) {
+  const profile = await getDriverProfile(params.driverId, F1_SEASON);
 
-    if (!standing) {
-        notFound();
-    }
+  if (!profile) {
+    notFound();
+  }
 
-    // Get career stats
-    const careerStats = await getDriverCareerStats(params.driverId);
-
-    return <DriverProfileClient standing={standing} careerStats={careerStats} />;
+  return <DriverProfileClient profile={profile} />;
 }
+

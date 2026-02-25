@@ -17,6 +17,8 @@ export default async function F1GridPage() {
       <TrackHero
         race={currentRace}
         trackSvgPath={raceDetail?.circuit.trackSvgPath || null}
+        sectors={raceDetail?.circuit.sectors}
+        drsZoneCount={raceDetail?.circuit.drsZones}
       />
       <RaceIntelPanel
         race={currentRace}
