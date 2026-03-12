@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import {
+    F1_SEASON,
     getConstructorById,
     getConstructorStandings,
     getTeamDrivers,
@@ -7,40 +8,33 @@ import {
 import TeamProfile from "@/components/f1/TeamProfile";
 import StatsGrid from "@/components/f1/StatsGrid";
 import DriverCard from "@/components/f1/drivers/DriverCard";
-import { getDriverStandings } from "@/lib/f1";
 
 type Params = {
     constructorId: string;
 };
 
 export async function generateStaticParams(): Promise<Params[]> {
-    const teams = await getConstructorStandings("2025");
+    const teams = await getConstructorStandings(F1_SEASON);
     return teams.map((standing) => ({
         constructorId: standing.constructor.constructorId,
     }));
 }
 
 export default async function TeamPage({ params }: { params: Params }) {
-    const standing = await getConstructorById(params.constructorId, "2026");
+    const standing = await getConstructorById(params.constructorId, F1_SEASON);
 
     if (!standing) {
         notFound();
     }
 
     const { constructor: team, position, points, wins } = standing;
-    const teamDrivers = await getTeamDrivers(params.constructorId, "2025");
-
-    // Get full driver standings to display driver cards
-    const allDriverStandings = await getDriverStandings("2025");
-    const teamDriverStandings = allDriverStandings.filter((driverStanding) =>
-        driverStanding.constructors.some((c) => c.constructorId === params.constructorId)
-    );
+    const teamDrivers = await getTeamDrivers(params.constructorId, F1_SEASON);
 
     // Build stats for StatsGrid
     const stats = [
         {
             icon: "🏆",
-            label: "Race Wins (2023)",
+            label: "Race Wins",
             value: wins,
             color: "purple" as const,
         },
@@ -67,13 +61,6 @@ export default async function TeamPage({ params }: { params: Params }) {
     return (
         <main className="flex-1 overflow-y-auto bg-background-dark">
             <div className="container mx-auto px-6 py-12">
-                {/* 2023 Data Notice */}
-                <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
-                    <p className="text-sm text-amber-400">
-                        <span className="font-bold">📊 Showing 2023 Season Data</span> — Statistics will update once the 2026 season begins
-                    </p>
-                </div>
-
                 {/* Team Profile Hero */}
                 <div className="mb-12">
                     <TeamProfile team={team} position={position} points={points} wins={wins} />
@@ -92,13 +79,14 @@ export default async function TeamPage({ params }: { params: Params }) {
                     <h2 className="mb-6 font-['Chakra_Petch'] text-3xl font-bold text-white">
                         Current Drivers
                     </h2>
-                    {teamDriverStandings.length > 0 ? (
+                    {teamDrivers.length > 0 ? (
                         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            {teamDriverStandings.map((driverStanding) => (
+                            {teamDrivers.map((driver) => (
                                 <DriverCard
-                                    key={driverStanding.driver.driverId}
-                                    standing={driverStanding}
-                                    season="2023"
+                                    key={driver.driverId}
+                                    driver={driver}
+                                    teamId={team.constructorId}
+                                    teamName={team.name}
                                 />
                             ))}
                         </div>

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getRaceCalendar, getRaceDetailByRound } from "@/lib/f1";
+import { getRaceCalendar, getRaceDetailByRound, getRaceRecapByRound, getRaceReplayByRound, getRaceWeekendSessions } from "@/lib/f1";
 import RaceSidebar from "@/components/f1/RaceSidebar";
 import TrackHero from "@/components/f1/TrackHero";
 import RaceIntelPanel from "@/components/f1/RaceIntelPanel";
@@ -32,11 +32,17 @@ export async function generateMetadata({ params }: RaceDetailPageProps) {
 
 export default async function RaceDetailPage({ params }: RaceDetailPageProps) {
   const races = await getRaceCalendar();
-  const detail = await getRaceDetailByRound(params.round);
+  const [detail, recap, replay] = await Promise.all([
+    getRaceDetailByRound(params.round),
+    getRaceRecapByRound(params.round),
+    getRaceReplayByRound(params.round),
+  ]);
 
   if (!detail) {
     notFound();
   }
+
+  const sessions = getRaceWeekendSessions(detail.race);
 
   return (
     <main className="flex-1 flex overflow-hidden relative">
@@ -50,6 +56,8 @@ export default async function RaceDetailPage({ params }: RaceDetailPageProps) {
         trackSvgPath={detail.circuit.trackSvgPath}
         sectors={detail.circuit.sectors}
         drsZoneCount={detail.circuit.drsZones}
+        recap={recap}
+        replay={replay}
       />
       <RaceIntelPanel
         race={detail.race}
@@ -61,7 +69,9 @@ export default async function RaceDetailPage({ params }: RaceDetailPageProps) {
         }}
         lastWinner={detail.stats.lastWinner}
         fastestLap={detail.stats.fastestLap}
+        sessions={sessions}
         sectors={detail.circuit.sectors}
+        recap={recap}
       />
     </main>
   );

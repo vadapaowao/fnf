@@ -3,7 +3,6 @@ import { F1_SEASON, getDriverStandings } from "@/lib/f1";
 
 export default async function DriversPage() {
   const standings = await getDriverStandings(F1_SEASON);
-  const drivers = standings.map((standing) => standing.driver);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-background-dark pb-12 pt-24 text-white">
@@ -24,14 +23,19 @@ export default async function DriversPage() {
           </div>
         </header>
 
-        {drivers.length === 0 ? (
+        {standings.length === 0 ? (
           <div className="flex min-h-[400px] items-center justify-center">
             <p className="text-lg text-gray-400">Driver list unavailable.</p>
           </div>
         ) : (
           <div className="mb-16 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {drivers.map((driver) => (
-              <DriverCard key={driver.driverId} driver={driver} />
+            {standings.map((standing) => (
+              <DriverCard
+                key={standing.driver.driverId}
+                driver={standing.driver}
+                teamId={standing.constructors[0]?.constructorId}
+                teamName={standing.constructors[0]?.name}
+              />
             ))}
           </div>
         )}
@@ -39,4 +43,3 @@ export default async function DriversPage() {
     </main>
   );
 }
-

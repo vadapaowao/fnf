@@ -53,6 +53,58 @@ export type FastestLapStat = {
   year: string;
 };
 
+export type RaceRecapMoment = {
+  title: string;
+  detail: string;
+};
+
+export type RaceRecapSectorInsight = {
+  sector: "S1" | "S2" | "S3";
+  summary: string;
+};
+
+export type RaceRecapPodiumEntry = {
+  position: 1 | 2 | 3;
+  driver: string;
+  constructor: string;
+};
+
+export type RaceRecap = {
+  headline: string;
+  winnerStory: string;
+  keyMoments: RaceRecapMoment[];
+  sectorNarrative: RaceRecapSectorInsight[];
+  podium: RaceRecapPodiumEntry[];
+  decisivePitWindow: string;
+  biggestGainer: {
+    driver: string;
+    positionsGained: number;
+    started: number;
+    finished: number;
+  } | null;
+  fastestLap: {
+    driver: string;
+    lapTime: string;
+    lap: string;
+  } | null;
+};
+
+export type RaceReplayDriverTrace = {
+  driverId: string;
+  code: string;
+  name: string;
+  constructor: string;
+  finishPosition: number;
+  cumulativeMs: number[];
+};
+
+export type RaceReplayData = {
+  totalLaps: number;
+  totalRaceMs: number;
+  traces: RaceReplayDriverTrace[];
+  winnerDriverId: string | null;
+};
+
 export type RaceDetail = {
   race: Race;
   circuit: {
@@ -138,14 +190,6 @@ export type DriverCareerStats = {
   currentTeamId: string;
 };
 
-export type DriverCareerEvent = {
-  year: string;
-  team: string;
-  event: string;
-  highlight?: boolean;
-  active?: boolean;
-};
-
 export type TeamStatistics = {
   constructorChampionships: number;
   driversChampionships: number;
@@ -204,6 +248,80 @@ type ErgastResultResponse = {
   MRData?: {
     RaceTable?: {
       Races?: ErgastResultRace[];
+    };
+  };
+};
+
+type ErgastRaceResultEntry = {
+  position?: string;
+  grid?: string;
+  laps?: string;
+  status?: string;
+  Driver?: {
+    driverId?: string;
+    code?: string;
+    givenName?: string;
+    familyName?: string;
+  };
+  Constructor?: {
+    constructorId?: string;
+    name?: string;
+  };
+  Time?: {
+    time?: string;
+  };
+  FastestLap?: {
+    rank?: string;
+    lap?: string;
+    Time?: {
+      time?: string;
+    };
+  };
+};
+
+type ErgastRaceResultsResponse = {
+  MRData?: {
+    RaceTable?: {
+      Races?: Array<{
+        Results?: ErgastRaceResultEntry[];
+      }>;
+    };
+  };
+};
+
+type ErgastPitStopResponse = {
+  MRData?: {
+    RaceTable?: {
+      Races?: Array<{
+        PitStops?: Array<{
+          driverId?: string;
+          lap?: string;
+          stop?: string;
+          duration?: string;
+        }>;
+      }>;
+    };
+  };
+};
+
+type ErgastLapTimingEntry = {
+  driverId?: string;
+  position?: string;
+  time?: string;
+};
+
+type ErgastLapsResponse = {
+  MRData?: {
+    limit?: string;
+    offset?: string;
+    total?: string;
+    RaceTable?: {
+      Races?: Array<{
+        Laps?: Array<{
+          number?: string;
+          Timings?: ErgastLapTimingEntry[];
+        }>;
+      }>;
     };
   };
 };
@@ -604,7 +722,10 @@ function resolveCanonicalCircuitId(race: Pick<Race, "circuitId" | "circuitName" 
     hermanos_rodriguez: "rodriguez",
     interlagos: "interlagos",
     jose_carlos_pace: "interlagos",
+    vegas: "las_vegas",
     las_vegas: "las_vegas",
+    las_vegas_strip: "las_vegas",
+    las_vegas_strip_circuit: "las_vegas",
     losail: "losail",
     lusail: "losail",
     yas_marina: "yas_marina"
@@ -642,6 +763,10 @@ function resolveCanonicalCircuitId(race: Pick<Race, "circuitId" | "circuitName" 
 
   if (haystack.includes("interlagos") || haystack.includes("jose_carlos_pace") || haystack.includes("sao_paulo")) {
     return "interlagos";
+  }
+
+  if (haystack.includes("las_vegas") || haystack.includes("vegas")) {
+    return "las_vegas";
   }
 
   if (haystack.includes("losail") || haystack.includes("lusail") || haystack.includes("qatar")) {
@@ -711,6 +836,83 @@ async function fetchJson<T>(url: string): Promise<T | null> {
   }
 }
 
+async function fetchAllRaceLaps(season: string, round: string) {
+  const lapsByNumber = new Map<string, Map<string, ErgastLapTimingEntry>>();
+  let offset = 0;
+  let limit = 100;
+  let hasMore = true;
+  let guard = 0;
+
+  while (hasMore && guard < 200) {
+    guard += 1;
+    const page = await fetchJson<ErgastLapsResponse>(
+      `${ERGAST_BASE_URL}/${season}/${round}/laps.json?limit=${limit}&offset=${offset}`
+    );
+
+    if (!page) {
+      break;
+    }
+
+    const pageLaps = page.MRData?.RaceTable?.Races?.[0]?.Laps ?? [];
+    for (const lap of pageLaps) {
+      const lapNumber = lap.number?.trim();
+      if (!lapNumber) {
+        continue;
+      }
+
+      const lapTimings = lapsByNumber.get(lapNumber) ?? new Map<string, ErgastLapTimingEntry>();
+      for (const timing of lap.Timings ?? []) {
+        const driverId = timing.driverId?.trim();
+        if (!driverId) {
+          continue;
+        }
+
+        const existing = lapTimings.get(driverId);
+        if (!existing) {
+          lapTimings.set(driverId, { ...timing, driverId });
+          continue;
+        }
+
+        if ((!existing.time || existing.time === "None") && timing.time && timing.time !== "None") {
+          lapTimings.set(driverId, { ...existing, ...timing, driverId });
+        }
+      }
+
+      lapsByNumber.set(lapNumber, lapTimings);
+    }
+
+    const pageLimit = parseNumeric(page.MRData?.limit) ?? limit;
+    const pageOffset = parseNumeric(page.MRData?.offset) ?? offset;
+    const pageTotal = parseNumeric(page.MRData?.total) ?? 0;
+    const nextOffset = pageOffset + pageLimit;
+
+    if (pageTotal <= nextOffset || nextOffset <= offset) {
+      hasMore = false;
+    } else {
+      offset = nextOffset;
+      limit = pageLimit;
+    }
+  }
+
+  return Array.from(lapsByNumber.entries())
+    .sort((a, b) => {
+      const lapA = parseNumeric(a[0]) ?? Number.POSITIVE_INFINITY;
+      const lapB = parseNumeric(b[0]) ?? Number.POSITIVE_INFINITY;
+      return lapA - lapB;
+    })
+    .map(([number, timingsMap]) => ({
+      number,
+      Timings: Array.from(timingsMap.values()).sort((a, b) => {
+        const posA = parseNumeric(a.position) ?? Number.POSITIVE_INFINITY;
+        const posB = parseNumeric(b.position) ?? Number.POSITIVE_INFINITY;
+        if (posA !== posB) {
+          return posA - posB;
+        }
+        return (a.driverId ?? "").localeCompare(b.driverId ?? "");
+      })
+    }));
+}
+
 function formatDriverName(result?: ErgastResult): string {
   const first = result?.Driver?.givenName?.trim();
   const last = result?.Driver?.familyName?.trim();
@@ -740,7 +942,19 @@ function pickLatestRace(races: ErgastResultRace[]): ErgastResultRace | null {
 }
 
 function lapTimeToMilliseconds(lapTime: string): number {
-  const [minutesPart, secondsPart] = lapTime.split(":");
+  const normalized = lapTime.trim();
+  if (!normalized) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  if (!normalized.includes(":")) {
+    const secondsOnly = Number(normalized);
+    return Number.isFinite(secondsOnly) && secondsOnly > 0
+      ? Math.round(secondsOnly * 1000)
+      : Number.POSITIVE_INFINITY;
+  }
+
+  const [minutesPart, secondsPart] = normalized.split(":");
 
   if (!minutesPart || !secondsPart) {
     return Number.POSITIVE_INFINITY;
@@ -753,7 +967,7 @@ function lapTimeToMilliseconds(lapTime: string): number {
     return Number.POSITIVE_INFINITY;
   }
 
-  return minutes * 60 * 1000 + seconds * 1000;
+  return Math.round(minutes * 60 * 1000 + seconds * 1000);
 }
 
 function resolveTrackSvgPath(circuitId: string): string | null {
@@ -950,6 +1164,386 @@ export function getRaceWeekendSessions(race: Pick<Race, "date" | "time">): RaceS
     { code: "RACE", label: "Race", startsAt: withOffset(0) }
   ];
 }
+
+function parseNumeric(value?: string): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function formatResultDriverName(entry?: ErgastRaceResultEntry): string {
+  const first = entry?.Driver?.givenName?.trim();
+  const last = entry?.Driver?.familyName?.trim();
+
+  if (!first && !last) {
+    return UNAVAILABLE;
+  }
+
+  return [first, last].filter(Boolean).join(" ");
+}
+
+function buildSectorRecapNarrative(
+  race: Race,
+  winnerName: string,
+  fastestLapDriver: string
+): RaceRecapSectorInsight[] {
+  const staticData = CIRCUIT_STATIC[race.circuitId];
+  const turnCount = staticData?.turns ?? "multiple";
+  const drsZoneCount = staticData?.drsZones ?? 2;
+
+  return [
+    {
+      sector: "S1",
+      summary: `${winnerName} managed launch and opening rotation cleanly through a ${turnCount}-turn profile, protecting track position early.`
+    },
+    {
+      sector: "S2",
+      summary: `Mid-lap pace centered on drag-versus-stability balance with ${drsZoneCount} DRS zone${drsZoneCount === 1 ? "" : "s"} shaping overtaking pressure.`
+    },
+    {
+      sector: "S3",
+      summary: `${fastestLapDriver} benchmarked the closing phase where braking precision and traction release decided final lap-time deltas.`
+    }
+  ];
+}
+
+export async function getRaceRecapByRound(round: string): Promise<RaceRecap | null> {
+  const race = await getRaceByRound(round);
+
+  if (!race || isUpcomingRace(race)) {
+    return null;
+  }
+
+  const resultsData = await fetchJson<ErgastRaceResultsResponse>(
+    `${ERGAST_BASE_URL}/${race.season}/${round}/results.json`
+  );
+  const resultEntries = resultsData?.MRData?.RaceTable?.Races?.[0]?.Results ?? [];
+
+  if (resultEntries.length === 0) {
+    return null;
+  }
+
+  const classified = resultEntries
+    .map((entry) => ({
+      entry,
+      finishPosition: parseNumeric(entry.position),
+      gridPosition: parseNumeric(entry.grid),
+    }))
+    .filter((item) => item.finishPosition !== null)
+    .sort((a, b) => (a.finishPosition ?? Number.POSITIVE_INFINITY) - (b.finishPosition ?? Number.POSITIVE_INFINITY));
+
+  if (classified.length === 0) {
+    return null;
+  }
+
+  const winner = classified.find((item) => item.finishPosition === 1) ?? classified[0];
+  const winnerName = formatResultDriverName(winner.entry);
+  const winnerTeam = winner.entry.Constructor?.name ?? "Unknown Team";
+  const winnerTime = winner.entry.Time?.time ? ` in ${winner.entry.Time.time}` : "";
+  const second = classified.find((item) => item.finishPosition === 2);
+
+  const pole = classified.find((item) => item.gridPosition === 1);
+  const poleName = pole ? formatResultDriverName(pole.entry) : UNAVAILABLE;
+
+  const biggestGainer = classified
+    .map((item) => {
+      if (item.gridPosition === null || item.finishPosition === null) {
+        return null;
+      }
+
+      const positionsGained = item.gridPosition - item.finishPosition;
+      if (positionsGained <= 0) {
+        return null;
+      }
+
+      return {
+        driver: formatResultDriverName(item.entry),
+        positionsGained,
+        started: item.gridPosition,
+        finished: item.finishPosition,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+    .sort((a, b) => b.positionsGained - a.positionsGained)[0] ?? null;
+
+  const fastestLapCandidates = classified
+    .map((item) => {
+      const lapTime = item.entry.FastestLap?.Time?.time;
+
+      if (!lapTime) {
+        return null;
+      }
+
+      return {
+        driver: formatResultDriverName(item.entry),
+        lapTime,
+        lap: item.entry.FastestLap?.lap ?? "—",
+        rank: parseNumeric(item.entry.FastestLap?.rank) ?? Number.POSITIVE_INFINITY,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  const rankedFastestLap = fastestLapCandidates.find((item) => item.rank === 1);
+  const fastestLap =
+    rankedFastestLap ??
+    fastestLapCandidates.sort((a, b) => lapTimeToMilliseconds(a.lapTime) - lapTimeToMilliseconds(b.lapTime))[0] ??
+    null;
+
+  const pitStopsData = await fetchJson<ErgastPitStopResponse>(
+    `${ERGAST_BASE_URL}/${race.season}/${round}/pitstops.json?limit=500`
+  );
+  const pitStops = pitStopsData?.MRData?.RaceTable?.Races?.[0]?.PitStops ?? [];
+  const pitLapCounts = new Map<number, number>();
+
+  for (const stop of pitStops) {
+    const lap = parseNumeric(stop.lap);
+    if (lap === null) {
+      continue;
+    }
+
+    pitLapCounts.set(lap, (pitLapCounts.get(lap) ?? 0) + 1);
+  }
+
+  const busiestPitLap = Array.from(pitLapCounts.entries()).sort((a, b) => b[1] - a[1])[0];
+  const decisivePitWindow = busiestPitLap
+    ? `Lap ${busiestPitLap[0]} became the strategy hinge with ${busiestPitLap[1]} recorded pit stop${busiestPitLap[1] === 1 ? "" : "s"}.`
+    : "No pit-stop spike in feed; strategic separation came from stint pace consistency.";
+
+  const finishGapText = second?.entry?.Time?.time
+    ? `${winnerName} sealed victory with a margin of ${second.entry.Time.time} over ${formatResultDriverName(second.entry)}.`
+    : `${winnerName} controlled the closing laps to secure the win.`;
+
+  const fastestLapDriver = fastestLap?.driver ?? winnerName;
+  const podium = classified
+    .slice(0, 3)
+    .map((item, index) => ({
+      position: (index + 1) as 1 | 2 | 3,
+      driver: formatResultDriverName(item.entry),
+      constructor: item.entry.Constructor?.name ?? "Unknown Team"
+    }));
+
+  return {
+    headline: `${winnerName} executed a complete race at ${race.circuitName}.`,
+    winnerStory: `${winnerName} (${winnerTeam}) converted race rhythm${winnerTime} and held execution under pressure.`,
+    podium,
+    decisivePitWindow,
+    biggestGainer,
+    fastestLap,
+    keyMoments: [
+      {
+        title: "Start Phase",
+        detail:
+          poleName === winnerName
+            ? `${winnerName} launched from pole and protected the lead through the opening sequence.`
+            : `${poleName} started from pole, while ${winnerName} built race control after the first phase.`
+      },
+      {
+        title: "Strategy Swing",
+        detail: decisivePitWindow
+      },
+      {
+        title: "Biggest Charge",
+        detail: biggestGainer
+          ? `${biggestGainer.driver} gained ${biggestGainer.positionsGained} place${biggestGainer.positionsGained === 1 ? "" : "s"} (P${biggestGainer.started} to P${biggestGainer.finished}).`
+          : "Field positions were largely stable, with limited net place gains across the top finishers."
+      },
+      {
+        title: "Closing Stint",
+        detail: finishGapText
+      }
+    ],
+    sectorNarrative: buildSectorRecapNarrative(race, winnerName, fastestLapDriver),
+  };
+}
+
+export async function getRaceReplayByRound(round: string): Promise<RaceReplayData | null> {
+  const race = await getRaceByRound(round);
+
+  if (!race || isUpcomingRace(race)) {
+    return null;
+  }
+
+  const [resultsData, laps] = await Promise.all([
+    fetchJson<ErgastRaceResultsResponse>(`${ERGAST_BASE_URL}/${race.season}/${round}/results.json`),
+    fetchAllRaceLaps(race.season, round)
+  ]);
+
+  const resultEntries = resultsData?.MRData?.RaceTable?.Races?.[0]?.Results ?? [];
+
+  if (resultEntries.length === 0) {
+    return null;
+  }
+
+  const orderedDrivers = resultEntries
+    .map((entry) => {
+      const driverId = entry.Driver?.driverId?.trim();
+      if (!driverId) {
+        return null;
+      }
+
+      return {
+        driverId,
+        position: parseNumeric(entry.position) ?? Number.POSITIVE_INFINITY,
+        reportedLaps: parseNumeric(entry.laps) ?? null,
+        code: entry.Driver?.code?.trim() || driverId.slice(0, 3).toUpperCase(),
+        name: formatResultDriverName(entry),
+        constructor: entry.Constructor?.name ?? "Unknown Team"
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    .sort((a, b) => a.position - b.position);
+
+  const tracesByDriver = new Map<string, RaceReplayDriverTrace>();
+
+  for (const driver of orderedDrivers) {
+    tracesByDriver.set(driver.driverId, {
+      driverId: driver.driverId,
+      code: driver.code,
+      name: driver.name,
+      constructor: driver.constructor,
+      finishPosition: driver.position,
+      cumulativeMs: []
+    });
+  }
+
+  const ensureTrace = (driverId: string) => {
+    const existing = tracesByDriver.get(driverId);
+    if (existing) {
+      return existing;
+    }
+
+    const fallback = orderedDrivers.find((driver) => driver.driverId === driverId);
+    const nextTrace: RaceReplayDriverTrace = {
+      driverId,
+      code: fallback?.code ?? driverId.slice(0, 3).toUpperCase(),
+      name: fallback?.name ?? driverId,
+      constructor: fallback?.constructor ?? "Unknown Team",
+      finishPosition: fallback?.position ?? Number.POSITIVE_INFINITY,
+      cumulativeMs: []
+    };
+    tracesByDriver.set(driverId, nextTrace);
+    return nextTrace;
+  };
+
+  for (const lap of laps) {
+    const timings = lap.Timings ?? [];
+
+    for (const timing of timings) {
+      const driverId = timing.driverId?.trim();
+      if (!driverId) {
+        continue;
+      }
+
+      const trace = ensureTrace(driverId);
+      const parsedLapMs = timing.time ? lapTimeToMilliseconds(timing.time) : Number.POSITIVE_INFINITY;
+      const previousCumulative = trace.cumulativeMs[trace.cumulativeMs.length - 1] ?? 0;
+      const previousLapMs =
+        trace.cumulativeMs.length >= 2
+          ? (trace.cumulativeMs[trace.cumulativeMs.length - 1] ?? 0) -
+            (trace.cumulativeMs[trace.cumulativeMs.length - 2] ?? 0)
+          : 90000;
+      const lapMs = Number.isFinite(parsedLapMs) ? parsedLapMs : Math.max(previousLapMs, 70000);
+
+      trace.cumulativeMs.push(previousCumulative + lapMs);
+    }
+  }
+
+  const reportedTotalLaps = orderedDrivers.reduce((best, driver) => Math.max(best, driver.reportedLaps ?? 0), 0);
+  const targetTotalLaps = Math.max(laps.length, reportedTotalLaps);
+
+  if (targetTotalLaps <= 0) {
+    return null;
+  }
+
+  const averageLapMsFromTrace = (cumulative: number[]): number | null => {
+    if (cumulative.length === 0) {
+      return null;
+    }
+
+    const lapMs = cumulative
+      .map((value, index) => {
+        const previous = index === 0 ? 0 : cumulative[index - 1] ?? 0;
+        return value - previous;
+      })
+      .filter((value) => Number.isFinite(value) && value > 30000 && value < 300000);
+
+    if (lapMs.length === 0) {
+      return null;
+    }
+
+    return lapMs.reduce((sum, value) => sum + value, 0) / lapMs.length;
+  };
+
+  const winnerDriverId = orderedDrivers[0]?.driverId ?? null;
+  const winnerSeedTrace = winnerDriverId ? tracesByDriver.get(winnerDriverId) : null;
+  const winnerAverageLapMs = winnerSeedTrace ? averageLapMsFromTrace(winnerSeedTrace.cumulativeMs) : null;
+
+  const aggregateLapValues = Array.from(tracesByDriver.values())
+    .map((trace) => averageLapMsFromTrace(trace.cumulativeMs))
+    .filter((value): value is number => value !== null);
+
+  const aggregateAverageLapMs =
+    aggregateLapValues.length > 0
+      ? aggregateLapValues.reduce((sum, value) => sum + value, 0) / aggregateLapValues.length
+      : null;
+
+  const baselineLapMs = winnerAverageLapMs ?? aggregateAverageLapMs ?? 90000;
+
+  for (const driver of orderedDrivers) {
+    const trace = ensureTrace(driver.driverId);
+    const requestedDriverLaps = driver.reportedLaps ?? trace.cumulativeMs.length;
+    const targetDriverLaps = Math.max(
+      trace.cumulativeMs.length,
+      Math.min(requestedDriverLaps, targetTotalLaps)
+    );
+    const driverAverageLapMs = averageLapMsFromTrace(trace.cumulativeMs);
+    const paceBias = 1 + ((driver.position ?? 1) - 1) * 0.004;
+    const estimatedLapMs = Math.max(
+      65000,
+      Math.round((driverAverageLapMs ?? baselineLapMs) * paceBias)
+    );
+
+    while (trace.cumulativeMs.length < targetDriverLaps) {
+      const previousCumulative = trace.cumulativeMs[trace.cumulativeMs.length - 1] ?? 0;
+      trace.cumulativeMs.push(previousCumulative + estimatedLapMs);
+    }
+
+    if (trace.cumulativeMs.length > targetDriverLaps) {
+      trace.cumulativeMs = trace.cumulativeMs.slice(0, targetDriverLaps);
+    }
+  }
+
+  const orderingMap = new Map(orderedDrivers.map((driver, index) => [driver.driverId, index]));
+
+  const traces = Array.from(tracesByDriver.values())
+    .filter((trace) => trace.cumulativeMs.length > 0)
+    .sort((a, b) => (orderingMap.get(a.driverId) ?? Number.POSITIVE_INFINITY) - (orderingMap.get(b.driverId) ?? Number.POSITIVE_INFINITY));
+
+  if (traces.length === 0) {
+    return null;
+  }
+
+  const winnerTrace = winnerDriverId ? tracesByDriver.get(winnerDriverId) : null;
+  const winnerRaceMs = winnerTrace?.cumulativeMs[targetTotalLaps - 1] ?? 0;
+  const totalRaceMs =
+    winnerRaceMs > 0
+      ? winnerRaceMs
+      : traces.reduce((best, trace) => Math.max(best, trace.cumulativeMs[trace.cumulativeMs.length - 1] ?? 0), 0);
+
+  if (totalRaceMs <= 0) {
+    return null;
+  }
+
+  return {
+    totalLaps: targetTotalLaps,
+    totalRaceMs,
+    traces,
+    winnerDriverId
+  };
+}
 // ============================================
 // Driver & Constructor API Functions
 // ============================================
@@ -1001,47 +1595,110 @@ type ErgastConstructorStandingsResponse = {
   };
 };
 
+function getStandingsSeasonCandidates(season: string): string[] {
+  const candidates = [season];
+  const numericSeason = Number(season);
+
+  if (Number.isFinite(numericSeason)) {
+    for (let fallbackYear = numericSeason - 1; fallbackYear >= 2023; fallbackYear -= 1) {
+      candidates.push(String(fallbackYear));
+    }
+  }
+
+  return Array.from(new Set(candidates));
+}
+
+function normalizeDriverStandings(
+  data: ErgastDriverStandingsResponse
+): DriverStanding[] {
+  const standings =
+    data?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || [];
+
+  return standings.map((standing) => ({
+    position: standing.position,
+    points: standing.points,
+    wins: standing.wins,
+    driver: {
+      driverId: standing.Driver.driverId,
+      permanentNumber: standing.Driver.permanentNumber || "—",
+      code: standing.Driver.code || "—",
+      givenName: standing.Driver.givenName,
+      familyName: standing.Driver.familyName,
+      dateOfBirth: standing.Driver.dateOfBirth,
+      nationality: standing.Driver.nationality,
+    },
+    constructors: standing.Constructors,
+  }));
+}
+
+function normalizeConstructorStandings(
+  data: ErgastConstructorStandingsResponse
+): ConstructorStanding[] {
+  const standings =
+    data?.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings || [];
+
+  return standings.map((standing) => ({
+    position: standing.position,
+    points: standing.points,
+    wins: standing.wins,
+    constructor: standing.Constructor,
+  }));
+}
+
+async function fetchDriverStandingsForSeason(season: string): Promise<DriverStanding[] | null> {
+  const url = `${ERGAST_BASE_URL}/${season}/driverStandings.json`;
+  const res = await fetch(url, {
+    next: { revalidate: REVALIDATE_SECONDS },
+  });
+
+  if (!res.ok) {
+    return null;
+  }
+
+  const data: ErgastDriverStandingsResponse = await res.json();
+  const standings = normalizeDriverStandings(data);
+  return standings.length > 0 ? standings : null;
+}
+
+async function fetchConstructorStandingsForSeason(
+  season: string
+): Promise<ConstructorStanding[] | null> {
+  const url = `${ERGAST_BASE_URL}/${season}/constructorStandings.json`;
+  const res = await fetch(url, {
+    next: { revalidate: REVALIDATE_SECONDS },
+  });
+
+  if (!res.ok) {
+    return null;
+  }
+
+  const data: ErgastConstructorStandingsResponse = await res.json();
+  const standings = normalizeConstructorStandings(data);
+  return standings.length > 0 ? standings : null;
+}
+
 /**
  * Get driver standings for a given season
- * Falls back to 2025 for unavailable 2026 data
+ * Falls back to previous seasons only if requested season has no standings yet
  */
 export async function getDriverStandings(
   season: string = F1_SEASON
 ): Promise<DriverStanding[]> {
-  // Use 2023 as fallback for 2026 (2024/2025 data not available in Ergast API)
-  const fetchSeason = season === "2026" ? "2023" : season;
+  const candidates = getStandingsSeasonCandidates(season);
 
-  try {
-    const url = `${ERGAST_BASE_URL}/${fetchSeason}/driverStandings.json`;
-    const res = await fetch(url, {
-      next: { revalidate: REVALIDATE_SECONDS },
-    });
-
-    if (!res.ok) throw new Error(`Failed to fetch driver standings: ${res.status}`);
-
-    const data: ErgastDriverStandingsResponse = await res.json();
-    const standings =
-      data?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || [];
-
-    return standings.map((standing) => ({
-      position: standing.position,
-      points: standing.points,
-      wins: standing.wins,
-      driver: {
-        driverId: standing.Driver.driverId,
-        permanentNumber: standing.Driver.permanentNumber || "—",
-        code: standing.Driver.code || "—",
-        givenName: standing.Driver.givenName,
-        familyName: standing.Driver.familyName,
-        dateOfBirth: standing.Driver.dateOfBirth,
-        nationality: standing.Driver.nationality,
-      },
-      constructors: standing.Constructors,
-    }));
-  } catch (error) {
-    console.error("Error fetching driver standings:", error);
-    return [];
+  for (const candidateSeason of candidates) {
+    try {
+      const standings = await fetchDriverStandingsForSeason(candidateSeason);
+      if (standings) {
+        return standings;
+      }
+    } catch {
+      // Try the next fallback season.
+    }
   }
+
+  console.error(`Error fetching driver standings for ${season} and fallback seasons.`);
+  return [];
 }
 
 /**
@@ -1142,35 +1799,26 @@ export async function getDriverCareerHistory(
 
 /**
  * Get constructor standings for a given season
- * Falls back to 2025 for unavailable 2026 data
+ * Falls back to previous seasons only if requested season has no standings yet
  */
 export async function getConstructorStandings(
   season: string = F1_SEASON
 ): Promise<ConstructorStanding[]> {
-  const fetchSeason = season === "2026" ? "2023" : season;
+  const candidates = getStandingsSeasonCandidates(season);
 
-  try {
-    const url = `${ERGAST_BASE_URL}/${fetchSeason}/constructorStandings.json`;
-    const res = await fetch(url, {
-      next: { revalidate: REVALIDATE_SECONDS },
-    });
-
-    if (!res.ok) throw new Error(`Failed to fetch constructor standings: ${res.status}`);
-
-    const data: ErgastConstructorStandingsResponse = await res.json();
-    const standings =
-      data?.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings || [];
-
-    return standings.map((standing) => ({
-      position: standing.position,
-      points: standing.points,
-      wins: standing.wins,
-      constructor: standing.Constructor,
-    }));
-  } catch (error) {
-    console.error("Error fetching constructor standings:", error);
-    return [];
+  for (const candidateSeason of candidates) {
+    try {
+      const standings = await fetchConstructorStandingsForSeason(candidateSeason);
+      if (standings) {
+        return standings;
+      }
+    } catch {
+      // Try the next fallback season.
+    }
   }
+
+  console.error(`Error fetching constructor standings for ${season} and fallback seasons.`);
+  return [];
 }
 
 /**

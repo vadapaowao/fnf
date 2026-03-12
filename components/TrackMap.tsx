@@ -1,9 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 
-import type { TrackSector } from "@/lib/f1";
+import type { RaceRecap, RaceReplayData, TrackSector } from "@/lib/f1";
 import { cn } from "@/lib/utils";
 
 type TrackMapProps = {
@@ -12,6 +12,8 @@ type TrackMapProps = {
   className?: string;
   sectors?: TrackSector[];
   drsZoneCount?: number | string;
+  recap?: RaceRecap | null;
+  replay?: RaceReplayData | null;
 };
 
 type TrackSvgData = {
@@ -38,9 +40,39 @@ type SectorDisplay = {
   end: number;
 };
 
+type SectorIntel = {
+  id: TrackSector["id"];
+  name: string;
+  telemetry: string;
+  turnRange: string;
+  phaseFocus: string;
+  pressureProfile: string;
+  lengthPct: number;
+};
+
 type SegmentPath = {
   id: string;
   pathData: string;
+};
+
+type SectorPath = {
+  id: TrackSector["id"];
+  pathData: string;
+};
+
+type TooltipCopy = {
+  title: string;
+  body: string;
+  detail?: string;
+};
+
+type SelectionMode = "hover" | "manual";
+
+type ReplayMoment = {
+  id: string;
+  title: string;
+  detail: string;
+  checkpointMs: number;
 };
 
 const TRACK_LAYOUTS: Record<string, TrackLayout> = {
@@ -75,6 +107,9 @@ const DEFAULT_LAYOUT: TrackLayout = {
   drsFractions: [0.2, 0.55]
 };
 
+const REPLAY_SPEEDS = [0.75, 1, 1.5, 2] as const;
+const TRACK_FRAME_HEIGHT_CLASS = "h-[clamp(270px,36vw,460px)]";
+
 const DEFAULT_SECTORS: TrackSector[] = [
   {
     id: "S1",
@@ -93,8 +128,154 @@ const DEFAULT_SECTORS: TrackSector[] = [
   }
 ];
 
+const TRACK_TURN_COUNTS: Record<string, number> = {
+  albert_park: 14,
+  jeddah: 27,
+  bahrain: 15,
+  suzuka: 18,
+  shanghai: 16,
+  miami: 19,
+  imola: 19,
+  monaco: 19,
+  catalunya: 14,
+  villeneuve: 14,
+  red_bull_ring: 10,
+  silverstone: 18,
+  spa: 19,
+  hungaroring: 14,
+  zandvoort: 14,
+  monza: 11,
+  baku: 20,
+  marina_bay: 19,
+  americas: 20,
+  rodriguez: 17,
+  interlagos: 15,
+  las_vegas: 17,
+  losail: 16,
+  yas_marina: 16
+};
+
+const TRACK_SECTOR_DETAIL_OVERRIDES: Partial<
+  Record<
+    string,
+    Partial<Record<TrackSector["id"], { phaseFocus: string; pressureProfile: string }>>
+  >
+> = {
+  albert_park: {
+    S1: {
+      phaseFocus: "Kerb-riding entry confidence through the opening directional changes.",
+      pressureProfile: "High pressure for launch positioning and first DRS approach."
+    },
+    S2: {
+      phaseFocus: "Mid-corner rotation quality in medium-speed sequence.",
+      pressureProfile: "Tire surface temperature management under sustained lateral load."
+    },
+    S3: {
+      phaseFocus: "Late-braking stability into stop-go style exits.",
+      pressureProfile: "Overtake threat peaks if traction release is delayed."
+    }
+  },
+  suzuka: {
+    S1: {
+      phaseFocus: "Rhythm and steering commitment through linked esses.",
+      pressureProfile: "Front-end precision critical; small errors cascade immediately."
+    },
+    S2: {
+      phaseFocus: "Load transfer control through high-speed direction change.",
+      pressureProfile: "Aero balance sensitivity dominates pace spread."
+    },
+    S3: {
+      phaseFocus: "Exit traction and straight setup compromise.",
+      pressureProfile: "One poor launch out of final complex costs entire straight."
+    }
+  }
+};
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function hashReplayKey(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return hash;
+}
+
+function getReplayDriverColor(driverId: string, finishPosition: number) {
+  const hash = hashReplayKey(driverId);
+  if (Number.isFinite(finishPosition) && finishPosition > 0) {
+    const hue = (((finishPosition - 1) % 24) * (360 / 24) + 4) % 360;
+    return `hsl(${hue.toFixed(1)} 72% 52%)`;
+  }
+
+  const fallbackHue = hash % 360;
+  const fallbackSaturation = 65 + (hash % 18);
+  const fallbackLightness = 46 + ((hash >> 3) % 12);
+  return `hsl(${fallbackHue} ${fallbackSaturation}% ${fallbackLightness}%)`;
+}
+
+function getDefaultPhaseFocus(sectorId: TrackSector["id"]) {
+  if (sectorId === "S1") {
+    return "Opening complex where steering response and entry confidence shape the first split.";
+  }
+
+  if (sectorId === "S2") {
+    return "Mid-lap rhythm section balancing speed carry against aero and tire load.";
+  }
+
+  return "Closing sequence where braking precision and traction release define exit time.";
+}
+
+function getDefaultPressureProfile(sectorId: TrackSector["id"]) {
+  if (sectorId === "S1") {
+    return "Position risk is highest with packed-field braking and first DRS setup.";
+  }
+
+  if (sectorId === "S2") {
+    return "Sustained lateral load drives tire temperature and small understeer penalties.";
+  }
+
+  return "Late-race pass risk peaks when traction drop amplifies straight-line vulnerability.";
+}
+
+function resolveDistanceAtReplayTime(cumulativeMs: number[], replayTimeMs: number) {
+  if (cumulativeMs.length === 0) {
+    return { distanceLaps: 0, trackFraction: 0 };
+  }
+
+  const clampedTime = Math.max(replayTimeMs, 0);
+  let low = 0;
+  let high = cumulativeMs.length - 1;
+  let firstHigherOrEqual = cumulativeMs.length;
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const current = cumulativeMs[mid] ?? 0;
+
+    if (current >= clampedTime) {
+      firstHigherOrEqual = mid;
+      high = mid - 1;
+    } else {
+      low = mid + 1;
+    }
+  }
+
+  if (firstHigherOrEqual >= cumulativeMs.length) {
+    const finalDistance = cumulativeMs.length;
+    return { distanceLaps: finalDistance, trackFraction: finalDistance % 1 };
+  }
+
+  const lapEnd = cumulativeMs[firstHigherOrEqual] ?? 0;
+  const lapStart = firstHigherOrEqual > 0 ? cumulativeMs[firstHigherOrEqual - 1] ?? 0 : 0;
+  const lapSpan = Math.max(lapEnd - lapStart, 1);
+  const lapProgress = clamp((clampedTime - lapStart) / lapSpan, 0, 1);
+  const distanceLaps = firstHigherOrEqual + lapProgress;
+
+  return { distanceLaps, trackFraction: distanceLaps % 1 };
 }
 
 function buildSegmentPolyline(
@@ -228,6 +409,24 @@ function resolveViewBox(svgElement: SVGElement | null): string | null {
   return null;
 }
 
+function parseViewBox(viewBox: string): [number, number, number, number] | null {
+  const values = viewBox
+    .trim()
+    .split(/[\s,]+/)
+    .map((value) => Number(value));
+
+  if (values.length !== 4 || values.some((value) => !Number.isFinite(value))) {
+    return null;
+  }
+
+  const [minX, minY, width, height] = values;
+  if (width <= 0 || height <= 0) {
+    return null;
+  }
+
+  return [minX, minY, width, height];
+}
+
 function resolveMainTrackPath(parsed: Document, svgText: string): string | null {
   const strokeOnlyClasses = parseStrokeOnlyClasses(svgText);
   const fillNoneClasses = parseFillNoneClasses(svgText);
@@ -289,14 +488,19 @@ function resolveNativeStrokeWidth(parsed: Document): number | null {
   return widths.sort((a, b) => b - a)[0] ?? null;
 }
 
-export default function TrackMap({ circuitId, trackSvgPath, className, sectors, drsZoneCount }: TrackMapProps) {
+export default function TrackMap({ circuitId, trackSvgPath, className, sectors, drsZoneCount, recap, replay }: TrackMapProps) {
   const [svgData, setSvgData] = useState<TrackSvgData | null>(null);
+  const [fittedViewBox, setFittedViewBox] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [activeSectorId, setActiveSectorId] = useState<TrackSector["id"] | null>(null);
   const [activeDrsId, setActiveDrsId] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState<SelectionMode | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition>({ x: 12, y: 12 });
   const [pathLength, setPathLength] = useState(0);
+  const [replayTimeMs, setReplayTimeMs] = useState(0);
+  const [isReplayPlaying, setIsReplayPlaying] = useState(false);
+  const [replaySpeedIndex, setReplaySpeedIndex] = useState(1);
 
   const pathRef = useRef<SVGPathElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
@@ -319,6 +523,76 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
       };
     });
   }, [layout.sectorStops, sectors]);
+
+  const sectorIntel = useMemo<SectorIntel[]>(() => {
+    const turnCount = TRACK_TURN_COUNTS[circuitId] ?? 18;
+    const overrides = TRACK_SECTOR_DETAIL_OVERRIDES[circuitId] ?? {};
+
+    return sectorSegments.map((segment, index) => {
+      const startTurn = clamp(Math.floor(segment.start * turnCount) + 1, 1, turnCount);
+      const computedEnd = clamp(Math.round(segment.end * turnCount), startTurn, turnCount);
+      const endTurn = index === sectorSegments.length - 1 ? turnCount : computedEnd;
+      const turnRange = startTurn === endTurn ? `T${startTurn}` : `T${startTurn}-T${endTurn}`;
+      const lengthPct = clamp(Math.round((segment.end - segment.start) * 100), 1, 98);
+      const override = overrides[segment.id];
+
+      return {
+        id: segment.id,
+        name: segment.name,
+        telemetry: segment.telemetry,
+        turnRange,
+        lengthPct,
+        phaseFocus: override?.phaseFocus ?? getDefaultPhaseFocus(segment.id),
+        pressureProfile: override?.pressureProfile ?? getDefaultPressureProfile(segment.id)
+      };
+    });
+  }, [circuitId, sectorSegments]);
+
+  const replayMoments = useMemo<ReplayMoment[]>(() => {
+    const baseMoments =
+      recap?.keyMoments && recap.keyMoments.length > 0
+        ? recap.keyMoments.map((moment, index) => ({
+            id: `${moment.title}-${index}`,
+            title: moment.title,
+            detail: moment.detail
+          }))
+        : [
+            {
+              id: "s1-preview",
+              title: "Sector 1 Launch",
+              detail: "Opening phase racecraft and positioning pressure."
+            },
+            {
+              id: "s2-preview",
+              title: "Sector 2 Flow",
+              detail: "Mid-lap pace balance and overtake setup windows."
+            },
+            {
+              id: "s3-preview",
+              title: "Sector 3 Finish",
+              detail: "Braking and traction execution into the final sprint."
+            }
+          ];
+    const duration = replay?.totalRaceMs && replay.totalRaceMs > 0 ? replay.totalRaceMs : 180000;
+
+    const distributedMoments = baseMoments.map((moment, index) => ({
+      ...moment,
+      checkpointMs: Math.round(((index + 1) / (baseMoments.length + 1)) * duration)
+    }));
+    const finishMoment: ReplayMoment = {
+      id: "chequered-flag",
+      title: "Chequered Flag",
+      detail: "Official classified finish order.",
+      checkpointMs: duration
+    };
+
+    return [...distributedMoments, finishMoment];
+  }, [recap, replay?.totalRaceMs]);
+
+  const replaySpeed = REPLAY_SPEEDS[replaySpeedIndex] ?? 1;
+  const replayDurationMs = replay?.totalRaceMs && replay.totalRaceMs > 0 ? replay.totalRaceMs : 180000;
+  const replayModeLabel = replay?.traces?.length ? "Official lap trace replay" : "Preview track replay";
+  const hasReplayTelemetry = Boolean(replay && replay.traces.length > 0 && replay.totalRaceMs > 0);
 
   const drsFractions = useMemo(() => {
     const requestedCount = parseDrsCount(drsZoneCount, layout.drsFractions.length);
@@ -411,6 +685,62 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
     };
   }, [svgData?.pathData]);
 
+  useLayoutEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const element = pathRef.current;
+      const sourceViewBox = svgData?.viewBox;
+
+      if (!element || !sourceViewBox) {
+        setFittedViewBox(null);
+        return;
+      }
+
+      const parsedViewBox = parseViewBox(sourceViewBox);
+      if (!parsedViewBox) {
+        setFittedViewBox(sourceViewBox);
+        return;
+      }
+
+      const [sourceMinX, sourceMinY, sourceWidth, sourceHeight] = parsedViewBox;
+      const sourceMaxX = sourceMinX + sourceWidth;
+      const sourceMaxY = sourceMinY + sourceHeight;
+
+      try {
+        const bounds = element.getBBox();
+        if (!Number.isFinite(bounds.width) || !Number.isFinite(bounds.height) || bounds.width <= 0 || bounds.height <= 0) {
+          setFittedViewBox(sourceViewBox);
+          return;
+        }
+
+        const paddingRatio = circuitId === "suzuka" ? 0.08 : 0.16;
+        const padX = Math.max(bounds.width * paddingRatio, 8);
+        const padYTop = Math.max(bounds.height * paddingRatio, 8);
+        const padYBottom = Math.max(bounds.height * (paddingRatio + 0.08), 12);
+
+        const nextMinX = Math.max(sourceMinX, bounds.x - padX);
+        const nextMinY = Math.max(sourceMinY, bounds.y - padYTop);
+        const nextMaxX = Math.min(sourceMaxX, bounds.x + bounds.width + padX);
+        const nextMaxY = Math.min(sourceMaxY, bounds.y + bounds.height + padYBottom);
+
+        const nextWidth = nextMaxX - nextMinX;
+        const nextHeight = nextMaxY - nextMinY;
+
+        if (nextWidth <= 0 || nextHeight <= 0) {
+          setFittedViewBox(sourceViewBox);
+          return;
+        }
+
+        setFittedViewBox(`${nextMinX} ${nextMinY} ${nextWidth} ${nextHeight}`);
+      } catch {
+        setFittedViewBox(sourceViewBox);
+      }
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [circuitId, svgData?.pathData, svgData?.viewBox]);
+
   const drsSegments = useMemo(() => {
     if (pathLength <= 0) {
       return [] as Array<{ id: string; start: number; end: number }>;
@@ -430,7 +760,7 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
     const element = pathRef.current;
 
     if (!element || pathLength <= 0) {
-      return [] as SegmentPath[];
+      return [] as SectorPath[];
     }
 
     return sectorSegments
@@ -443,7 +773,7 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
 
         return { id: segment.id, pathData };
       })
-      .filter((segment): segment is SegmentPath => segment !== null);
+      .filter((segment): segment is SectorPath => segment !== null);
   }, [pathLength, sectorSegments]);
 
   const drsPaths = useMemo(() => {
@@ -467,30 +797,17 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
   }, [drsSegments, pathLength]);
 
   const strokeScale = useMemo(() => {
-    const native = svgData?.nativeStrokeWidth;
-
-    if (!native) {
-      return {
-        base: 6.2,
-        red: 6.8,
-        sector: 7.2,
-        sectorActive: 8.4,
-        drs: 7.4,
-        drsActive: 9,
-        hitbox: 22
-      };
-    }
-
-    const base = clamp(native * 0.88, 5, 9.2);
+    const native = svgData?.nativeStrokeWidth ?? 6;
+    const normalizedBase = clamp(6.2 + (native - 6) * 0.08, 5.9, 6.7);
 
     return {
-      base,
-      red: base + 0.6,
-      sector: base + 1,
-      sectorActive: base + 2.2,
-      drs: base + 1.2,
-      drsActive: base + 2.8,
-      hitbox: clamp(base + 15, 18, 26)
+      base: normalizedBase,
+      red: normalizedBase + 0.55,
+      sector: normalizedBase + 0.95,
+      sectorActive: normalizedBase + 2,
+      drs: normalizedBase + 0.8,
+      drsActive: normalizedBase + 2.35,
+      hitbox: 21
     };
   }, [svgData?.nativeStrokeWidth]);
 
@@ -507,31 +824,214 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
     });
   }, [drsFractions, pathLength]);
 
-  const selectedSector = useMemo(() => {
+  const stepReplayTime = useCallback(
+    (direction: -1 | 1) => {
+      const jumpSize = Math.max(Math.round(replayDurationMs / Math.max(replayMoments.length + 1, 2)), 1500);
+      setReplayTimeMs((previous) => clamp(previous + direction * jumpSize, 0, replayDurationMs));
+    },
+    [replayDurationMs, replayMoments.length]
+  );
+
+  useEffect(() => {
+    setReplayTimeMs(0);
+    setIsReplayPlaying(false);
+    setReplaySpeedIndex(1);
+  }, [circuitId, recap?.headline, recap?.winnerStory, replayDurationMs]);
+
+  useEffect(() => {
+    if (!isReplayPlaying || replayDurationMs <= 0) {
+      return;
+    }
+
+    let frameId = 0;
+    let previousTimestamp: number | null = null;
+
+    const tick = (timestamp: number) => {
+      if (previousTimestamp === null) {
+        previousTimestamp = timestamp;
+      }
+
+      const delta = timestamp - previousTimestamp;
+      previousTimestamp = timestamp;
+      let shouldStop = false;
+
+      setReplayTimeMs((current) => {
+        const next = current + delta * replaySpeed;
+        if (next >= replayDurationMs) {
+          shouldStop = true;
+          return replayDurationMs;
+        }
+
+        return next;
+      });
+
+      if (shouldStop) {
+        setIsReplayPlaying(false);
+        return;
+      }
+
+      frameId = window.requestAnimationFrame(tick);
+    };
+
+    frameId = window.requestAnimationFrame(tick);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [isReplayPlaying, replayDurationMs, replaySpeed]);
+
+  const jumpToReplayMoment = useCallback((moment: ReplayMoment) => {
+    setReplayTimeMs(moment.checkpointMs);
+    if (moment.id === "chequered-flag") {
+      setIsReplayPlaying(false);
+    }
+  }, []);
+
+  const replayActiveMomentIndex = useMemo(() => {
+    if (replayMoments.length === 0) {
+      return 0;
+    }
+
+    let bestIndex = 0;
+    let bestDelta = Number.POSITIVE_INFINITY;
+
+    for (let index = 0; index < replayMoments.length; index += 1) {
+      const checkpoint = replayMoments[index]?.checkpointMs ?? 0;
+      const delta = Math.abs(checkpoint - replayTimeMs);
+
+      if (delta < bestDelta) {
+        bestDelta = delta;
+        bestIndex = index;
+      }
+    }
+
+    return bestIndex;
+  }, [replayMoments, replayTimeMs]);
+
+  const replayActiveMoment = replayMoments[replayActiveMomentIndex] ?? replayMoments[0] ?? null;
+
+  const replayMarkers = useMemo(() => {
+    const element = pathRef.current;
+
+    if (!element || pathLength <= 0) {
+      return [] as Array<{
+        id: string;
+        label: string;
+        constructor: string;
+        color: string;
+        x: number;
+        y: number;
+        livePosition: number;
+        finishPosition: number;
+      }>;
+    }
+
+    if (hasReplayTelemetry && replay) {
+      const replayProgress = replayDurationMs > 0 ? clamp(replayTimeMs / replayDurationMs, 0, 1) : 0;
+      const enforceOfficialOrder = replayProgress >= 0.985;
+
+      const rawMarkers = replay.traces
+        .map((trace) => {
+          const distance = resolveDistanceAtReplayTime(trace.cumulativeMs, replayTimeMs);
+          const point = element.getPointAtLength(pathLength * clamp(distance.trackFraction, 0, 0.999));
+
+          return {
+            id: trace.driverId,
+            label: trace.code || trace.name,
+            constructor: trace.constructor,
+            color: getReplayDriverColor(trace.driverId, trace.finishPosition),
+            x: point.x,
+            y: point.y,
+            distanceLaps: distance.distanceLaps,
+            finishPosition: trace.finishPosition
+          };
+        })
+        .sort((a, b) => {
+          if (enforceOfficialOrder) {
+            const officialDelta = a.finishPosition - b.finishPosition;
+            if (officialDelta !== 0) {
+              return officialDelta;
+            }
+          }
+
+          const liveDelta = b.distanceLaps - a.distanceLaps;
+          if (Math.abs(liveDelta) > 0.0001) {
+            return liveDelta;
+          }
+
+          const finishDelta = a.finishPosition - b.finishPosition;
+          if (finishDelta !== 0) {
+            return finishDelta;
+          }
+
+          return a.label.localeCompare(b.label);
+        });
+
+      return rawMarkers.map((marker, index) => {
+        return {
+          id: marker.id,
+          label: marker.label,
+          constructor: marker.constructor,
+          color: marker.color,
+          x: marker.x,
+          y: marker.y,
+          livePosition: index + 1,
+          finishPosition: marker.finishPosition
+        };
+      });
+    }
+
+    const fallbackFractions = [0.18, 0.43, 0.71];
+    return fallbackFractions.map((fraction, index) => {
+      const point = element.getPointAtLength(pathLength * fraction);
+      return {
+        id: `preview-${index + 1}`,
+        label: `P${index + 1}`,
+        constructor: "Preview",
+        color: getReplayDriverColor(`preview-${index + 1}`, index + 1),
+        x: point.x,
+        y: point.y,
+        livePosition: index + 1,
+        finishPosition: index + 1
+      };
+    });
+  }, [hasReplayTelemetry, pathLength, replay, replayDurationMs, replayTimeMs]);
+
+  const replayCurrentLap = useMemo(() => {
+    if (hasReplayTelemetry && replay && replay.totalLaps > 0) {
+      return clamp(Math.floor((replayTimeMs / Math.max(replayDurationMs, 1)) * replay.totalLaps) + 1, 1, replay.totalLaps);
+    }
+
+    return Math.floor((replayTimeMs / Math.max(replayDurationMs, 1)) * 60) + 1;
+  }, [hasReplayTelemetry, replay, replayDurationMs, replayTimeMs]);
+
+  const selectedSectorIntel = useMemo(() => {
     if (activeSectorId) {
-      return sectorSegments.find((segment) => segment.id === activeSectorId) ?? null;
+      return sectorIntel.find((segment) => segment.id === activeSectorId) ?? null;
     }
 
     return null;
-  }, [activeSectorId, sectorSegments]);
+  }, [activeSectorId, sectorIntel]);
 
-  const tooltipCopy = useMemo(() => {
+  const tooltipCopy = useMemo<TooltipCopy | null>(() => {
     if (activeDrsId) {
       return {
         title: `${activeDrsId.replace("-", " ")} Window`,
-        body: "Detection plus deployment segment optimized for top-speed release."
+        body: "Detection and activation corridor optimized for straight-line release.",
+        detail: "Hover the marker to inspect the window on-track."
       };
     }
 
-    if (selectedSector) {
+    if (selectedSectorIntel) {
       return {
-        title: selectedSector.name,
-        body: selectedSector.telemetry
+        title: `${selectedSectorIntel.name} • ${selectedSectorIntel.turnRange}`,
+        body: selectedSectorIntel.phaseFocus,
+        detail: `${selectedSectorIntel.lengthPct}% lap share • ${selectedSectorIntel.pressureProfile}`
       };
     }
 
     return null;
-  }, [activeDrsId, selectedSector]);
+  }, [activeDrsId, selectedSectorIntel]);
 
   const updateTooltipPosition = (event: MouseEvent<SVGElement>) => {
     const frame = frameRef.current;
@@ -547,33 +1047,50 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
     setTooltipPosition({ x: nextX, y: nextY });
   };
 
-  const activateSector = (sectorId: TrackSector["id"], fromTrack = false) => {
-    if (!fromTrack) {
+  const activateSector = (sectorId: TrackSector["id"], mode: SelectionMode = "manual") => {
+    if (mode === "manual") {
       setTooltipPosition({ x: 12, y: 12 });
     }
 
     setActiveDrsId(null);
     setActiveSectorId(sectorId);
+    setSelectionMode(mode);
   };
 
-  const activateDrs = (drsId: string, fromTrack = false) => {
-    if (!fromTrack) {
+  const activateDrs = (drsId: string, mode: SelectionMode = "manual") => {
+    if (mode === "manual") {
       setTooltipPosition({ x: 12, y: 12 });
     }
 
     setActiveSectorId(null);
     setActiveDrsId(drsId);
+    setSelectionMode(mode);
   };
 
   const clearSelection = () => {
     setActiveSectorId(null);
     setActiveDrsId(null);
+    setSelectionMode(null);
+  };
+
+  const resetOverlay = () => {
+    clearSelection();
+    setIsReplayPlaying(false);
+    setReplayTimeMs(0);
+    setReplaySpeedIndex(1);
+    setTooltipPosition({ x: 12, y: 12 });
+  };
+
+  const clearHoverSelection = () => {
+    if (selectionMode === "hover") {
+      clearSelection();
+    }
   };
 
   if (isLoading) {
     return (
       <div className={cn("border border-[#2A2A2A] bg-[#090909] p-3", className)}>
-        <div className="h-[clamp(300px,42vw,520px)] animate-pulse border border-[#1B1B1B] bg-[#0E0E0E]" />
+        <div className={cn(TRACK_FRAME_HEIGHT_CLASS, "animate-pulse border border-[#1B1B1B] bg-[#0E0E0E]")} />
       </div>
     );
   }
@@ -581,7 +1098,7 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
   if (hasError || !svgData) {
     return (
       <div className={cn("border border-[#2A2A2A] bg-[#090909] p-3", className)}>
-        <div className="flex h-[clamp(300px,42vw,520px)] items-center justify-center border border-[#1E1E1E] bg-[#080808] px-6">
+        <div className={cn(TRACK_FRAME_HEIGHT_CLASS, "flex items-center justify-center border border-[#1E1E1E] bg-[#080808] px-6")}>
           <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E8E]">
             Track map unavailable for this circuit.
           </p>
@@ -596,20 +1113,20 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7B7B7B]">Track Overlay</p>
         <button
           type="button"
-          onClick={clearSelection}
+          onClick={resetOverlay}
           className="border border-[#2A2A2A] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9B9B9B] hover:border-[#4A4A4A] hover:text-[#D0D0D0]"
         >
           Reset
         </button>
       </div>
 
-      <div ref={frameRef} className="relative overflow-hidden border border-[#1E1E1E] bg-[#080808]">
+      <div ref={frameRef} className="relative overflow-hidden border border-[#1E1E1E] bg-[#080808]" onMouseLeave={clearHoverSelection}>
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:28px_28px]" />
 
         <svg
-          viewBox={svgData.viewBox}
+          viewBox={fittedViewBox ?? svgData.viewBox}
           preserveAspectRatio="xMidYMid meet"
-          className="relative h-[clamp(300px,42vw,520px)] w-full"
+          className={cn("relative w-full", TRACK_FRAME_HEIGHT_CLASS)}
           role="img"
           aria-label={`${circuitId.replace(/_/g, " ")} track map`}
         >
@@ -666,8 +1183,9 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     vectorEffect="non-scaling-stroke"
-                    onMouseEnter={() => activateSector(segment.id, true)}
+                    onMouseEnter={() => activateSector(segment.id, "hover")}
                     onMouseMove={updateTooltipPosition}
+                    onMouseLeave={clearHoverSelection}
                   />
                 </g>
               );
@@ -677,20 +1195,36 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
             drsPaths.map((segment) => {
               const isActive = activeDrsId === segment.id;
 
-              return isActive ? (
-                <path
-                  key={segment.id}
-                  d={segment.pathData}
-                  fill="none"
-                  stroke="#FFD4D2"
-                  strokeWidth={strokeScale.drsActive}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  vectorEffect="non-scaling-stroke"
-                  style={{ filter: "drop-shadow(0 0 9px rgba(225,6,0,0.45))" }}
-                  pointerEvents="none"
-                />
-              ) : null;
+              return (
+                <g key={segment.id}>
+                  <path
+                    d={segment.pathData}
+                    fill="none"
+                    stroke={isActive ? "#FFD4D2" : "#842E2A"}
+                    strokeWidth={isActive ? strokeScale.drsActive : strokeScale.drs}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                    style={{
+                      opacity: isActive ? 1 : 0.58,
+                      filter: isActive ? "drop-shadow(0 0 9px rgba(225,6,0,0.45))" : "none"
+                    }}
+                    pointerEvents="none"
+                  />
+                  <path
+                    d={segment.pathData}
+                    fill="none"
+                    stroke="transparent"
+                    strokeWidth={strokeScale.hitbox}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                    onMouseEnter={() => activateDrs(segment.id, "hover")}
+                    onMouseMove={updateTooltipPosition}
+                    onMouseLeave={clearHoverSelection}
+                  />
+                </g>
+              );
             })}
 
           {drsPoints.map((point) => {
@@ -716,12 +1250,25 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
                   fill="rgba(225,6,0,0.92)"
                   stroke="#FFD1CF"
                   strokeWidth={0.8}
-                  onMouseEnter={() => activateDrs(point.id, true)}
+                  onMouseEnter={() => activateDrs(point.id, "hover")}
                   onMouseMove={updateTooltipPosition}
+                  onMouseLeave={clearHoverSelection}
                 />
               </g>
             );
           })}
+
+          {replayMarkers.map((marker) => (
+            <g key={marker.id} transform={`translate(${marker.x} ${marker.y})`} pointerEvents="none">
+              <circle
+                r={marker.livePosition <= 3 ? 5.6 : 3.8}
+                fill={marker.color}
+                stroke="#F8FAFC"
+                strokeWidth={marker.livePosition <= 3 ? 1.1 : 0.8}
+              />
+              {marker.livePosition <= 3 ? <circle r={11} fill="none" stroke={marker.color} strokeWidth={1} opacity={0.4} /> : null}
+            </g>
+          ))}
         </svg>
 
         {tooltipCopy ? (
@@ -729,7 +1276,7 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="pointer-events-none absolute z-10 max-w-[240px] border border-[#3A3A3A] bg-[#080808] px-3 py-2"
+            className="pointer-events-none absolute z-10 max-w-[270px] border border-[#3A3A3A] bg-[#080808] px-3 py-2"
             style={{
               left: tooltipPosition.x,
               top: tooltipPosition.y,
@@ -740,19 +1287,130 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
             <p className="mt-1 text-[11px] font-medium leading-snug text-[#C9C9C9]">
               {tooltipCopy.body || getFallbackTelemetry(circuitId)}
             </p>
+            {tooltipCopy.detail ? (
+              <p className="mt-2 text-[10px] font-semibold leading-snug text-[#9D9D9D]">{tooltipCopy.detail}</p>
+            ) : null}
           </motion.div>
         ) : null}
+
       </div>
 
-      <div className="mt-3 space-y-2">
+      {replayActiveMoment ? (
+        <div className="mt-3 border border-[#2C2C2C] bg-[#0B0B0B] p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#E6A3A0]">Track Replay</p>
+              <p className="mt-0.5 text-[10px] text-[#888]">
+                {replayModeLabel} • Lap {replayCurrentLap}
+                {hasReplayTelemetry && replay ? ` / ${replay.totalLaps}` : ""}
+              </p>
+            </div>
+            <p className="text-[10px] font-semibold text-[#B1B1B1]">
+              {isReplayPlaying ? "Playing" : "Paused"} • {replaySpeed}x
+            </p>
+          </div>
+
+          <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#F3F3F3]">{replayActiveMoment.title}</p>
+          <p className="mt-1 text-[11px] leading-snug text-[#BDBDBD]">{replayActiveMoment.detail}</p>
+
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => stepReplayTime(-1)}
+              className="inline-flex items-center justify-center border border-[#2D2D2D] bg-[#111] px-2 py-1 text-[10px] font-semibold text-[#D8D8D8] hover:border-[#6A6A6A]"
+              aria-label="Previous replay checkpoint"
+            >
+              <span className="material-icons text-sm">fast_rewind</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsReplayPlaying((previous) => !previous)}
+              className="inline-flex items-center gap-1 border border-[#7D2A28] bg-[#190909] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#FDE8E8] hover:border-[#E10600]"
+              aria-label={isReplayPlaying ? "Pause replay" : "Play replay"}
+            >
+              <span className="material-icons text-sm">{isReplayPlaying ? "pause" : "play_arrow"}</span>
+              {isReplayPlaying ? "Pause" : "Play"}
+            </button>
+            <button
+              type="button"
+              onClick={() => stepReplayTime(1)}
+              className="inline-flex items-center justify-center border border-[#2D2D2D] bg-[#111] px-2 py-1 text-[10px] font-semibold text-[#D8D8D8] hover:border-[#6A6A6A]"
+              aria-label="Next replay checkpoint"
+            >
+              <span className="material-icons text-sm">fast_forward</span>
+            </button>
+
+            <div className="ml-auto flex items-center gap-1">
+              {REPLAY_SPEEDS.map((speed, index) => (
+                <button
+                  key={speed}
+                  type="button"
+                  onClick={() => setReplaySpeedIndex(index)}
+                  className={cn(
+                    "border px-1.5 py-0.5 text-[10px] font-semibold",
+                    replaySpeedIndex === index
+                      ? "border-[#E10600] bg-[#180707] text-[#FDEAEA]"
+                      : "border-[#2D2D2D] bg-[#111] text-[#969696] hover:border-[#7D2A28]"
+                  )}
+                  aria-label={`Set replay speed to ${speed}x`}
+                >
+                  {speed}x
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <input
+            type="range"
+            min={0}
+            max={Math.max(replayDurationMs, 1)}
+            value={replayTimeMs}
+            onChange={(event) => setReplayTimeMs(Number(event.target.value))}
+            className="mt-3 h-1 w-full cursor-pointer appearance-none rounded bg-[#282828]"
+            aria-label="Replay timeline scrubber"
+          />
+
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {replayMoments.map((moment, index) => (
+              <button
+                key={moment.id}
+                type="button"
+                onClick={() => jumpToReplayMoment(moment)}
+                className={cn(
+                  "border px-2 py-0.5 text-[10px] font-semibold",
+                  index === replayActiveMomentIndex
+                    ? "border-[#E10600] bg-[#180707] text-[#FDEAEA]"
+                    : "border-[#2D2D2D] bg-[#101010] text-[#959595] hover:border-[#7D2A28] hover:text-[#D4D4D4]"
+                )}
+                aria-label={`Jump to ${moment.title}`}
+              >
+                {moment.title}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-2 max-h-24 overflow-y-auto pr-1 custom-scrollbar">
+            <div className="grid gap-1 text-[10px] text-[#ABABAB] sm:grid-cols-2 lg:grid-cols-3">
+              {replayMarkers.map((marker) => (
+                <p key={`${marker.id}-legend`} className="inline-flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: marker.color }} />
+                  P{marker.livePosition} {marker.label}
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-3 max-h-[340px] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
         <div className="mb-1 flex items-center justify-between">
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8D8D8D]">Sectors</p>
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8D8D8D]">DRS Zones</p>
         </div>
 
-        <div className="grid gap-2 md:grid-cols-[1.25fr_1fr]">
-          <div className="grid grid-cols-3 gap-2">
-            {sectorSegments.map((segment) => {
+        <div className="grid gap-2 md:grid-cols-[1.35fr_1fr]">
+          <div className="space-y-2">
+            {sectorIntel.map((segment) => {
               const isActive = activeSectorId === segment.id;
 
               return (
@@ -763,13 +1421,22 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
                   onFocus={() => activateSector(segment.id)}
                   onClick={() => activateSector(segment.id)}
                   className={cn(
-                    "border px-3 py-3 text-left transition-colors",
+                    "w-full border px-3 py-3 text-left transition-colors",
                     isActive
                       ? "border-[#E10600] bg-[#180707] text-[#FBE8E8]"
                       : "border-[#2A2A2A] bg-[#0D0D0D] text-[#A4A4A4] hover:border-[#7D2A28] hover:text-[#D2D2D2]"
                   )}
                 >
-                  <p className="text-[11px] font-black tracking-[0.08em]">{segment.name}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-black tracking-[0.08em]">{segment.name}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#C3C3C3]">
+                      {segment.turnRange}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-[10px] font-semibold leading-snug text-[#919191]">
+                    {segment.lengthPct}% lap share
+                  </p>
+                  <p className="mt-1 text-[10px] font-medium leading-snug text-[#B1B1B1]">{segment.phaseFocus}</p>
                 </button>
               );
             })}
@@ -795,12 +1462,23 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
                   )}
                 >
                   <p className="text-[11px] font-black tracking-[0.08em] text-[#E10600]">{drsId.replace("-", " ")}</p>
-                  <p className="mt-1 text-[10px] font-semibold leading-tight text-[#8B8B8B]">Activation</p>
+                  <p className="mt-1 text-[10px] font-semibold leading-tight text-[#8B8B8B]">Detection + Activation</p>
                 </button>
               );
             })}
           </div>
         </div>
+
+        {selectedSectorIntel ? (
+          <div className="border border-[#2A2A2A] bg-[#0C0C0C] p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8D8D8D]">Focused Sector Briefing</p>
+            <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#EFEFEF]">
+              {selectedSectorIntel.name} · {selectedSectorIntel.turnRange}
+            </p>
+            <p className="mt-1 text-[11px] font-medium leading-snug text-[#C4C4C4]">{selectedSectorIntel.telemetry}</p>
+            <p className="mt-2 text-[10px] font-semibold leading-snug text-[#AFAFAF]">{selectedSectorIntel.pressureProfile}</p>
+          </div>
+        ) : null}
       </div>
     </div>
   );

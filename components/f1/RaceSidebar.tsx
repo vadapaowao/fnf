@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { type Race } from "@/lib/f1";
 
 interface RaceSidebarProps {
@@ -10,8 +12,41 @@ interface RaceSidebarProps {
 }
 
 export default function RaceSidebar({ races, currentRaceRound, highlightedRound }: RaceSidebarProps) {
+    const SIDEBAR_SCROLL_KEY = "f1-race-sidebar-scroll-top";
+    const SIDEBAR_SEARCH_KEY = "f1-race-sidebar-search";
+
     const now = new Date();
     const activeRound = highlightedRound ?? currentRaceRound;
+    const pathname = usePathname();
+    const listRef = useRef<HTMLDivElement | null>(null);
+    const [searchTerm, setSearchTerm] = useState("");
+
+    useEffect(() => {
+        const savedQuery = sessionStorage.getItem(SIDEBAR_SEARCH_KEY);
+        if (savedQuery) {
+            setSearchTerm(savedQuery);
+        }
+    }, []);
+
+    useEffect(() => {
+        sessionStorage.setItem(SIDEBAR_SEARCH_KEY, searchTerm);
+    }, [searchTerm]);
+
+    useEffect(() => {
+        const list = listRef.current;
+        if (!list) return;
+
+        const savedScroll = Number(sessionStorage.getItem(SIDEBAR_SCROLL_KEY) ?? "0");
+        if (Number.isFinite(savedScroll) && savedScroll > 0) {
+            list.scrollTop = savedScroll;
+        }
+    }, [pathname]);
+
+    const persistScroll = () => {
+        const list = listRef.current;
+        if (!list) return;
+        sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(list.scrollTop));
+    };
 
     const getRaceStatus = (race: Race) => {
         const raceDate = new Date(race.date);
@@ -19,6 +54,18 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound 
         if (activeRound && String(activeRound) === race.round) return "LIVE";
         return "UPCOMING";
     };
+
+    const filteredRaces = useMemo(() => {
+        const query = searchTerm.trim().toLowerCase();
+        if (!query) return races;
+
+        return races.filter((race) =>
+            [race.raceName, race.circuitName, race.locality, race.country, `round ${race.round}`]
+                .join(" ")
+                .toLowerCase()
+                .includes(query)
+        );
+    }, [races, searchTerm]);
 
     return (
         <aside className="w-80 border-r border-white/10 flex flex-col bg-background-dark/80 backdrop-blur-sm z-10 shrink-0 h-full overflow-hidden">
@@ -31,14 +78,16 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound 
                         search
                     </span>
                     <input
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
                         className="w-full bg-surface-dark/50 border border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm focus:border-grid-primary focus:ring-0 placeholder-gray-600 text-white outline-none"
                         placeholder="Filter Grand Prix..."
                         type="text"
                     />
                 </div>
             </div>
-            <div className="overflow-y-auto custom-scrollbar flex-1 p-4 space-y-3">
-                {races.map((race) => {
+            <div ref={listRef} onScroll={persistScroll} className="overflow-y-auto custom-scrollbar flex-1 p-4 space-y-3">
+                {filteredRaces.map((race) => {
                     const status = getRaceStatus(race);
                     const isActive = activeRound && race.round === String(activeRound);
 
@@ -46,6 +95,7 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound 
                         <Link
                             key={race.round}
                             href={`/f1/race/${race.round}`}
+                            onClick={persistScroll}
                             className={`group cursor-pointer p-4 rounded-lg border transition-all block ${isActive
                                     ? "border-grid-primary bg-grid-primary/10 bg-stripes relative overflow-hidden neon-border transform scale-[1.02]"
                                     : "border-white/5 hover:bg-white/5 hover:border-grid-primary/50 opacity-60"
@@ -66,9 +116,17 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound 
                                     })}
                                 </span>
                                 {isActive && status === "LIVE" && (
-                                    <span className="flex items-center gap-1 text-[10px] bg-grid-primary text-black px-1.5 py-0.5 rounded font-bold animate-pulse">
-                                        <span className="material-icons text-[10px]">live_tv</span> LIVE
-                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                            window.open("https://www.fancode.com", "_blank", "noopener,noreferrer");
+                                        }}
+                                        className="flex items-center gap-1 text-[10px] bg-grid-primary text-black px-1.5 py-0.5 rounded font-bold animate-pulse hover:bg-white"
+                                    >
+                                        <span className="material-icons text-[10px]">live_tv</span> WATCH LIVE
+                                    </button>
                                 )}
                                 {!isActive && (
                                     <span className="text-xs text-gray-500 font-mono">{status}</span>
@@ -96,6 +154,13 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound 
                         </Link>
                     );
                 })}
+                {filteredRaces.length === 0 && (
+                    <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                            No races match: {searchTerm}
+                        </p>
+                    </div>
+                )}
             </div>
         </aside>
     );

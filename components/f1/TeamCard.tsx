@@ -3,10 +3,9 @@ import { ConstructorStanding } from "@/lib/f1";
 
 interface TeamCardProps {
     standing: ConstructorStanding;
-    season?: string;
 }
 
-export default function TeamCard({ standing, season = "2023" }: TeamCardProps) {
+export default function TeamCard({ standing }: TeamCardProps) {
     const { constructor: team, position, points, wins } = standing;
 
     return (
