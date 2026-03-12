@@ -1,4 +1,5 @@
 import { getRaceWeekendSessions, type Race, type RaceRecap, type RaceSession, type TrackSector } from "@/lib/f1";
+import WinnerHypeButton from "@/components/f1/WinnerHypeButton";
 
 interface RaceIntelPanelProps {
     race: Race;
@@ -30,7 +31,6 @@ export default function RaceIntelPanel({
     fastestLap,
     recap,
     sessions,
-    sectors,
 }: RaceIntelPanelProps) {
     const defaultSessions: RaceSession[] = sessions || getRaceWeekendSessions(race);
     const hasRaceFinished = new Date(`${race.date}T${race.time}`).getTime() < Date.now();
@@ -38,7 +38,7 @@ export default function RaceIntelPanel({
     return (
         <aside className="w-96 bg-surface-dark/95 border-l border-white/10 p-6 z-20 overflow-y-auto custom-scrollbar shadow-2xl relative">
             <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
-                <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase">Race Intel</h3>
+                <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase">Race Info</h3>
                 <span className="text-xs bg-grid-primary/20 text-grid-primary px-2 py-1 rounded font-mono">
                     ROUND {race.round}
                 </span>
@@ -113,23 +113,24 @@ export default function RaceIntelPanel({
 
             {/* Last Winner */}
             {lastWinner && (
-                <div className="mb-8 p-5 rounded-xl bg-gradient-to-br from-[#2B0A0A] via-[#170707] to-[#090909] border border-grid-primary/35 relative overflow-hidden shadow-[0_0_18px_rgba(225,6,0,0.28)]">
-                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent opacity-70 pointer-events-none"></div>
-                    <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0)_38%)] pointer-events-none"></div>
-                    <div className="absolute top-0 right-0 p-4 opacity-20">
-                        <span className="material-icons text-6xl text-white">emoji_events</span>
+                <div className="mb-8 overflow-hidden rounded-2xl border border-[#F86B6B]/35 bg-[radial-gradient(circle_at_top_right,rgba(248,107,107,0.26),transparent_42%),linear-gradient(145deg,#140809_0%,#0A0A0A_64%)] shadow-[0_14px_35px_rgba(225,6,0,0.22)]">
+                    <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#FF8F8F]">Winner Drop</p>
+                        <span className="rounded-full border border-[#FF7E7E]/50 bg-[#2A0F10] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#FFD4D4]">
+                            Trend
+                        </span>
                     </div>
-                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 relative z-10">
-                        Last Winner
-                    </h4>
-                    <div className="relative z-10">
-                        <p className="text-xl font-mono font-bold text-[#FFF1E7]">{lastWinner.driver}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                            <span className="w-1.5 h-1.5 bg-accent-gold rounded-full"></span>
-                            <p className="text-xs text-[#F9D7CA]">
-                                {lastWinner.constructor} • {lastWinner.year}
-                            </p>
+                    <div className="relative p-4">
+                        <div className="pointer-events-none absolute right-3 top-3 h-14 w-14 rounded-full bg-[#E10600]/20 blur-xl" />
+                        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-2 py-1">
+                            <span className="material-icons text-sm text-[#FFD9B8]">emoji_events</span>
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#FFD9B8]">Last Winner</span>
                         </div>
+                        <WinnerHypeButton
+                            driver={lastWinner.driver}
+                            className="mt-3 inline-flex rounded-md border border-transparent px-1 text-left text-2xl font-black tracking-tight text-white transition-colors hover:border-[#FF9A9A]/40 hover:bg-[#220B0C]"
+                        />
+                        <p className="mt-1 text-xs text-[#F0B3B3]">{lastWinner.constructor} • {lastWinner.year}</p>
                     </div>
                 </div>
             )}
@@ -281,35 +282,6 @@ export default function RaceIntelPanel({
                 </div>
             </div>
 
-            {/* Telemetry Sectors */}
-            {sectors && sectors.length > 0 && (
-                <div>
-                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
-                        Sector Analysis
-                    </h4>
-                    <div className="space-y-3">
-                        {sectors.map((sector) => (
-                            <div
-                                key={sector.id}
-                                className="p-4 rounded-lg bg-gradient-to-r from-surface-dark to-background-dark border border-white/5"
-                            >
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span
-                                        className={`w-2 h-2 rounded-full ${sector.id === "S1"
-                                                ? "bg-primary"
-                                                : sector.id === "S2"
-                                                    ? "bg-accent-green"
-                                                    : "bg-accent-gold"
-                                            }`}
-                                    ></span>
-                                    <span className="text-xs font-bold text-white">{sector.name}</span>
-                                </div>
-                                <p className="text-[10px] text-gray-400 leading-relaxed">{sector.telemetry}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
         </aside>
     );
 }

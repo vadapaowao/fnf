@@ -44,7 +44,7 @@ export default function F1Navigation({ season = "2026" }: F1NavigationProps) {
                             : ""
                         }`}
                 >
-                    NEWS
+                    RACE
                 </Link>
                 <Link
                     href="/f1/calendar"

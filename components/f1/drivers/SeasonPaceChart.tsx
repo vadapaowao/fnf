@@ -1,74 +1,107 @@
-export default function SeasonPaceChart() {
-    // Mock race position data (12 races)
-    const racePositions = [8, 6, 9, 7, 5, 3, 4, 2, 4, 3, 5, 2];
+import type { DriverSeasonResult } from "@/lib/driver-profile";
+
+type SeasonPaceChartProps = {
+    data: DriverSeasonResult[];
+    accentColor?: string;
+    season: string;
+};
+
+function getBarHeight(position: number | null, fieldSize: number) {
+    if (!position || position <= 0) {
+        return 10;
+    }
+
+    return Math.max(((fieldSize + 1 - position) / fieldSize) * 100, 10);
+}
+
+export default function SeasonPaceChart({ data, accentColor = "#E10600", season }: SeasonPaceChartProps) {
+    const fieldSize = 20;
+
+    if (data.length === 0) {
+        return (
+            <div className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h3 className="font-display text-lg font-bold uppercase text-white">Season Pace</h3>
+                        <p className="mt-1 text-xs font-mono uppercase tracking-[0.14em] text-gray-500">{season} race-by-race form</p>
+                    </div>
+                </div>
+                <div className="mt-6 rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-8 text-center">
+                    <p className="text-sm text-gray-400">No race results available yet for this season.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="glass-panel p-8 rounded-2xl border border-white/5">
-            <div className="flex justify-between items-end mb-6">
+        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+            <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                    <h3 className="text-lg font-bold text-white uppercase font-display">
-                        Season Pace
-                    </h3>
-                    <p className="text-xs text-gray-500 font-mono mt-1">
-                        AVG. POSITION PER RACE
-                    </p>
+                    <h3 className="font-display text-lg font-bold uppercase text-white">Season Pace</h3>
+                    <p className="mt-1 text-xs font-mono uppercase tracking-[0.14em] text-gray-500">{season} grid versus finish trend</p>
                 </div>
-                <div className="flex gap-2">
-                    <span className="w-3 h-3 rounded-full bg-primary"></span>
-                    <span className="text-xs text-gray-400">Quali</span>
-                    <span className="w-3 h-3 rounded-full bg-white ml-2"></span>
-                    <span className="text-xs text-gray-400">Race</span>
+                <div className="flex items-center gap-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400">
+                    <span className="inline-flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-white/60" />
+                        Grid
+                    </span>
+                    <span className="inline-flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accentColor }} />
+                        Finish
+                    </span>
                 </div>
             </div>
 
-            <div className="h-48 flex items-end justify-between gap-2 lg:gap-4 relative">
-                {/* Grid Lines */}
-                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                    <div className="border-t border-white/5 w-full h-0"></div>
-                    <div className="border-t border-white/5 w-full h-0"></div>
-                    <div className="border-t border-white/5 w-full h-0"></div>
-                    <div className="border-t border-white/5 w-full h-0"></div>
-                </div>
-
-                {/* Bars */}
-                {racePositions.map((pos, idx) => (
-                    <div
-                        key={idx}
-                        className="flex-1 flex flex-col justify-end items-center group relative h-full"
-                    >
-                        {/* Quali Bar (red) */}
-                        <div
-                            className="w-1.5 lg:w-2 bg-gradient-to-t from-primary/20 to-primary rounded-t-full relative z-10 transition-all group-hover:bg-primary"
-                            style={{ height: `${(15 - pos) * 6}%` }}
-                        ></div>
-
-                        {/* Race Bar (white) */}
-                        <div
-                            className="w-1.5 lg:w-2 bg-gradient-to-t from-white/10 to-white/40 rounded-t-full absolute bottom-0 left-1/2 ml-1 lg:ml-1.5 transition-all group-hover:bg-white"
-                            style={{ height: `${(15 - pos + 2) * 5}%` }}
-                        ></div>
-
-                        {/* Race Number Label */}
-                        <div className="mt-2 text-[10px] text-gray-600 font-mono uppercase opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-6">
-                            R{idx + 1}
-                        </div>
-
-                        {/* Tooltip */}
-                        <div className="absolute bottom-full mb-2 bg-surface-dark border border-white/10 p-2 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none shadow-xl">
-                            <span className="text-primary font-bold">P{pos}</span> Race
-                        </div>
+            <div className="mt-6 overflow-x-auto pb-2 custom-scrollbar">
+                <div className="relative min-w-[720px]">
+                    <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
+                        {Array.from({ length: 5 }).map((_, index) => (
+                            <div key={index} className="border-t border-white/5" />
+                        ))}
                     </div>
-                ))}
-            </div>
 
-            <style jsx>{`
-        .glass-panel {
-          background: rgba(10, 10, 10, 0.7);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 40, 0, 0.1);
-        }
-      `}</style>
+                    <div className="relative flex h-64 items-end gap-3">
+                        {data.map((entry) => (
+                            <div key={`${entry.round}-${entry.raceName}`} className="group flex min-w-[52px] flex-1 flex-col items-center">
+                                <div className="relative flex h-56 w-full items-end justify-center gap-1">
+                                    <div
+                                        className="w-3 rounded-t-full bg-gradient-to-t from-white/10 to-white/60 transition-transform duration-200 group-hover:scale-y-105"
+                                        style={{ height: `${getBarHeight(entry.grid, fieldSize)}%` }}
+                                    />
+                                    {entry.finish ? (
+                                        <div
+                                            className="w-3 rounded-t-full transition-transform duration-200 group-hover:scale-y-105"
+                                            style={{
+                                                height: `${getBarHeight(entry.finish, fieldSize)}%`,
+                                                background: `linear-gradient(to top, ${accentColor}33, ${accentColor})`,
+                                            }}
+                                        />
+                                    ) : (
+                                        <div
+                                            className="flex h-8 w-3 items-center justify-center rounded-full border border-dashed"
+                                            style={{ borderColor: `${accentColor}80`, color: accentColor }}
+                                        >
+                                            <span className="text-[8px] font-black">X</span>
+                                        </div>
+                                    )}
+
+                                    <div className="pointer-events-none absolute bottom-full mb-3 min-w-[140px] rounded-lg border border-white/10 bg-[#0B0B0B] px-3 py-2 text-left opacity-0 shadow-2xl transition-opacity duration-150 group-hover:opacity-100">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-grid-primary">{entry.raceName}</p>
+                                        <p className="mt-1 text-[11px] text-gray-200">
+                                            Grid {entry.grid ? `P${entry.grid}` : "TBD"} • Finish {entry.finishLabel}
+                                        </p>
+                                        <p className="mt-1 text-[10px] text-gray-500">{entry.points.toFixed(0)} pts • {entry.status}</p>
+                                    </div>
+                                </div>
+
+                                <p className="mt-3 text-[10px] font-mono font-bold uppercase tracking-[0.12em] text-gray-500">
+                                    {entry.label}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

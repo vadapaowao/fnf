@@ -1,40 +1,99 @@
 import DriverCard from "@/components/f1/drivers/DriverCard";
+import StandingsAccordion from "@/components/f1/StandingsAccordion";
 import { F1_SEASON, getDriverStandings } from "@/lib/f1";
+
+const TEAM_TONES: Record<string, string> = {
+  red_bull: "#1E41FF",
+  ferrari: "#DC0000",
+  mercedes: "#00D2BE",
+  mclaren: "#FF8000",
+  aston_martin: "#006F62",
+  alpine: "#0090FF",
+  williams: "#005AFF",
+  rb: "#2B4562",
+  sauber: "#52E252",
+  haas: "#B6BABD"
+};
 
 export default async function DriversPage() {
   const standings = await getDriverStandings(F1_SEASON);
+  const teamsRepresented = new Set(standings.map((standing) => standing.constructors[0]?.constructorId).filter(Boolean)).size;
+  const nationalitiesRepresented = new Set(standings.map((standing) => standing.driver.nationality)).size;
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-background-dark pb-12 pt-24 text-white">
-      <div className="pointer-events-none fixed inset-0 z-0 bg-grid opacity-20" />
-      <div className="pointer-events-none fixed left-0 top-20 h-96 w-96 rounded-full bg-primary/5 blur-[120px]" />
-      <div className="pointer-events-none fixed bottom-0 right-0 h-[500px] w-[500px] rounded-full bg-blue-600/5 blur-[150px]" />
+    <main className="flex-1 overflow-y-auto bg-background-dark">
+      <div className="container mx-auto px-6 py-12">
+        <div className="mb-8">
+          <h1 className="mb-2 font-display text-4xl font-bold text-white md:text-5xl">
+            {F1_SEASON} DRIVERS
+          </h1>
+          <p className="text-gray-400">
+            Identity-first driver dossiers with live season context, team metadata, and archive access.
+          </p>
+        </div>
 
-      <div className="container relative z-10 mx-auto px-6">
-        <header className="mb-12 flex flex-col items-end justify-between gap-8 border-b border-white/5 pb-8 md:flex-row">
-          <div>
-            <h1 className="mb-2 text-5xl font-bold italic leading-[0.85] tracking-tighter text-white md:text-7xl">DRIVERS</h1>
-            <p className="mt-3 max-w-md border-l-2 border-primary pl-2 text-base text-gray-400">
-              Full grid profiles with validated career stats and portraits.
-            </p>
-          </div>
-          <div className="rounded-full border border-primary/30 bg-primary/10 px-5 py-2">
-            <p className="text-xs font-mono font-bold uppercase tracking-wider text-primary">Season {F1_SEASON}</p>
-          </div>
-        </header>
+        {standings.length > 0 ? (
+          <section className="mb-8 grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+            <article className="overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
+              <div className="border-b border-white/5 px-6 py-4">
+                <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Driver Directory</p>
+                <h2 className="mt-2 font-display text-3xl font-bold text-white">
+                  {`${standings.length} dossiers for the full ${F1_SEASON} grid`}
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-400">
+                  Built as a driver-first directory instead of a standings wall: stronger identity, cleaner team context, permanent numbers, and direct entry into deeper single-driver views with archive layers.
+                </p>
+              </div>
+
+              <div className="grid gap-4 px-6 py-5 sm:grid-cols-3">
+                <div className="rounded-lg border border-white/5 bg-black/20 p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Grid Size</p>
+                  <p className="mt-2 text-3xl font-black text-white">{standings.length}</p>
+                </div>
+                <div className="rounded-lg border border-white/5 bg-black/20 p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Teams</p>
+                  <p className="mt-2 text-3xl font-black text-white">{teamsRepresented}</p>
+                  <p className="mt-1 text-[11px] text-gray-500">constructors represented</p>
+                </div>
+                <div className="rounded-lg border border-white/5 bg-black/20 p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Nationalities</p>
+                  <p className="mt-2 text-3xl font-black text-white">{nationalitiesRepresented}</p>
+                  <p className="mt-1 text-[11px] text-gray-500">
+                    global spread across the grid
+                  </p>
+                </div>
+              </div>
+            </article>
+
+            <StandingsAccordion
+              eyebrow="Current Standings"
+              title={`${F1_SEASON} Driver Standings`}
+              subtitle="Current championship order for the full grid. Click to expand the full table."
+              rows={standings.map((standing) => ({
+                rank: standing.position,
+                name: `${standing.driver.givenName} ${standing.driver.familyName}`,
+                context: standing.constructors[0]?.name ?? "Team unavailable",
+                meta: standing.driver.code ? `${standing.driver.code} • ${standing.wins} wins` : `${standing.wins} wins`,
+                value: `${standing.points} pts`,
+                accentColor: TEAM_TONES[standing.constructors[0]?.constructorId ?? ""] ?? "#E10600"
+              }))}
+            />
+          </section>
+        ) : null}
 
         {standings.length === 0 ? (
-          <div className="flex min-h-[400px] items-center justify-center">
+          <div className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-12 text-center">
             <p className="text-lg text-gray-400">Driver list unavailable.</p>
           </div>
         ) : (
-          <div className="mb-16 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {standings.map((standing) => (
               <DriverCard
                 key={standing.driver.driverId}
                 driver={standing.driver}
                 teamId={standing.constructors[0]?.constructorId}
                 teamName={standing.constructors[0]?.name}
+                standing={standing}
               />
             ))}
           </div>

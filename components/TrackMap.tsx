@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 
 import type { RaceRecap, RaceReplayData, TrackSector } from "@/lib/f1";
+import { getTrackSectorInsight } from "@/lib/track-sector-insights";
 import { cn } from "@/lib/utils";
 
 type TrackMapProps = {
@@ -128,6 +129,8 @@ const DEFAULT_SECTORS: TrackSector[] = [
   }
 ];
 
+const SECTOR_IDS: TrackSector["id"][] = ["S1", "S2", "S3"];
+
 const TRACK_TURN_COUNTS: Record<string, number> = {
   albert_park: 14,
   jeddah: 27,
@@ -155,42 +158,6 @@ const TRACK_TURN_COUNTS: Record<string, number> = {
   yas_marina: 16
 };
 
-const TRACK_SECTOR_DETAIL_OVERRIDES: Partial<
-  Record<
-    string,
-    Partial<Record<TrackSector["id"], { phaseFocus: string; pressureProfile: string }>>
-  >
-> = {
-  albert_park: {
-    S1: {
-      phaseFocus: "Kerb-riding entry confidence through the opening directional changes.",
-      pressureProfile: "High pressure for launch positioning and first DRS approach."
-    },
-    S2: {
-      phaseFocus: "Mid-corner rotation quality in medium-speed sequence.",
-      pressureProfile: "Tire surface temperature management under sustained lateral load."
-    },
-    S3: {
-      phaseFocus: "Late-braking stability into stop-go style exits.",
-      pressureProfile: "Overtake threat peaks if traction release is delayed."
-    }
-  },
-  suzuka: {
-    S1: {
-      phaseFocus: "Rhythm and steering commitment through linked esses.",
-      pressureProfile: "Front-end precision critical; small errors cascade immediately."
-    },
-    S2: {
-      phaseFocus: "Load transfer control through high-speed direction change.",
-      pressureProfile: "Aero balance sensitivity dominates pace spread."
-    },
-    S3: {
-      phaseFocus: "Exit traction and straight setup compromise.",
-      pressureProfile: "One poor launch out of final complex costs entire straight."
-    }
-  }
-};
-
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
@@ -216,30 +183,6 @@ function getReplayDriverColor(driverId: string, finishPosition: number) {
   const fallbackSaturation = 65 + (hash % 18);
   const fallbackLightness = 46 + ((hash >> 3) % 12);
   return `hsl(${fallbackHue} ${fallbackSaturation}% ${fallbackLightness}%)`;
-}
-
-function getDefaultPhaseFocus(sectorId: TrackSector["id"]) {
-  if (sectorId === "S1") {
-    return "Opening complex where steering response and entry confidence shape the first split.";
-  }
-
-  if (sectorId === "S2") {
-    return "Mid-lap rhythm section balancing speed carry against aero and tire load.";
-  }
-
-  return "Closing sequence where braking precision and traction release define exit time.";
-}
-
-function getDefaultPressureProfile(sectorId: TrackSector["id"]) {
-  if (sectorId === "S1") {
-    return "Position risk is highest with packed-field braking and first DRS setup.";
-  }
-
-  if (sectorId === "S2") {
-    return "Sustained lateral load drives tire temperature and small understeer penalties.";
-  }
-
-  return "Late-race pass risk peaks when traction drop amplifies straight-line vulnerability.";
 }
 
 function resolveDistanceAtReplayTime(cumulativeMs: number[], replayTimeMs: number) {
@@ -321,6 +264,28 @@ function parseDrsCount(value: number | string | undefined, fallback: number) {
   }
 
   return fallback;
+}
+
+function canonicalizeSectorId(value: unknown): TrackSector["id"] | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+  if (normalized === "S1" || normalized === "SECTOR1" || normalized === "1") {
+    return "S1";
+  }
+
+  if (normalized === "S2" || normalized === "SECTOR2" || normalized === "2") {
+    return "S2";
+  }
+
+  if (normalized === "S3" || normalized === "SECTOR3" || normalized === "3") {
+    return "S3";
+  }
+
+  return null;
 }
 
 function getFallbackTelemetry(circuitId: string) {
@@ -501,6 +466,7 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
   const [replayTimeMs, setReplayTimeMs] = useState(0);
   const [isReplayPlaying, setIsReplayPlaying] = useState(false);
   const [replaySpeedIndex, setReplaySpeedIndex] = useState(1);
+  const [isTrackReplayOpen, setIsTrackReplayOpen] = useState(false);
 
   const pathRef = useRef<SVGPathElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
@@ -508,16 +474,33 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
   const layout = useMemo(() => TRACK_LAYOUTS[circuitId] ?? DEFAULT_LAYOUT, [circuitId]);
 
   const sectorSegments = useMemo<SectorDisplay[]>(() => {
-    const sourceSectors = sectors && sectors.length === 3 ? sectors : DEFAULT_SECTORS;
+    const sourceSectors = sectors && sectors.length > 0 ? sectors : DEFAULT_SECTORS;
+    const sectorsById = new Map<TrackSector["id"], TrackSector>();
+
+    sourceSectors.forEach((sector, index) => {
+      const slotId =
+        canonicalizeSectorId(sector.id) ??
+        canonicalizeSectorId(sector.name) ??
+        SECTOR_IDS[index] ??
+        null;
+
+      if (!slotId || sectorsById.has(slotId)) {
+        return;
+      }
+
+      sectorsById.set(slotId, { ...sector, id: slotId });
+    });
 
     return layout.sectorStops.slice(0, 3).map((start, index) => {
-      const source = sourceSectors[index] ?? DEFAULT_SECTORS[index];
+      const slotId = SECTOR_IDS[index] ?? "S3";
+      const fallback = DEFAULT_SECTORS[index] ?? DEFAULT_SECTORS[2];
+      const source = sectorsById.get(slotId) ?? sourceSectors[index] ?? fallback;
       const end = layout.sectorStops[index + 1];
 
       return {
-        id: source.id,
-        name: source.name,
-        telemetry: source.telemetry,
+        id: slotId,
+        name: source.name || fallback.name,
+        telemetry: source.telemetry || fallback.telemetry,
         start,
         end
       };
@@ -526,7 +509,6 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
 
   const sectorIntel = useMemo<SectorIntel[]>(() => {
     const turnCount = TRACK_TURN_COUNTS[circuitId] ?? 18;
-    const overrides = TRACK_SECTOR_DETAIL_OVERRIDES[circuitId] ?? {};
 
     return sectorSegments.map((segment, index) => {
       const startTurn = clamp(Math.floor(segment.start * turnCount) + 1, 1, turnCount);
@@ -534,7 +516,7 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
       const endTurn = index === sectorSegments.length - 1 ? turnCount : computedEnd;
       const turnRange = startTurn === endTurn ? `T${startTurn}` : `T${startTurn}-T${endTurn}`;
       const lengthPct = clamp(Math.round((segment.end - segment.start) * 100), 1, 98);
-      const override = overrides[segment.id];
+      const insight = getTrackSectorInsight(circuitId, segment.id);
 
       return {
         id: segment.id,
@@ -542,8 +524,8 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
         telemetry: segment.telemetry,
         turnRange,
         lengthPct,
-        phaseFocus: override?.phaseFocus ?? getDefaultPhaseFocus(segment.id),
-        pressureProfile: override?.pressureProfile ?? getDefaultPressureProfile(segment.id)
+        phaseFocus: insight.phaseFocus,
+        pressureProfile: insight.pressureProfile
       };
     });
   }, [circuitId, sectorSegments]);
@@ -714,13 +696,12 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
 
         const paddingRatio = circuitId === "suzuka" ? 0.08 : 0.16;
         const padX = Math.max(bounds.width * paddingRatio, 8);
-        const padYTop = Math.max(bounds.height * paddingRatio, 8);
-        const padYBottom = Math.max(bounds.height * (paddingRatio + 0.08), 12);
+        const padY = Math.max(bounds.height * paddingRatio, 8);
 
         const nextMinX = Math.max(sourceMinX, bounds.x - padX);
-        const nextMinY = Math.max(sourceMinY, bounds.y - padYTop);
+        const nextMinY = Math.max(sourceMinY, bounds.y - padY);
         const nextMaxX = Math.min(sourceMaxX, bounds.x + bounds.width + padX);
-        const nextMaxY = Math.min(sourceMaxY, bounds.y + bounds.height + padYBottom);
+        const nextMaxY = Math.min(sourceMaxY, bounds.y + bounds.height + padY);
 
         const nextWidth = nextMaxX - nextMinX;
         const nextHeight = nextMaxY - nextMinY;
@@ -799,14 +780,15 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
   const strokeScale = useMemo(() => {
     const native = svgData?.nativeStrokeWidth ?? 6;
     const normalizedBase = clamp(6.2 + (native - 6) * 0.08, 5.9, 6.7);
+    const outlineScale = 0.9;
 
     return {
-      base: normalizedBase,
-      red: normalizedBase + 0.55,
-      sector: normalizedBase + 0.95,
-      sectorActive: normalizedBase + 2,
-      drs: normalizedBase + 0.8,
-      drsActive: normalizedBase + 2.35,
+      base: normalizedBase * outlineScale,
+      red: (normalizedBase + 0.55) * outlineScale,
+      sector: (normalizedBase + 0.95) * outlineScale,
+      sectorActive: (normalizedBase + 2) * outlineScale,
+      drs: (normalizedBase + 0.8) * outlineScale,
+      drsActive: (normalizedBase + 2.35) * outlineScale,
       hitbox: 21
     };
   }, [svgData?.nativeStrokeWidth]);
@@ -981,20 +963,7 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
       });
     }
 
-    const fallbackFractions = [0.18, 0.43, 0.71];
-    return fallbackFractions.map((fraction, index) => {
-      const point = element.getPointAtLength(pathLength * fraction);
-      return {
-        id: `preview-${index + 1}`,
-        label: `P${index + 1}`,
-        constructor: "Preview",
-        color: getReplayDriverColor(`preview-${index + 1}`, index + 1),
-        x: point.x,
-        y: point.y,
-        livePosition: index + 1,
-        finishPosition: index + 1
-      };
-    });
+    return [];
   }, [hasReplayTelemetry, pathLength, replay, replayDurationMs, replayTimeMs]);
 
   const replayCurrentLap = useMemo(() => {
@@ -1079,6 +1048,7 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
     setReplayTimeMs(0);
     setReplaySpeedIndex(1);
     setTooltipPosition({ x: 12, y: 12 });
+    setIsTrackReplayOpen(false);
   };
 
   const clearHoverSelection = () => {
@@ -1296,120 +1266,134 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
       </div>
 
       {replayActiveMoment ? (
-        <div className="mt-3 border border-[#2C2C2C] bg-[#0B0B0B] p-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#E6A3A0]">Track Replay</p>
-              <p className="mt-0.5 text-[10px] text-[#888]">
-                {replayModeLabel} • Lap {replayCurrentLap}
-                {hasReplayTelemetry && replay ? ` / ${replay.totalLaps}` : ""}
-              </p>
-            </div>
-            <p className="text-[10px] font-semibold text-[#B1B1B1]">
-              {isReplayPlaying ? "Playing" : "Paused"} • {replaySpeed}x
-            </p>
-          </div>
+        <div className="mt-3 border border-[#2C2C2C] bg-[#0B0B0B]">
+          <button
+            type="button"
+            onClick={() => setIsTrackReplayOpen((previous) => !previous)}
+            className="flex w-full items-center justify-between px-3 py-2 text-left"
+          >
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#E6A3A0]">
+              {isTrackReplayOpen ? "Hide Track Replay" : "Show Track Replay"}
+            </span>
+            <span className={cn("material-icons text-base text-[#E10600] transition-transform", isTrackReplayOpen ? "rotate-180" : "")}>
+              expand_more
+            </span>
+          </button>
 
-          <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#F3F3F3]">{replayActiveMoment.title}</p>
-          <p className="mt-1 text-[11px] leading-snug text-[#BDBDBD]">{replayActiveMoment.detail}</p>
-
-          <div className="mt-2 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => stepReplayTime(-1)}
-              className="inline-flex items-center justify-center border border-[#2D2D2D] bg-[#111] px-2 py-1 text-[10px] font-semibold text-[#D8D8D8] hover:border-[#6A6A6A]"
-              aria-label="Previous replay checkpoint"
-            >
-              <span className="material-icons text-sm">fast_rewind</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsReplayPlaying((previous) => !previous)}
-              className="inline-flex items-center gap-1 border border-[#7D2A28] bg-[#190909] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#FDE8E8] hover:border-[#E10600]"
-              aria-label={isReplayPlaying ? "Pause replay" : "Play replay"}
-            >
-              <span className="material-icons text-sm">{isReplayPlaying ? "pause" : "play_arrow"}</span>
-              {isReplayPlaying ? "Pause" : "Play"}
-            </button>
-            <button
-              type="button"
-              onClick={() => stepReplayTime(1)}
-              className="inline-flex items-center justify-center border border-[#2D2D2D] bg-[#111] px-2 py-1 text-[10px] font-semibold text-[#D8D8D8] hover:border-[#6A6A6A]"
-              aria-label="Next replay checkpoint"
-            >
-              <span className="material-icons text-sm">fast_forward</span>
-            </button>
-
-            <div className="ml-auto flex items-center gap-1">
-              {REPLAY_SPEEDS.map((speed, index) => (
-                <button
-                  key={speed}
-                  type="button"
-                  onClick={() => setReplaySpeedIndex(index)}
-                  className={cn(
-                    "border px-1.5 py-0.5 text-[10px] font-semibold",
-                    replaySpeedIndex === index
-                      ? "border-[#E10600] bg-[#180707] text-[#FDEAEA]"
-                      : "border-[#2D2D2D] bg-[#111] text-[#969696] hover:border-[#7D2A28]"
-                  )}
-                  aria-label={`Set replay speed to ${speed}x`}
-                >
-                  {speed}x
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <input
-            type="range"
-            min={0}
-            max={Math.max(replayDurationMs, 1)}
-            value={replayTimeMs}
-            onChange={(event) => setReplayTimeMs(Number(event.target.value))}
-            className="mt-3 h-1 w-full cursor-pointer appearance-none rounded bg-[#282828]"
-            aria-label="Replay timeline scrubber"
-          />
-
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            {replayMoments.map((moment, index) => (
-              <button
-                key={moment.id}
-                type="button"
-                onClick={() => jumpToReplayMoment(moment)}
-                className={cn(
-                  "border px-2 py-0.5 text-[10px] font-semibold",
-                  index === replayActiveMomentIndex
-                    ? "border-[#E10600] bg-[#180707] text-[#FDEAEA]"
-                    : "border-[#2D2D2D] bg-[#101010] text-[#959595] hover:border-[#7D2A28] hover:text-[#D4D4D4]"
-                )}
-                aria-label={`Jump to ${moment.title}`}
-              >
-                {moment.title}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-2 max-h-24 overflow-y-auto pr-1 custom-scrollbar">
-            <div className="grid gap-1 text-[10px] text-[#ABABAB] sm:grid-cols-2 lg:grid-cols-3">
-              {replayMarkers.map((marker) => (
-                <p key={`${marker.id}-legend`} className="inline-flex items-center gap-1">
-                  <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: marker.color }} />
-                  P{marker.livePosition} {marker.label}
+          {isTrackReplayOpen ? (
+            <div className="border-t border-[#232323] p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[10px] text-[#888]">
+                  {replayModeLabel} • Lap {replayCurrentLap}
+                  {hasReplayTelemetry && replay ? ` / ${replay.totalLaps}` : ""}
                 </p>
-              ))}
+                <p className="text-[10px] font-semibold text-[#B1B1B1]">
+                  {isReplayPlaying ? "Playing" : "Paused"} • {replaySpeed}x
+                </p>
+              </div>
+
+              <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#F3F3F3]">{replayActiveMoment.title}</p>
+              <p className="mt-1 text-[11px] leading-snug text-[#BDBDBD]">{replayActiveMoment.detail}</p>
+
+              <div className="mt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => stepReplayTime(-1)}
+                  className="inline-flex items-center justify-center border border-[#2D2D2D] bg-[#111] px-2 py-1 text-[10px] font-semibold text-[#D8D8D8] hover:border-[#6A6A6A]"
+                  aria-label="Previous replay checkpoint"
+                >
+                  <span className="material-icons text-sm">fast_rewind</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsReplayPlaying((previous) => !previous)}
+                  className="inline-flex items-center gap-1 border border-[#7D2A28] bg-[#190909] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#FDE8E8] hover:border-[#E10600]"
+                  aria-label={isReplayPlaying ? "Pause replay" : "Play replay"}
+                >
+                  <span className="material-icons text-sm">{isReplayPlaying ? "pause" : "play_arrow"}</span>
+                  {isReplayPlaying ? "Pause" : "Play"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => stepReplayTime(1)}
+                  className="inline-flex items-center justify-center border border-[#2D2D2D] bg-[#111] px-2 py-1 text-[10px] font-semibold text-[#D8D8D8] hover:border-[#6A6A6A]"
+                  aria-label="Next replay checkpoint"
+                >
+                  <span className="material-icons text-sm">fast_forward</span>
+                </button>
+
+                <div className="ml-auto flex items-center gap-1">
+                  {REPLAY_SPEEDS.map((speed, index) => (
+                    <button
+                      key={speed}
+                      type="button"
+                      onClick={() => setReplaySpeedIndex(index)}
+                      className={cn(
+                        "border px-1.5 py-0.5 text-[10px] font-semibold",
+                        replaySpeedIndex === index
+                          ? "border-[#E10600] bg-[#180707] text-[#FDEAEA]"
+                          : "border-[#2D2D2D] bg-[#111] text-[#969696] hover:border-[#7D2A28]"
+                      )}
+                      aria-label={`Set replay speed to ${speed}x`}
+                    >
+                      {speed}x
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <input
+                type="range"
+                min={0}
+                max={Math.max(replayDurationMs, 1)}
+                value={replayTimeMs}
+                onChange={(event) => setReplayTimeMs(Number(event.target.value))}
+                className="mt-3 h-1 w-full cursor-pointer appearance-none rounded bg-[#282828]"
+                aria-label="Replay timeline scrubber"
+              />
+
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {replayMoments.map((moment, index) => (
+                  <button
+                    key={moment.id}
+                    type="button"
+                    onClick={() => jumpToReplayMoment(moment)}
+                    className={cn(
+                      "border px-2 py-0.5 text-[10px] font-semibold",
+                      index === replayActiveMomentIndex
+                        ? "border-[#E10600] bg-[#180707] text-[#FDEAEA]"
+                        : "border-[#2D2D2D] bg-[#101010] text-[#959595] hover:border-[#7D2A28] hover:text-[#D4D4D4]"
+                    )}
+                    aria-label={`Jump to ${moment.title}`}
+                  >
+                    {moment.title}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-2 max-h-24 overflow-y-auto pr-1 custom-scrollbar">
+                <div className="grid gap-1 text-[10px] text-[#ABABAB] sm:grid-cols-2 lg:grid-cols-3">
+                  {replayMarkers.map((marker) => (
+                    <p key={`${marker.id}-legend`} className="inline-flex items-center gap-1">
+                      <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: marker.color }} />
+                      P{marker.livePosition} {marker.label}
+                    </p>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       ) : null}
 
-      <div className="mt-3 max-h-[340px] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+      <div className="mt-3 max-h-[250px] space-y-1.5 overflow-y-auto pr-1 custom-scrollbar">
         <div className="mb-1 flex items-center justify-between">
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8D8D8D]">Sectors</p>
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8D8D8D]">DRS Zones</p>
         </div>
 
-        <div className="grid gap-2 md:grid-cols-[1.35fr_1fr]">
-          <div className="space-y-2">
+        <div className="grid gap-1.5 md:grid-cols-[1.2fr_0.9fr]">
+          <div className="space-y-1.5">
             {sectorIntel.map((segment) => {
               const isActive = activeSectorId === segment.id;
 
@@ -1421,28 +1405,28 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
                   onFocus={() => activateSector(segment.id)}
                   onClick={() => activateSector(segment.id)}
                   className={cn(
-                    "w-full border px-3 py-3 text-left transition-colors",
+                    "w-full border px-2.5 py-2 text-left transition-colors",
                     isActive
                       ? "border-[#E10600] bg-[#180707] text-[#FBE8E8]"
                       : "border-[#2A2A2A] bg-[#0D0D0D] text-[#A4A4A4] hover:border-[#7D2A28] hover:text-[#D2D2D2]"
                   )}
                 >
                   <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-black tracking-[0.08em]">{segment.name}</p>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#C3C3C3]">
+                    <p className="text-[10px] font-black tracking-[0.08em]">{segment.name}</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[#C3C3C3]">
                       {segment.turnRange}
                     </p>
                   </div>
-                  <p className="mt-1 text-[10px] font-semibold leading-snug text-[#919191]">
+                  <p className="mt-0.5 text-[9px] font-semibold leading-snug text-[#919191]">
                     {segment.lengthPct}% lap share
                   </p>
-                  <p className="mt-1 text-[10px] font-medium leading-snug text-[#B1B1B1]">{segment.phaseFocus}</p>
+                  <p className="mt-0.5 text-[9px] font-medium leading-snug text-[#B1B1B1]">{segment.phaseFocus}</p>
                 </button>
               );
             })}
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-1.5">
             {drsFractions.map((_, index) => {
               const drsId = `DRS-${index + 1}`;
               const isActive = activeDrsId === drsId;
@@ -1455,14 +1439,14 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
                   onFocus={() => activateDrs(drsId)}
                   onClick={() => activateDrs(drsId)}
                   className={cn(
-                    "min-w-0 border px-3 py-3 text-left transition-colors",
+                    "min-w-0 border px-2 py-2 text-left transition-colors",
                     isActive
                       ? "border-[#E10600] bg-[#180707] text-[#FBE8E8]"
                       : "border-[#2A2A2A] bg-[#0D0D0D] text-[#A4A4A4] hover:border-[#7D2A28] hover:text-[#D2D2D2]"
                   )}
                 >
-                  <p className="text-[11px] font-black tracking-[0.08em] text-[#E10600]">{drsId.replace("-", " ")}</p>
-                  <p className="mt-1 text-[10px] font-semibold leading-tight text-[#8B8B8B]">Detection + Activation</p>
+                  <p className="text-[10px] font-black tracking-[0.08em] text-[#E10600]">{drsId.replace("-", " ")}</p>
+                  <p className="mt-0.5 text-[9px] font-semibold leading-tight text-[#8B8B8B]">Detection + Activation</p>
                 </button>
               );
             })}
@@ -1470,7 +1454,7 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
         </div>
 
         {selectedSectorIntel ? (
-          <div className="border border-[#2A2A2A] bg-[#0C0C0C] p-3">
+          <div className="border border-[#2A2A2A] bg-[#0C0C0C] p-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8D8D8D]">Focused Sector Briefing</p>
             <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#EFEFEF]">
               {selectedSectorIntel.name} · {selectedSectorIntel.turnRange}

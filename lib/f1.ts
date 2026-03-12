@@ -647,6 +647,8 @@ const DEFAULT_SECTORS: TrackSector[] = [
   }
 ];
 
+const SECTOR_IDS: TrackSector["id"][] = ["S1", "S2", "S3"];
+
 const CIRCUIT_SECTOR_COPY: Record<string, TrackSector[]> = {
   jeddah: [
     {
@@ -666,6 +668,58 @@ const CIRCUIT_SECTOR_COPY: Record<string, TrackSector[]> = {
     }
   ]
 };
+
+function canonicalizeSectorId(value: unknown): TrackSector["id"] | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+  if (normalized === "S1" || normalized === "SECTOR1" || normalized === "1") {
+    return "S1";
+  }
+
+  if (normalized === "S2" || normalized === "SECTOR2" || normalized === "2") {
+    return "S2";
+  }
+
+  if (normalized === "S3" || normalized === "SECTOR3" || normalized === "3") {
+    return "S3";
+  }
+
+  return null;
+}
+
+function normalizeTrackSectors(sectors: TrackSector[] | undefined): TrackSector[] {
+  const source = sectors && sectors.length > 0 ? sectors : DEFAULT_SECTORS;
+  const byId = new Map<TrackSector["id"], TrackSector>();
+
+  source.forEach((sector, index) => {
+    const slotId =
+      canonicalizeSectorId(sector.id) ??
+      canonicalizeSectorId(sector.name) ??
+      SECTOR_IDS[index] ??
+      null;
+
+    if (!slotId || byId.has(slotId)) {
+      return;
+    }
+
+    byId.set(slotId, { ...sector, id: slotId });
+  });
+
+  return SECTOR_IDS.map((sectorId, index) => {
+    const fallback = DEFAULT_SECTORS[index] ?? DEFAULT_SECTORS[2];
+    const sourceSector = byId.get(sectorId) ?? source[index] ?? fallback;
+
+    return {
+      id: sectorId,
+      name: sourceSector.name || fallback.name,
+      telemetry: sourceSector.telemetry || fallback.telemetry
+    };
+  });
+}
 
 let hasLoggedCalendarValidation = false;
 
@@ -984,7 +1038,7 @@ function resolveCircuitStatic(circuitId: string) {
     drsZones: staticData ? String(staticData.drsZones) : UNAVAILABLE,
     firstGrandPrix: staticData?.firstGrandPrix ?? UNAVAILABLE,
     trackSvgPath: resolveTrackSvgPath(circuitId),
-    sectors: CIRCUIT_SECTOR_COPY[circuitId] ?? DEFAULT_SECTORS
+    sectors: normalizeTrackSectors(CIRCUIT_SECTOR_COPY[circuitId] ?? DEFAULT_SECTORS)
   };
 }
 
