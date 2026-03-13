@@ -1,23 +1,32 @@
+"use client";
+
+import Image from "next/image";
 import Link from "next/link";
 
 export default function LandingHero() {
     return (
-        <header className="relative min-h-screen flex flex-col justify-center items-center overflow-hidden pt-20">
+        <header id="hero" className="relative min-h-screen flex flex-col justify-center items-center overflow-hidden pt-20">
             <div className="absolute inset-0 z-0 grid grid-cols-1 md:grid-cols-2">
                 <div className="relative h-full w-full overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-r from-background-dark via-background-dark/90 to-transparent z-10"></div>
-                    <img
+                    <Image
                         alt="Formula 1 racing car"
                         className="h-full w-full object-cover opacity-50 grayscale contrast-125"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2YbjwN_MPiai-wqID9DBercdCu1g2oqQzBo1Rwxj3czAGNYht7AaaNffmLjUvEJvgQx-I8lKv41HBNMDdyLQ64zpDmzaTjthJPR-DaLzq3dGL3MmNW18-SJRSYFPDaZ5CrGkUISfvd19FP8n6WFcQ-Zp4_2R5vpqEbo6k8kWuJsGl-fQ_xYTRK-AOZp1um2n6fV6F0umkwxe5t40aRcg5RzF7qUFD9gi66yhjMNMdzPO8u0rxSoyM2S1oecLZl5wGrdzzMWoSaQ"
+                        src="/images/f1-hero.jpg"
+                        fill
+                        priority
+                        sizes="(max-width: 768px) 100vw, 50vw"
                     />
                 </div>
                 <div className="relative h-full w-full overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-l from-background-dark via-background-dark/90 to-transparent z-10"></div>
-                    <img
+                    <Image
                         alt="Football player"
                         className="h-full w-full object-cover opacity-50 grayscale contrast-125"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCARNpFb_b74KHvD2v0njm8NH7yLXwCwfA14-_wWCLufFf2z90uXuTH9pnrmtQakSfbNxaQ5AJnr3p5YTn-Bg_8K1YlR7A-3vn75EGH41BoSd_lkvBFAfxkk72pm6Lmx6GYFp3M9ZPdG_v1m15g2Tj9s6yMCFEcjeTuofGj91rUJDVPNAa1dS12tZk-1CnQywbgxsVlW3D7sevzqsjCertkS3uW3DESAXrHvdIcndqI4Gz0m1AI91iEbPleu-w7gJltvIk0X98WCA"
+                        src="/images/football-hero.jpg"
+                        fill
+                        priority
+                        sizes="(max-width: 768px) 100vw, 50vw"
                     />
                 </div>
             </div>
@@ -49,7 +58,11 @@ export default function LandingHero() {
                         <span className="relative z-10">Join the Arena HUB</span>
                         <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     </Link>
-                    <button className="glass-button px-8 py-4 rounded-xl text-white font-medium uppercase tracking-widest flex items-center gap-2 group font-display">
+                    <button
+                        type="button"
+                        onClick={() => document.getElementById("explore-section")?.scrollIntoView({ behavior: "smooth" })}
+                        className="glass-button px-8 py-4 rounded-xl text-white font-medium uppercase tracking-widest flex items-center gap-2 group font-display"
+                    >
                         <span>Explore</span>
                         <span className="material-icons text-sm group-hover:translate-x-1 transition-transform">
                             arrow_forward

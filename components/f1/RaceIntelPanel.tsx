@@ -1,5 +1,7 @@
-import { getRaceWeekendSessions, type Race, type RaceRecap, type RaceSession, type TrackSector } from "@/lib/f1";
+import { getRaceSessionDurationMs, getRaceWeekendSessions, type Race, type RaceRecap, type RaceSession, type TrackSector } from "@/lib/f1";
+import MyPitWallCard from "@/components/f1/MyPitWallCard";
 import WinnerHypeButton from "@/components/f1/WinnerHypeButton";
+import { getProductRaceState, getTrackDnaProfile, getTrackWatchlistHeading } from "@/lib/f1-product";
 
 interface RaceIntelPanelProps {
     race: Race;
@@ -24,6 +26,50 @@ interface RaceIntelPanelProps {
     sectors?: TrackSector[];
 }
 
+function resolveWeekendPulse(sessions: RaceSession[], now: Date) {
+    const nowMs = now.getTime();
+    let liveSession: RaceSession | null = null;
+    let nextSession: RaceSession | null = null;
+
+    for (const session of sessions) {
+        const startMs = new Date(session.startsAt).getTime();
+        const endMs = startMs + getRaceSessionDurationMs(session.code);
+
+        if (Number.isFinite(startMs) && startMs <= nowMs && nowMs <= endMs) {
+            liveSession = session;
+            break;
+        }
+
+        if (!nextSession && Number.isFinite(startMs) && startMs > nowMs) {
+            nextSession = session;
+        }
+    }
+
+    return {
+        liveSession,
+        nextSession,
+        lastSession: sessions
+            .filter((session) => new Date(session.startsAt).getTime() < nowMs)
+            .sort((left, right) => new Date(right.startsAt).getTime() - new Date(left.startsAt).getTime())[0] ?? null
+    };
+}
+
+function getSessionState(session: RaceSession, now: Date) {
+    const startMs = new Date(session.startsAt).getTime();
+    const endMs = startMs + getRaceSessionDurationMs(session.code);
+    const nowMs = now.getTime();
+
+    if (nowMs < startMs) {
+        return "upcoming";
+    }
+
+    if (nowMs <= endMs) {
+        return "live";
+    }
+
+    return "completed";
+}
+
 export default function RaceIntelPanel({
     race,
     circuitStats,
@@ -34,61 +80,148 @@ export default function RaceIntelPanel({
 }: RaceIntelPanelProps) {
     const defaultSessions: RaceSession[] = sessions || getRaceWeekendSessions(race);
     const hasRaceFinished = new Date(`${race.date}T${race.time}`).getTime() < Date.now();
+    const now = new Date();
+    const raceState = getProductRaceState(race);
+    const trackDna = getTrackDnaProfile(race.circuitId);
+    const watchlistHeading = getTrackWatchlistHeading(raceState);
+    const weekendPulse = resolveWeekendPulse(defaultSessions, now);
+    const featuredSession = weekendPulse.liveSession ?? weekendPulse.nextSession ?? weekendPulse.lastSession;
 
     return (
-        <aside className="w-96 bg-surface-dark/95 border-l border-white/10 p-6 z-20 overflow-y-auto custom-scrollbar shadow-2xl relative">
+        <aside className="w-[352px] bg-surface-dark/95 border-l border-white/10 p-5 z-20 overflow-y-auto custom-scrollbar shadow-2xl relative xl:w-[368px]">
             <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
-                <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase">Race Info</h3>
+                <div>
+                    <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase">Race Info</h3>
+                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+                        {raceState === "upcoming" ? "Weekend pending" : raceState === "live" ? "Weekend live" : "Weekend complete"}
+                    </p>
+                </div>
                 <span className="text-xs bg-grid-primary/20 text-grid-primary px-2 py-1 rounded font-mono">
                     ROUND {race.round}
                 </span>
             </div>
 
-            {/* Circuit Stats */}
-            <div className="grid grid-cols-2 gap-4 mb-8">
-                {[
-                    {
-                        icon: "straighten",
-                        label: "Length",
-                        val: circuitStats?.lengthKm || "5.3",
-                        unit: "km",
-                    },
-                    {
-                        icon: "turn_slight_right",
-                        label: "Turns",
-                        val: circuitStats?.turns || "14",
-                        unit: "",
-                    },
-                    {
-                        icon: "fast_forward",
-                        label: "DRS",
-                        val: circuitStats?.drsZones || "3",
-                        unit: "zones",
-                    },
-                    {
-                        icon: "event",
-                        label: "First GP",
-                        val: circuitStats?.firstGrandPrix || "1996",
-                        unit: "",
-                    },
-                ].map((stat, idx) => (
-                    <div
-                        key={idx}
-                        className="bg-background-dark/50 p-4 rounded-lg border border-white/5 hover:border-grid-primary/30 transition-colors group"
-                    >
-                        <div className="flex items-center gap-2 mb-2 text-gray-500">
-                            <span className="material-icons text-sm group-hover:text-grid-primary transition-colors">
-                                {stat.icon}
-                            </span>
-                            <span className="text-[10px] uppercase font-bold tracking-wider">{stat.label}</span>
+            <MyPitWallCard race={race} className="mb-8" />
+
+            {featuredSession ? (
+                <div className="mb-8 overflow-hidden rounded-xl border border-[#E10600]/25 bg-[linear-gradient(135deg,#120909_0%,#090909_100%)]">
+                    <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F56D67]">Weekend Pulse</p>
+                            <p className="mt-1 text-xs text-gray-400">
+                                {weekendPulse.liveSession
+                                    ? "Session is live now"
+                                    : weekendPulse.nextSession
+                                        ? "Next key session"
+                                        : "Weekend result state"}
+                            </p>
                         </div>
-                        <p className="text-2xl font-mono font-bold text-white">
-                            {stat.val}
-                            {stat.unit && <span className="text-sm text-gray-500 ml-1">{stat.unit}</span>}
+                        <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+                            {weekendPulse.liveSession ? "Live" : weekendPulse.nextSession ? "Up next" : "Done"}
+                        </span>
+                    </div>
+
+                    <div className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <p className="text-lg font-black text-white">{featuredSession.label}</p>
+                                {featuredSession.resultValue ? (
+                                    <p className="mt-1 text-[11px] text-gray-300">
+                                        {featuredSession.resultLabel}: {featuredSession.resultValue}
+                                    </p>
+                                ) : (
+                                    <p className="mt-1 text-[11px] text-gray-400">
+                                        {new Date(featuredSession.startsAt).toLocaleString("en-US", {
+                                            weekday: "short",
+                                            month: "short",
+                                            day: "numeric",
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                            hour12: false
+                                        })}
+                                    </p>
+                                )}
+                            </div>
+
+                            {weekendPulse.liveSession ? (
+                                <a
+                                    href="https://www.fancode.com"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 rounded-lg border border-[#E10600]/40 bg-[#1B0909] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:border-[#E10600] hover:bg-[#230A0A]"
+                                >
+                                    <span className="material-icons text-sm">live_tv</span>
+                                    Watch Live
+                                </a>
+                            ) : null}
+                        </div>
+
+                        <p className="mt-3 text-[11px] leading-relaxed text-gray-300">
+                            {weekendPulse.liveSession
+                                ? "Use the track view and battle tools now. This is the highest-value window for the race page."
+                                : weekendPulse.nextSession
+                                    ? "This is the next meaningful checkpoint in the weekend flow. The watchlist below tells you what to focus on."
+                                    : "The competitive sessions are complete. Use the recap and story surfaces to review the outcome."}
                         </p>
                     </div>
-                ))}
-            </div>
+                </div>
+            ) : null}
+
+            <details className="group mb-6 rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 marker:content-none">
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-widest text-grid-primary">Circuit Stats</p>
+                        <p className="mt-1 text-[11px] text-gray-500">Compact data desk for the venue.</p>
+                    </div>
+                    <span className="material-icons text-grid-primary transition-transform duration-200 group-open:rotate-180">
+                        expand_more
+                    </span>
+                </summary>
+                <div className="grid grid-cols-2 gap-3 border-t border-white/10 px-5 pb-5 pt-4">
+                    {[
+                        {
+                            icon: "straighten",
+                            label: "Length",
+                            val: circuitStats?.lengthKm ?? "—",
+                            unit: "km",
+                        },
+                        {
+                            icon: "turn_slight_right",
+                            label: "Turns",
+                            val: circuitStats?.turns ?? "—",
+                            unit: "",
+                        },
+                        {
+                            icon: "fast_forward",
+                            label: "DRS",
+                            val: circuitStats?.drsZones ?? "—",
+                            unit: "zones",
+                        },
+                        {
+                            icon: "event",
+                            label: "First GP",
+                            val: circuitStats?.firstGrandPrix ?? "—",
+                            unit: "",
+                        },
+                    ].map((stat, idx) => (
+                        <div
+                            key={idx}
+                            className="bg-background-dark/50 p-4 rounded-lg border border-white/5 hover:border-grid-primary/30 transition-colors group"
+                        >
+                            <div className="flex items-center gap-2 mb-2 text-gray-500">
+                                <span className="material-icons text-sm group-hover:text-grid-primary transition-colors">
+                                    {stat.icon}
+                                </span>
+                                <span className="text-[10px] uppercase font-bold tracking-wider">{stat.label}</span>
+                            </div>
+                            <p className="text-2xl font-mono font-bold text-white">
+                                {stat.val}
+                                {stat.unit && <span className="text-sm text-gray-500 ml-1">{stat.unit}</span>}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            </details>
 
             {/* Circuit Info */}
             <div className="mb-8 p-5 rounded-xl bg-gradient-to-br from-surface-dark to-background-dark border border-white/5 relative overflow-hidden">
@@ -110,6 +243,58 @@ export default function RaceIntelPanel({
                     </div>
                 </div>
             </div>
+
+            <details className="group mb-6 rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 marker:content-none">
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-widest text-grid-primary">Track DNA</p>
+                        <p className="mt-1 text-[11px] text-gray-500">{trackDna.archetype}</p>
+                    </div>
+                    <span className="material-icons text-grid-primary transition-transform duration-200 group-open:rotate-180">
+                        expand_more
+                    </span>
+                </summary>
+                <div className="border-t border-white/10 px-5 pb-5 pt-4">
+                    <p className="text-sm leading-relaxed text-gray-300">{trackDna.summary}</p>
+                    <p className="mt-3 text-[11px] text-gray-500">{trackDna.fanHook}</p>
+
+                    <div className="mt-4 grid gap-2">
+                        {trackDna.metrics.map((metric) => (
+                            <div key={metric.label} className="rounded-lg border border-white/10 bg-black/20 px-3 py-3">
+                                <div className="flex items-center justify-between gap-3">
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">{metric.label}</p>
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white">{metric.value}</span>
+                                </div>
+                                <p className="mt-2 text-[11px] leading-relaxed text-gray-400">{metric.detail}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </details>
+
+            <details className="group mb-8 rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 marker:content-none">
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-widest text-grid-primary">{watchlistHeading.title}</p>
+                        <p className="mt-1 text-[11px] text-gray-500">{watchlistHeading.subtitle}</p>
+                    </div>
+                    <span className="material-icons text-grid-primary transition-transform duration-200 group-open:rotate-180">
+                        expand_more
+                    </span>
+                </summary>
+                <div className="space-y-3 border-t border-white/10 px-5 pb-5 pt-4">
+                    {trackDna.watchpoints.map((watchpoint) => (
+                        <div key={`${watchpoint.phase}-${watchpoint.title}`} className="rounded-lg border border-white/10 bg-black/20 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-grid-primary">{watchpoint.phase}</p>
+                                <span className="h-2 w-2 rounded-full bg-grid-primary" />
+                            </div>
+                            <p className="mt-2 text-sm font-bold text-white">{watchpoint.title}</p>
+                            <p className="mt-2 text-[11px] leading-relaxed text-gray-400">{watchpoint.detail}</p>
+                        </div>
+                    ))}
+                </div>
+            </details>
 
             {/* Last Winner */}
             {lastWinner && (
@@ -238,6 +423,8 @@ export default function RaceIntelPanel({
                     {defaultSessions.map((session) => {
                         const sessionDate = session.startsAt ? new Date(session.startsAt) : null;
                         const isRace = session.code === "RACE";
+                        const sessionState = getSessionState(session, now);
+                        const showResult = sessionState === "completed" && Boolean(session.resultValue);
 
                         return (
                             <div
@@ -267,15 +454,28 @@ export default function RaceIntelPanel({
                                         )}
                                     </div>
                                 </div>
-                                <span className="text-xs font-mono text-gray-400">
-                                    {sessionDate
-                                        ? sessionDate.toLocaleTimeString("en-US", {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                            hour12: false,
-                                        })
-                                        : "TBD"}
-                                </span>
+                                <div className="text-right">
+                                    {showResult ? (
+                                        <>
+                                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-grid-primary">
+                                                {session.resultLabel}
+                                            </p>
+                                            <p className="mt-1 text-xs font-bold text-white">{session.resultValue}</p>
+                                        </>
+                                    ) : sessionState === "live" ? (
+                                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-grid-primary">Live now</p>
+                                    ) : (
+                                        <span className="text-xs font-mono text-gray-400">
+                                            {sessionDate
+                                                ? sessionDate.toLocaleTimeString("en-US", {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                    hour12: false,
+                                                })
+                                                : "TBD"}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         );
                     })}

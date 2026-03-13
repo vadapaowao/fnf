@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import DriverCard from "@/components/f1/drivers/DriverCard";
 import SeasonToggle from "@/components/f1/SeasonToggle";
 import TeamPointsChart from "@/components/f1/TeamPointsChart";
+import FollowToggleButton from "@/components/f1/FollowToggleButton";
 import type { TeamProfileData, TeamSeasonSnapshot } from "@/lib/team-profile";
 
 type TeamProfileClientProps = {
@@ -41,9 +42,10 @@ function StatTile({
 }
 
 export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
-  const { standing, teamColor, currentDrivers, currentSeason, archive2025, career } = profile;
+  const { standing, teamColor, currentDrivers, archiveDrivers, currentSeason, archive2025, career } = profile;
   const { constructor: team } = standing;
   const [selectedSeasonId, setSelectedSeasonId] = useState(currentSeason.season);
+  const [ledgerFilter, setLedgerFilter] = useState<"all" | "podiums" | "wins" | "scoreless">("all");
 
   const selectedSeason = useMemo(() => {
     if (archive2025 && selectedSeasonId === archive2025.season) {
@@ -52,6 +54,26 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
 
     return currentSeason;
   }, [archive2025, currentSeason, selectedSeasonId]);
+
+  const selectedDrivers =
+    archive2025 && selectedSeasonId === archive2025.season ? archiveDrivers ?? currentDrivers : currentDrivers;
+  const lineupLabel =
+    archive2025 && selectedSeasonId === archive2025.season ? `${archive2025.season} Lineup` : "Current Lineup";
+  const filteredRaceSeries = [...selectedSeason.raceSeries].reverse().filter((race) => {
+    if (ledgerFilter === "podiums") {
+      return race.podiums > 0;
+    }
+
+    if (ledgerFilter === "wins") {
+      return race.wins > 0;
+    }
+
+    if (ledgerFilter === "scoreless") {
+      return race.points === 0;
+    }
+
+    return true;
+  });
 
   return (
     <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background-dark">
@@ -73,6 +95,16 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
               >
                 {team.constructorId.toUpperCase()}
               </span>
+              <FollowToggleButton
+                type="team"
+                id={team.constructorId}
+                label={team.name}
+                subtitle={`${team.nationality} • ${selectedSeason.season}`}
+                href={`/f1/team/${team.constructorId}`}
+                accentColor={teamColor}
+                season={selectedSeason.season}
+                compact
+              />
             </div>
 
             <h1 className="mt-4 font-display text-5xl font-bold leading-[0.9] tracking-tight text-white md:text-6xl">
@@ -124,17 +156,17 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
           <article className="min-w-0 rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="font-display text-2xl font-bold text-white">Current Lineup</h2>
+                <h2 className="font-display text-2xl font-bold text-white">{lineupLabel}</h2>
                 <p className="mt-1 text-sm text-gray-500">Pinned near the top so the roster stays easy to scan.</p>
               </div>
               <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
-                {currentDrivers.length} drivers
+                {selectedDrivers.length} drivers
               </span>
             </div>
 
-            {currentDrivers.length > 0 ? (
+            {selectedDrivers.length > 0 ? (
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                {currentDrivers.map((driverStanding) => (
+                {selectedDrivers.map((driverStanding) => (
                   <DriverCard
                     key={driverStanding.driver.driverId}
                     driver={driverStanding.driver}
@@ -197,6 +229,80 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
           </article>
 
           <TeamPointsChart snapshot={selectedSeason} accentColor={teamColor} title={`${selectedSeason.season} Points Flow`} />
+
+          <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-display text-2xl font-bold text-white">Weekend Ledger</h2>
+                <p className="mt-1 text-sm text-gray-500">Race-by-race points and finish quality for the selected season.</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
+                  {selectedSeason.completedRounds} rounds
+                </span>
+                <div className="flex flex-wrap gap-1 rounded-lg border border-white/10 bg-black/20 p-1">
+                  {[
+                    { id: "all", label: "All" },
+                    { id: "podiums", label: "Podiums" },
+                    { id: "wins", label: "Wins" },
+                    { id: "scoreless", label: "Zero Pts" }
+                  ].map((filter) => {
+                    const active = ledgerFilter === filter.id;
+
+                    return (
+                      <button
+                        key={filter.id}
+                        type="button"
+                        onClick={() => setLedgerFilter(filter.id as typeof ledgerFilter)}
+                        className={`rounded px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors ${active ? "bg-grid-primary text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                      >
+                        {filter.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {filteredRaceSeries.length > 0 ? (
+              <div className="mt-5 max-h-[540px] space-y-3 overflow-y-auto pr-2 custom-scrollbar">
+                {filteredRaceSeries.map((race) => (
+                  <div key={`${selectedSeason.season}-${race.round}-${race.raceName}`} className="rounded-lg border border-white/10 bg-black/20 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+                          Round {race.round} • {race.label}
+                        </p>
+                        <h3 className="mt-1 text-base font-bold text-white">{race.raceName}</h3>
+                        <p className="mt-1 text-sm text-gray-500">{race.circuitName}</p>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3 text-right">
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Points</p>
+                          <p className="mt-1 text-lg font-black text-white">{formatNumber(race.points)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Best finish</p>
+                          <p className="mt-1 text-lg font-black text-white">{race.bestFinish}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Weekend tags</p>
+                          <p className="mt-1 text-lg font-black" style={{ color: race.wins > 0 || race.podiums > 0 ? teamColor : "#FFFFFF" }}>
+                            {race.wins > 0 ? `${race.wins}W` : race.podiums > 0 ? `${race.podiums}P` : "Flat"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-5 rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-8 text-center">
+                <p className="text-sm text-gray-400">No team weekends match the current filter.</p>
+              </div>
+            )}
+          </article>
         </section>
       </div>
     </main>

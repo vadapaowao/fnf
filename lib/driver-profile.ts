@@ -47,6 +47,57 @@ export type DriverProfileNeighbor = {
   context: string;
 } | null;
 
+export type DriverHeadToHeadSummary = {
+  driver: number;
+  teammate: number;
+  ties: number;
+};
+
+export type DriverHeadToHeadPoints = {
+  driver: number;
+  teammate: number;
+  delta: number;
+};
+
+export type DriverHeadToHeadEntry = {
+  round: string;
+  raceName: string;
+  circuitName: string;
+  gridDriver: number | null;
+  gridTeammate: number | null;
+  finishDriver: number | null;
+  finishTeammate: number | null;
+  pointsDriver: number;
+  pointsTeammate: number;
+  winner: "driver" | "teammate" | "tie";
+};
+
+export type DriverHeadToHead = {
+  season: string;
+  teamId: string;
+  teamName: string;
+  teammate: {
+    driverId: string;
+    name: string;
+    code: string;
+    permanentNumber: string;
+    nationality: string;
+  };
+  gridHeadToHead: DriverHeadToHeadSummary;
+  finishHeadToHead: DriverHeadToHeadSummary;
+  pointsSplit: DriverHeadToHeadPoints;
+  averageFinish: {
+    driver: string;
+    teammate: string;
+    delta: number;
+  };
+  bestFinish: {
+    driver: string;
+    teammate: string;
+  };
+  raceDuels: DriverHeadToHeadEntry[];
+};
+
 export type DriverProfileData = {
   standing: DriverStanding;
   age: number;
@@ -63,6 +114,10 @@ export type DriverProfileData = {
   };
   season: DriverSeasonSnapshot;
   archive2025: DriverSeasonSnapshot | null;
+  headToHead: {
+    current: DriverHeadToHead | null;
+    archive2025: DriverHeadToHead | null;
+  };
   timeline: DriverTimelineEvent[];
   bio: string;
   debutYear: string;
@@ -388,29 +443,50 @@ function buildTimeline(
   return events;
 }
 
-function formatAverageFinish(results: DriverSeasonResult[]) {
+function getAverageFinishValue(results: DriverSeasonResult[]) {
   const numericFinishes = results
     .map((result) => result.finish)
     .filter((finish): finish is number => finish !== null && Number.isFinite(finish));
 
   if (numericFinishes.length === 0) {
+    return null;
+  }
+
+  return numericFinishes.reduce((sum, finish) => sum + finish, 0) / numericFinishes.length;
+}
+
+function getBestFinishValue(results: DriverSeasonResult[]) {
+  const numericFinishes = results
+    .map((result) => result.finish)
+    .filter((finish): finish is number => finish !== null && Number.isFinite(finish));
+
+  if (numericFinishes.length === 0) {
+    return null;
+  }
+
+  return Math.min(...numericFinishes);
+}
+
+function formatAverageFinish(results: DriverSeasonResult[]) {
+  const average = getAverageFinishValue(results);
+  if (average === null) {
     return "—";
   }
 
-  const average = numericFinishes.reduce((sum, finish) => sum + finish, 0) / numericFinishes.length;
   return average.toFixed(1);
 }
 
 function formatBestFinish(results: DriverSeasonResult[]) {
-  const numericFinishes = results
-    .map((result) => result.finish)
-    .filter((finish): finish is number => finish !== null && Number.isFinite(finish));
-
-  if (numericFinishes.length === 0) {
+  const bestFinish = getBestFinishValue(results);
+  if (bestFinish === null) {
     return "—";
   }
 
-  return `P${Math.min(...numericFinishes)}`;
+  return `P${bestFinish}`;
+}
+
+function buildHeadToHeadSummary(): DriverHeadToHeadSummary {
+  return { driver: 0, teammate: 0, ties: 0 };
 }
 
 function buildBio(
@@ -475,6 +551,138 @@ async function buildSeasonSnapshot(
     pointsToLeader: Math.max(leaderPoints - currentPoints, 0),
     recentResults: seasonResults,
     paceSeries: seasonResults
+  };
+}
+
+async function buildHeadToHead(
+  driverStanding: DriverStanding,
+  driverResults: DriverSeasonResult[],
+  season: string,
+  standings: DriverStanding[]
+): Promise<DriverHeadToHead | null> {
+  const teamId = driverStanding.constructors[0]?.constructorId ?? "";
+  const teamName = driverStanding.constructors[0]?.name ?? "Team unavailable";
+
+  if (!teamId) {
+    return null;
+  }
+
+  const teammateStanding =
+    standings.find(
+      (entry) =>
+        entry.driver.driverId !== driverStanding.driver.driverId &&
+        entry.constructors.some((constructor) => constructor.constructorId === teamId)
+    ) ?? null;
+
+  if (!teammateStanding) {
+    return null;
+  }
+
+  const teammateResults = await fetchSeasonResults(teammateStanding.driver.driverId, season);
+  if (driverResults.length === 0 && teammateResults.length === 0) {
+    return null;
+  }
+
+  const teammateResultsByRound = new Map(teammateResults.map((result) => [result.round, result]));
+  const raceDuels: DriverHeadToHeadEntry[] = [];
+  const gridHeadToHead = buildHeadToHeadSummary();
+  const finishHeadToHead = buildHeadToHeadSummary();
+
+  driverResults.forEach((driverResult) => {
+    const teammateResult = teammateResultsByRound.get(driverResult.round);
+    if (!teammateResult) {
+      return;
+    }
+
+    const gridDriver = driverResult.grid ?? null;
+    const gridTeammate = teammateResult.grid ?? null;
+    const finishDriver = driverResult.finish ?? null;
+    const finishTeammate = teammateResult.finish ?? null;
+
+    if (gridDriver !== null && gridTeammate !== null) {
+      if (gridDriver < gridTeammate) {
+        gridHeadToHead.driver += 1;
+      } else if (gridTeammate < gridDriver) {
+        gridHeadToHead.teammate += 1;
+      } else {
+        gridHeadToHead.ties += 1;
+      }
+    }
+
+    if (finishDriver !== null && finishTeammate !== null) {
+      if (finishDriver < finishTeammate) {
+        finishHeadToHead.driver += 1;
+      } else if (finishTeammate < finishDriver) {
+        finishHeadToHead.teammate += 1;
+      } else {
+        finishHeadToHead.ties += 1;
+      }
+    }
+
+    const pointsDriver = driverResult.points;
+    const pointsTeammate = teammateResult.points;
+    let winner: DriverHeadToHeadEntry["winner"] = "tie";
+
+    if (finishDriver !== null && finishTeammate !== null) {
+      if (finishDriver < finishTeammate) {
+        winner = "driver";
+      } else if (finishTeammate < finishDriver) {
+        winner = "teammate";
+      }
+    } else if (pointsDriver !== pointsTeammate) {
+      winner = pointsDriver > pointsTeammate ? "driver" : "teammate";
+    }
+
+    raceDuels.push({
+      round: driverResult.round,
+      raceName: driverResult.raceName,
+      circuitName: driverResult.circuitName,
+      gridDriver,
+      gridTeammate,
+      finishDriver,
+      finishTeammate,
+      pointsDriver,
+      pointsTeammate,
+      winner
+    });
+  });
+
+  const driverPoints = driverResults.reduce((sum, result) => sum + result.points, 0);
+  const teammatePoints = teammateResults.reduce((sum, result) => sum + result.points, 0);
+  const driverAverage = getAverageFinishValue(driverResults);
+  const teammateAverage = getAverageFinishValue(teammateResults);
+  const averageDelta = driverAverage !== null && teammateAverage !== null ? teammateAverage - driverAverage : 0;
+
+  const sortedDuels = raceDuels.sort((left, right) => toInt(left.round) - toInt(right.round));
+
+  return {
+    season,
+    teamId,
+    teamName,
+    teammate: {
+      driverId: teammateStanding.driver.driverId,
+      name: `${teammateStanding.driver.givenName} ${teammateStanding.driver.familyName}`,
+      code: teammateStanding.driver.code || "—",
+      permanentNumber: teammateStanding.driver.permanentNumber || "—",
+      nationality: teammateStanding.driver.nationality
+    },
+    gridHeadToHead,
+    finishHeadToHead,
+    pointsSplit: {
+      driver: driverPoints,
+      teammate: teammatePoints,
+      delta: driverPoints - teammatePoints
+    },
+    averageFinish: {
+      driver: driverAverage !== null ? driverAverage.toFixed(2) : "—",
+      teammate: teammateAverage !== null ? teammateAverage.toFixed(2) : "—",
+      delta: averageDelta
+    },
+    bestFinish: {
+      driver: formatBestFinish(driverResults),
+      teammate: formatBestFinish(teammateResults)
+    },
+    raceDuels: sortedDuels
   };
 }
 
@@ -575,6 +783,21 @@ export async function getDriverProfile(driverId: string, season: string = F1_SEA
   const teamName = team?.name ?? "Team unavailable";
   const teamId = team?.constructorId ?? "";
   const seasonPodiums = currentSeasonSnapshot.podiums;
+  const headToHeadCurrent = await buildHeadToHead(standing, currentSeasonSnapshot.recentResults, effectiveSeason, standings);
+  let headToHeadArchive: DriverHeadToHead | null = null;
+
+  const archiveStandingContext = await archiveStandingContextPromise;
+  if (archiveStandingContext && archive2025) {
+    const archiveStandingEntry = archiveStandingContext.standings.find((entry) => entry.driver.driverId === driverId);
+    if (archiveStandingEntry) {
+      headToHeadArchive = await buildHeadToHead(
+        archiveStandingEntry,
+        archive2025.recentResults,
+        archiveStandingContext.season,
+        archiveStandingContext.standings
+      );
+    }
+  }
 
   return {
     standing,
@@ -592,6 +815,10 @@ export async function getDriverProfile(driverId: string, season: string = F1_SEA
     },
     season: currentSeasonSnapshot,
     archive2025,
+    headToHead: {
+      current: headToHeadCurrent,
+      archive2025: headToHeadArchive
+    },
     timeline: buildTimeline(careerMeta.debutYear, winsMeta.firstWinYear, championshipYears, effectiveSeason, teamName),
     bio: buildBio(
       standing,

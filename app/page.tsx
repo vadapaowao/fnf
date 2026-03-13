@@ -9,7 +9,9 @@ export default async function HomePage() {
     <div className="bg-background-light dark:bg-background-dark">
       <LandingNav />
       <LandingHero />
-      <GridPreviewSection />
+      <section id="explore-section" className="scroll-mt-28">
+        <GridPreviewSection />
+      </section>
       <PitchSection />
       <LandingFooter />
     </div>

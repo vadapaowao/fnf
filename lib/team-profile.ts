@@ -100,6 +100,7 @@ export type TeamProfileData = {
   standing: ConstructorStanding;
   teamColor: string;
   currentDrivers: DriverStanding[];
+  archiveDrivers: DriverStanding[] | null;
   currentSeason: TeamSeasonSnapshot;
   archive2025: TeamSeasonSnapshot | null;
   career: {
@@ -332,12 +333,19 @@ export async function getTeamProfile(constructorId: string, season: string = F1_
   const currentDriversPromise = getDriverStandings(standingsContext.season).then((standings) =>
     standings.filter((entry) => entry.constructors.some((constructor) => constructor.constructorId === constructorId))
   );
+  const archiveDriversPromise = archive2025ContextPromise.then((archiveContext) => {
+    const archiveSeason = archiveContext?.season ?? "2025";
+    return getDriverStandings(archiveSeason).then((standings) =>
+      standings.filter((entry) => entry.constructors.some((constructor) => constructor.constructorId === constructorId))
+    );
+  });
 
-  const [currentSeason, archive2025, career, currentDrivers] = await Promise.all([
+  const [currentSeason, archive2025, career, currentDrivers, archiveDrivers] = await Promise.all([
     buildTeamSeasonSnapshot(constructorId, standingsContext.season, standingsContext),
     archive2025ContextPromise.then((archiveContext) => buildTeamSeasonSnapshot(constructorId, "2025", archiveContext)),
     fetchCareerMeta(constructorId),
-    currentDriversPromise
+    currentDriversPromise,
+    archiveDriversPromise
   ]);
 
   if (!currentSeason) {
@@ -348,6 +356,7 @@ export async function getTeamProfile(constructorId: string, season: string = F1_
     standing,
     teamColor: getTeamColor(constructorId),
     currentDrivers,
+    archiveDrivers: archiveDrivers.length > 0 ? archiveDrivers : null,
     currentSeason,
     archive2025,
     career,

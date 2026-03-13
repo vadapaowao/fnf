@@ -35,15 +35,9 @@ export default function TeamCard({ standing, drivers = [] }: TeamCardProps) {
             />
 
             <div className="relative p-6">
-                <div className="mb-5 flex items-center justify-between gap-3">
+                <div className="mb-5 flex items-center gap-3">
                     <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-gray-300">
                         {team.constructorId.toUpperCase()}
-                    </span>
-                    <span
-                        className="rounded px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em]"
-                        style={{ backgroundColor: `${accentColor}22`, color: accentColor }}
-                    >
-                        Team file
                     </span>
                 </div>
 

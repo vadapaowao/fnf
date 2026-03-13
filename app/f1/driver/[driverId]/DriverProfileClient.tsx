@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import SeasonToggle from "@/components/f1/SeasonToggle";
+import FollowToggleButton from "@/components/f1/FollowToggleButton";
 import DriverIdentityAvatar from "@/components/f1/drivers/DriverIdentityAvatar";
 import SeasonPaceChart from "@/components/f1/drivers/SeasonPaceChart";
-import type { DriverProfileData, DriverSeasonResult, DriverSeasonSnapshot } from "@/lib/driver-profile";
+import type { DriverHeadToHead, DriverProfileData, DriverSeasonResult, DriverSeasonSnapshot } from "@/lib/driver-profile";
 
 type DriverProfileClientProps = {
   profile: DriverProfileData;
@@ -34,6 +35,10 @@ function formatDate(value: string): string {
   });
 }
 
+function formatSeasonProgress(count: number) {
+  return `After ${count} race${count === 1 ? "" : "s"}`;
+}
+
 function getResultTone(result: DriverSeasonResult) {
   if (result.finish !== null && result.finish <= 3) {
     return "border-[#E10600]/35 bg-[#1A0909]";
@@ -44,6 +49,15 @@ function getResultTone(result: DriverSeasonResult) {
   }
 
   return "border-white/5 bg-black/10";
+}
+
+function formatDelta(value: number) {
+  if (!Number.isFinite(value)) {
+    return "—";
+  }
+
+  const sign = value >= 0 ? "+" : "-";
+  return `${sign}${Math.abs(value).toFixed(2)}`;
 }
 
 function buildSeasonSummary(
@@ -85,9 +99,10 @@ function StatTile({
 }
 
 export default function DriverProfileClient({ profile }: DriverProfileClientProps) {
-  const { standing, age, nationalityCode, stats, season, archive2025, timeline, debutYear, firstWinYear, neighbors } = profile;
+  const { standing, age, nationalityCode, stats, season, archive2025, timeline, debutYear, firstWinYear, neighbors, headToHead } = profile;
   const { driver } = standing;
   const [selectedSeasonId, setSelectedSeasonId] = useState(season.season);
+  const [resultFilter, setResultFilter] = useState<"all" | "podiums" | "points" | "dnf">("all");
 
   const selectedSeason = useMemo(() => {
     if (archive2025 && selectedSeasonId === archive2025.season) {
@@ -101,7 +116,25 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
   const selectedTeamName = selectedSeason.teamName || profile.teamName;
   const selectedTeamId = selectedSeason.teamId || profile.teamId;
   const selectedResults = [...selectedSeason.recentResults].reverse();
+  const filteredResults = selectedResults.filter((result) => {
+    if (resultFilter === "podiums") {
+      return result.finish !== null && result.finish <= 3;
+    }
+
+    if (resultFilter === "points") {
+      return result.points > 0;
+    }
+
+    if (resultFilter === "dnf") {
+      return result.finish === null || !result.finishLabel.startsWith("P");
+    }
+
+    return true;
+  });
   const driverName = `${driver.givenName} ${driver.familyName}`;
+  const selectedHeadToHead: DriverHeadToHead | null =
+    archive2025 && selectedSeasonId === archive2025.season ? headToHead.archive2025 : headToHead.current;
+  const recentDuels = selectedHeadToHead ? [...selectedHeadToHead.raceDuels].slice(-6).reverse() : [];
 
   return (
     <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background-dark">
@@ -127,6 +160,16 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                 View Team
               </Link>
             ) : null}
+            <FollowToggleButton
+              type="driver"
+              id={driver.driverId}
+              label={driverName}
+              subtitle={`${selectedTeamName} • ${driver.nationality}`}
+              href={`/f1/driver/${driver.driverId}`}
+              accentColor={selectedAccentColor}
+              season={selectedSeason.season}
+              compact
+            />
           </div>
         </div>
 
@@ -175,7 +218,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-4">
-              <StatTile label="Points" value={formatNumber(selectedSeason.points)} hint={`${selectedSeason.completedRounds} rounds logged`} />
+              <StatTile label="Points" value={formatNumber(selectedSeason.points)} hint={formatSeasonProgress(selectedSeason.completedRounds)} />
               <StatTile label="Wins" value={formatNumber(selectedSeason.wins)} hint={`${selectedSeason.podiums} podiums`} />
               <StatTile label="Average Finish" value={selectedSeason.averageFinish} />
               <StatTile label="Best Finish" value={selectedSeason.bestFinish} />
@@ -210,19 +253,155 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
             <SeasonPaceChart data={selectedSeason.paceSeries} accentColor={selectedAccentColor} season={selectedSeason.season} />
 
             <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Driver vs Teammate</p>
+                  <h2 className="mt-2 font-display text-2xl font-bold text-white">Head-to-head comparison</h2>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                    Grid and race finish duels against the teammate for the selected season.
+                  </p>
+                </div>
+                {selectedHeadToHead ? (
+                  <Link
+                    href={`/f1/driver/${selectedHeadToHead.teammate.driverId}`}
+                    className="rounded border border-white/10 bg-black/20 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-300 transition-colors hover:border-white/30 hover:text-white"
+                  >
+                    Open {selectedHeadToHead.teammate.code || "Teammate"}
+                  </Link>
+                ) : null}
+              </div>
+
+              {selectedHeadToHead ? (
+                <div className="mt-5 space-y-4">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Teammate</p>
+                      <p className="mt-2 text-lg font-bold text-white">{selectedHeadToHead.teammate.name}</p>
+                      <p className="mt-1 text-[11px] text-gray-500">{selectedHeadToHead.teamName}</p>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Points split</p>
+                      <p className="mt-2 text-lg font-bold text-white">
+                        {formatNumber(selectedHeadToHead.pointsSplit.driver)} vs {formatNumber(selectedHeadToHead.pointsSplit.teammate)}
+                      </p>
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        Delta {formatDelta(selectedHeadToHead.pointsSplit.delta)} pts
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Grid head-to-head</p>
+                      <p className="mt-2 text-lg font-bold text-white">
+                        {selectedHeadToHead.gridHeadToHead.driver}-{selectedHeadToHead.gridHeadToHead.teammate}
+                      </p>
+                      <p className="mt-1 text-[11px] text-gray-500">{selectedHeadToHead.gridHeadToHead.ties} ties</p>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Race finish H2H</p>
+                      <p className="mt-2 text-lg font-bold text-white">
+                        {selectedHeadToHead.finishHeadToHead.driver}-{selectedHeadToHead.finishHeadToHead.teammate}
+                      </p>
+                      <p className="mt-1 text-[11px] text-gray-500">{selectedHeadToHead.finishHeadToHead.ties} ties</p>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Avg finish</p>
+                      <p className="mt-2 text-lg font-bold text-white">
+                        {selectedHeadToHead.averageFinish.driver} vs {selectedHeadToHead.averageFinish.teammate}
+                      </p>
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        Delta {formatDelta(selectedHeadToHead.averageFinish.delta)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-bold text-white">Recent race duels</p>
+                        <p className="mt-1 text-[11px] text-gray-500">Latest shared rounds in this season view.</p>
+                      </div>
+                      <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-300">
+                        {selectedHeadToHead.season}
+                      </span>
+                    </div>
+
+                    {recentDuels.length > 0 ? (
+                      <div className="mt-4 space-y-2">
+                        {recentDuels.map((duel) => (
+                          <div
+                            key={`${selectedHeadToHead.season}-${duel.round}-${duel.raceName}`}
+                            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-[#090909] px-4 py-3"
+                          >
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Round {duel.round}</p>
+                              <p className="mt-1 text-sm font-bold text-white">{duel.raceName}</p>
+                              <p className="mt-1 text-[11px] text-gray-500">{duel.circuitName}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Finish</p>
+                              <p className="mt-1 text-sm font-bold text-white">
+                                {duel.finishDriver ? `P${duel.finishDriver}` : "—"} / {duel.finishTeammate ? `P${duel.finishTeammate}` : "—"}
+                              </p>
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Winner: {duel.winner === "driver" ? driver.familyName : duel.winner === "teammate" ? selectedHeadToHead.teammate.name.split(" ").slice(-1)[0] : "Tie"}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-4 rounded-lg border border-dashed border-white/10 bg-black/30 px-4 py-6 text-center">
+                        <p className="text-sm text-gray-400">No shared race duels available yet.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-5 rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-6 text-center">
+                  <p className="text-sm text-gray-400">Teammate comparison data is not available for this season.</p>
+                </div>
+              )}
+            </article>
+
+            <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="font-display text-2xl font-bold text-white">{selectedSeason.season} Results</h2>
                   <p className="mt-1 text-sm text-gray-500">Full classified race log for the selected season view.</p>
                 </div>
-                <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
-                  {selectedSeason.completedRounds} rounds
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
+                    {formatSeasonProgress(selectedSeason.completedRounds)}
+                  </span>
+                  <div className="flex flex-wrap gap-1 rounded-lg border border-white/10 bg-black/20 p-1">
+                    {[
+                      { id: "all", label: "All" },
+                      { id: "podiums", label: "Podiums" },
+                      { id: "points", label: "Points" },
+                      { id: "dnf", label: "DNFs" }
+                    ].map((filter) => {
+                      const active = resultFilter === filter.id;
+
+                      return (
+                        <button
+                          key={filter.id}
+                          type="button"
+                          onClick={() => setResultFilter(filter.id as typeof resultFilter)}
+                          className={`rounded px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors ${active ? "bg-grid-primary text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                        >
+                          {filter.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
-              {selectedResults.length > 0 ? (
+              {filteredResults.length > 0 ? (
                 <div className="mt-5 max-h-[880px] space-y-3 overflow-y-auto pr-2 custom-scrollbar">
-                  {selectedResults.map((result) => (
+                  {filteredResults.map((result) => (
                     <div
                       key={`${selectedSeason.season}-${result.round}-${result.raceName}`}
                       className={`rounded-lg border p-4 ${getResultTone(result)}`}
@@ -258,7 +437,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                 </div>
               ) : (
                 <div className="mt-5 rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-8 text-center">
-                  <p className="text-sm text-gray-400">No race results available yet for this season view.</p>
+                  <p className="text-sm text-gray-400">No races match the current filter for this season view.</p>
                 </div>
               )}
             </article>

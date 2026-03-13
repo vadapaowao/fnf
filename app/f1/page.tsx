@@ -1,14 +1,19 @@
-import { getRaceCalendar, getRaceDetailByRound } from "@/lib/f1";
+import { getRaceCalendar, getRaceDetailByRound, getRaceRecapByRound, getRaceReplayByRound, getRaceWeekendSessionsWithResults } from "@/lib/f1";
 import RaceSidebar from "@/components/f1/RaceSidebar";
 import TrackHero from "@/components/f1/TrackHero";
 import RaceIntelPanel from "@/components/f1/RaceIntelPanel";
+import { getFeaturedRace } from "@/lib/f1-product";
 
 export default async function F1GridPage() {
   const races = await getRaceCalendar();
-  const currentRace = races.find((r) => new Date(r.date) >= new Date()) || races[0];
+  const currentRace = getFeaturedRace(races) ?? races[0];
 
-  // Get full race detail for current race
-  const raceDetail = await getRaceDetailByRound(currentRace.round);
+  const [raceDetail, recap, replay, sessions] = await Promise.all([
+    getRaceDetailByRound(currentRace.round),
+    getRaceRecapByRound(currentRace.round),
+    getRaceReplayByRound(currentRace.round),
+    getRaceWeekendSessionsWithResults(currentRace)
+  ]);
 
   return (
     <main className="flex-1 flex overflow-hidden relative">
@@ -19,6 +24,8 @@ export default async function F1GridPage() {
         trackSvgPath={raceDetail?.circuit.trackSvgPath || null}
         sectors={raceDetail?.circuit.sectors}
         drsZoneCount={raceDetail?.circuit.drsZones}
+        recap={recap}
+        replay={replay}
       />
       <RaceIntelPanel
         race={currentRace}
@@ -31,6 +38,8 @@ export default async function F1GridPage() {
         lastWinner={raceDetail?.stats.lastWinner}
         fastestLap={raceDetail?.stats.fastestLap}
         sectors={raceDetail?.circuit.sectors}
+        recap={recap}
+        sessions={sessions}
       />
     </main>
   );

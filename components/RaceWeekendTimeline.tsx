@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
 
-import type { RaceSession } from "@/lib/f1";
+import { getRaceSessionDurationMs, type RaceSession } from "@/lib/f1";
 
 type RaceWeekendTimelineProps = {
   sessions: RaceSession[];
@@ -12,9 +12,9 @@ type RaceWeekendTimelineProps = {
 function getSessionState(sessions: RaceSession[], index: number) {
   const now = Date.now();
   const thisStart = new Date(sessions[index].startsAt).getTime();
-  const nextStart = sessions[index + 1] ? new Date(sessions[index + 1].startsAt).getTime() : Number.POSITIVE_INFINITY;
+  const thisEnd = thisStart + getRaceSessionDurationMs(sessions[index].code);
 
-  if (now >= thisStart && now < nextStart) {
+  if (now >= thisStart && now < thisEnd) {
     return "active";
   }
 

@@ -19,11 +19,19 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://arena.local"),
-  title: {
-    default: "The Arena - Sports & Grid",
-    template: "%s | The Arena"
+  title: "The Arena — F1 & Football Hub",
+  description: "The ultimate hub for F1 and football fans. Live standings, driver dossiers, race intel, and fixtures.",
+  openGraph: {
+    title: "The Arena",
+    description: "Live F1 standings, driver profiles, race intel, and football fixtures.",
+    type: "website",
   },
-  description: "Where precision meets passion. The ultimate hub for F1 and Football fans.",
+  twitter: {
+    card: "summary_large_image",
+  },
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

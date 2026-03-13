@@ -1,10 +1,12 @@
-import { type RaceSession } from "@/lib/f1";
+import { getRaceSessionDurationMs, type RaceSession } from "@/lib/f1";
 
 interface WeekendScheduleProps {
     sessions: RaceSession[];
 }
 
 export default function WeekendSchedule({ sessions }: WeekendScheduleProps) {
+    const now = new Date();
+
     return (
         <div className="mb-6">
             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
@@ -14,6 +16,10 @@ export default function WeekendSchedule({ sessions }: WeekendScheduleProps) {
                 {sessions.map((session) => {
                     const sessionDate = session.startsAt ? new Date(session.startsAt) : null;
                     const isRace = session.code === "RACE";
+                    const startMs = sessionDate ? sessionDate.getTime() : Number.NaN;
+                    const endMs = startMs + getRaceSessionDurationMs(session.code);
+                    const sessionState = now.getTime() < startMs ? "upcoming" : now.getTime() <= endMs ? "live" : "completed";
+                    const showResult = sessionState === "completed" && Boolean(session.resultValue);
 
                     return (
                         <div
@@ -43,15 +49,26 @@ export default function WeekendSchedule({ sessions }: WeekendScheduleProps) {
                                     )}
                                 </div>
                             </div>
-                            <span className="text-xs font-mono text-gray-400">
-                                {sessionDate
-                                    ? sessionDate.toLocaleTimeString("en-US", {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                        hour12: false,
-                                    })
-                                    : "TBD"}
-                            </span>
+                            <div className="text-right">
+                                {showResult ? (
+                                    <>
+                                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-grid-primary">{session.resultLabel}</p>
+                                        <p className="mt-1 text-xs font-bold text-white">{session.resultValue}</p>
+                                    </>
+                                ) : sessionState === "live" ? (
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-grid-primary">Live now</p>
+                                ) : (
+                                    <span className="text-xs font-mono text-gray-400">
+                                        {sessionDate
+                                            ? sessionDate.toLocaleTimeString("en-US", {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                hour12: false,
+                                            })
+                                            : "TBD"}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     );
                 })}

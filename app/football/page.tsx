@@ -1,8 +1,19 @@
+import type { Metadata } from "next";
+
 import FootballHub from "@/components/FootballHub";
 import { footballFixtures, laLigaStandings } from "@/lib/football";
 
-export const metadata = {
-  title: "Football"
+export const metadata: Metadata = {
+  title: "The Pitch — Football Hub",
+  description: "The Arena football hub with fixtures, standings, and matchday context.",
+  openGraph: {
+    title: "The Arena",
+    description: "Live F1 standings, driver profiles, race intel, and football fixtures.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default function FootballPage() {

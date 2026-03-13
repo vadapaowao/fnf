@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getRaceCalendar, getRaceDetailByRound, getRaceRecapByRound, getRaceReplayByRound, getRaceWeekendSessions } from "@/lib/f1";
+import { getRaceCalendar, getRaceDetailByRound, getRaceRecapByRound, getRaceReplayByRound, getRaceWeekendSessionsWithResults } from "@/lib/f1";
 import RaceSidebar from "@/components/f1/RaceSidebar";
 import TrackHero from "@/components/f1/TrackHero";
 import RaceIntelPanel from "@/components/f1/RaceIntelPanel";
@@ -42,7 +42,7 @@ export default async function RaceDetailPage({ params }: RaceDetailPageProps) {
     notFound();
   }
 
-  const sessions = getRaceWeekendSessions(detail.race);
+  const sessions = await getRaceWeekendSessionsWithResults(detail.race);
 
   return (
     <main className="flex-1 flex overflow-hidden relative">

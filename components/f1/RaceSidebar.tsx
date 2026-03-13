@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type Race } from "@/lib/f1";
+import { getFeaturedRace, getProductRaceState } from "@/lib/f1-product";
 
 interface RaceSidebarProps {
     races: Race[];
@@ -16,7 +17,8 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound 
     const SIDEBAR_SEARCH_KEY = "f1-race-sidebar-search";
 
     const now = new Date();
-    const activeRound = highlightedRound ?? currentRaceRound;
+    const featuredRace = getFeaturedRace(races, now);
+    const activeRound = highlightedRound ?? currentRaceRound ?? Number(featuredRace?.round ?? 0);
     const pathname = usePathname();
     const listRef = useRef<HTMLDivElement | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
@@ -49,9 +51,9 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound 
     };
 
     const getRaceStatus = (race: Race) => {
-        const raceDate = new Date(race.date);
-        if (raceDate < now) return "FINISHED";
-        if (activeRound && String(activeRound) === race.round) return "LIVE";
+        const state = getProductRaceState(race, now);
+        if (state === "live") return "LIVE";
+        if (state === "finished") return activeRound && String(activeRound) === race.round ? "RECAP" : "FINISHED";
         return "UPCOMING";
     };
 

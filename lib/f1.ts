@@ -35,10 +35,15 @@ export type TrackSector = {
   telemetry: string;
 };
 
+export type RaceSessionCode = "FP1" | "FP2" | "FP3" | "SQ" | "SPRINT" | "QUALI" | "RACE";
+
 export type RaceSession = {
-  code: "FP1" | "FP2" | "FP3" | "QUALI" | "RACE";
+  code: RaceSessionCode;
   label: string;
   startsAt: string;
+  resultLabel?: string;
+  resultValue?: string;
+  officialUrl?: string;
 };
 
 export type WinnerStat = {
@@ -333,6 +338,16 @@ type CircuitStatic = {
   firstGrandPrix: string;
   trackSvgFile: string;
 };
+
+type OfficialResultsRoute = {
+  raceId: string;
+  slug: string;
+};
+
+const OFFICIAL_RESULTS_BASE = "https://www.formula1.com";
+const SPRINT_WEEKEND_CIRCUITS_2026 = new Set(["shanghai", "miami", "villeneuve", "silverstone", "zandvoort", "marina_bay"]);
+const officialResultsRoutesCache = new Map<string, Promise<OfficialResultsRoute[]>>();
+const sessionResultCache = new Map<string, Promise<Pick<RaceSession, "resultLabel" | "resultValue" | "officialUrl"> | null>>();
 
 // Temporary fallback: only used for missing rounds when the 2026 endpoint is partial/unavailable.
 const TEMP_FALLBACK_2026_CALENDAR: Race[] = [
@@ -890,6 +905,25 @@ async function fetchJson<T>(url: string): Promise<T | null> {
   }
 }
 
+async function fetchText(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url, {
+      next: { revalidate: REVALIDATE_SECONDS },
+      headers: {
+        "User-Agent": "SportsCore/1.0"
+      }
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return await response.text();
+  } catch {
+    return null;
+  }
+}
+
 async function fetchAllRaceLaps(season: string, round: string) {
   const lapsByNumber = new Map<string, Map<string, ErgastLapTimingEntry>>();
   let offset = 0;
@@ -1203,12 +1237,228 @@ export function isUpcomingRace(race: Pick<Race, "date" | "time">): boolean {
   return new Date(getRaceDateTimeIso(race)).getTime() >= Date.now();
 }
 
-export function getRaceWeekendSessions(race: Pick<Race, "date" | "time">): RaceSession[] {
+function isSprintWeekend(race: Pick<Race, "season" | "circuitId">) {
+  return race.season === "2026" && SPRINT_WEEKEND_CIRCUITS_2026.has(race.circuitId);
+}
+
+export function getRaceSessionDurationMs(sessionCode: RaceSessionCode) {
+  if (sessionCode === "RACE") {
+    return 3 * 60 * 60 * 1000;
+  }
+
+  if (sessionCode === "QUALI" || sessionCode === "SQ") {
+    return 2 * 60 * 60 * 1000;
+  }
+
+  if (sessionCode === "SPRINT") {
+    return 75 * 60 * 1000;
+  }
+
+  return 90 * 60 * 1000;
+}
+
+function getOfficialSessionSlug(code: RaceSessionCode) {
+  if (code === "FP1") return "practice/1";
+  if (code === "FP2") return "practice/2";
+  if (code === "FP3") return "practice/3";
+  if (code === "SQ") return "sprint-qualifying";
+  if (code === "SPRINT") return "sprint-results";
+  if (code === "QUALI") return "qualifying";
+  return "race-result";
+}
+
+function getCompletedSessionResultLabel(code: RaceSessionCode) {
+  if (code === "RACE") return "Winner";
+  if (code === "SPRINT") return "Sprint Winner";
+  if (code === "QUALI" || code === "SQ") return "P1";
+  return "Fastest";
+}
+
+function stripHtmlToText(html: string) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractSessionWinnerName(html: string) {
+  const text = stripHtmlToText(html);
+
+  if (text.includes("No results are currently available")) {
+    return null;
+  }
+
+  const match = text.match(/\b1\s+\d+\s+([A-Z][A-Za-z'’.\-]+(?:\s+[A-Z][A-Za-z'’.\-]+)+)\s+[A-Z]{3}\b/);
+  return match?.[1]?.trim() ?? null;
+}
+
+async function fetchOfficialResultsRoutes(season: string): Promise<OfficialResultsRoute[]> {
+  const cached = officialResultsRoutesCache.get(season);
+  if (cached) {
+    return cached;
+  }
+
+  const request = (async () => {
+  const html = await fetchText(`${OFFICIAL_RESULTS_BASE}/en/results/${season}/races`);
+
+  if (!html) {
+    return [];
+  }
+
+  const matches = Array.from(html.matchAll(new RegExp(`/en/results/${season}/races/(\\d+)/([a-z0-9-]+)/race-result`, "g")));
+  const seen = new Set<string>();
+  const routes: OfficialResultsRoute[] = [];
+
+  for (const match of matches) {
+    const raceId = match[1]?.trim();
+    const slug = match[2]?.trim();
+
+    if (!raceId || !slug) {
+      continue;
+    }
+
+    const key = `${raceId}:${slug}`;
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    routes.push({ raceId, slug });
+  }
+
+    return routes;
+  })();
+
+  officialResultsRoutesCache.set(season, request);
+  return request;
+}
+
+async function getOfficialResultsRouteForRace(race: Pick<Race, "season" | "round">): Promise<OfficialResultsRoute | null> {
+  const routes = await fetchOfficialResultsRoutes(race.season);
+  const index = Math.max(Number(race.round) - 1, 0);
+
+  return routes[index] ?? null;
+}
+
+async function fetchRaceWinnerFromApi(race: Pick<Race, "season" | "round">): Promise<string | null> {
+  const data = await fetchJson<ErgastRaceResultsResponse>(`${ERGAST_BASE_URL}/${race.season}/${race.round}/results/1.json`);
+  const winner = data?.MRData?.RaceTable?.Races?.[0]?.Results?.[0];
+  const driverName = formatResultDriverName(winner);
+
+  return driverName === UNAVAILABLE ? null : driverName;
+}
+
+async function fetchCircuitWinnerFallback(race: Pick<Race, "circuitId" | "apiCircuitId">): Promise<string | null> {
+  const latestWinner = await fetchMostRecentWinner(race.apiCircuitId ?? race.circuitId);
+
+  return latestWinner.driver === UNAVAILABLE ? null : latestWinner.driver;
+}
+
+async function fetchSessionResultValue(
+  race: Pick<Race, "season" | "round" | "circuitId" | "apiCircuitId">,
+  session: RaceSession
+): Promise<Pick<RaceSession, "resultLabel" | "resultValue" | "officialUrl"> | null> {
+  const cacheKey = `${race.season}:${race.round}:${session.code}`;
+  const cached = sessionResultCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const request = (async () => {
+  const route = await getOfficialResultsRouteForRace(race);
+
+  if (!route) {
+    if (session.code === "RACE") {
+      const raceWinner = await fetchRaceWinnerFromApi(race);
+      if (raceWinner) {
+        return {
+          resultLabel: getCompletedSessionResultLabel(session.code),
+          resultValue: raceWinner
+        };
+      }
+
+      const circuitWinner = await fetchCircuitWinnerFallback(race);
+      if (circuitWinner) {
+        return {
+          resultLabel: getCompletedSessionResultLabel(session.code),
+          resultValue: circuitWinner
+        };
+      }
+
+      return null;
+    }
+
+    return null;
+  }
+
+  const sessionSlug = getOfficialSessionSlug(session.code);
+  const officialUrl = `${OFFICIAL_RESULTS_BASE}/en/results/${race.season}/races/${route.raceId}/${route.slug}/${sessionSlug}`;
+  const html = await fetchText(officialUrl);
+
+  if (html) {
+    const winnerName = extractSessionWinnerName(html);
+
+    if (winnerName) {
+      return {
+        resultLabel: getCompletedSessionResultLabel(session.code),
+        resultValue: winnerName,
+        officialUrl
+      };
+    }
+  }
+
+  if (session.code === "RACE") {
+    const raceWinner = await fetchRaceWinnerFromApi(race);
+    if (raceWinner) {
+      return {
+        resultLabel: getCompletedSessionResultLabel(session.code),
+        resultValue: raceWinner,
+        officialUrl
+      };
+    }
+
+    const circuitWinner = await fetchCircuitWinnerFallback(race);
+    if (circuitWinner) {
+      return {
+        resultLabel: getCompletedSessionResultLabel(session.code),
+        resultValue: circuitWinner,
+        officialUrl
+      };
+    }
+  }
+
+    return {
+      resultLabel: getCompletedSessionResultLabel(session.code),
+      resultValue: "Results pending",
+      officialUrl
+    };
+  })();
+
+  sessionResultCache.set(cacheKey, request);
+  return request;
+}
+
+export function getRaceWeekendSessions(race: Pick<Race, "date" | "time" | "season" | "circuitId">): RaceSession[] {
   const raceStart = new Date(getRaceDateTimeIso(race));
 
   const withOffset = (hoursOffset: number) => {
     return new Date(raceStart.getTime() + hoursOffset * 60 * 60 * 1000).toISOString();
   };
+
+  if (isSprintWeekend(race)) {
+    return [
+      { code: "FP1", label: "Practice 1", startsAt: withOffset(-51.5) },
+      { code: "SQ", label: "Sprint Qualifying", startsAt: withOffset(-47.5) },
+      { code: "SPRINT", label: "Sprint", startsAt: withOffset(-28) },
+      { code: "QUALI", label: "Qualifying", startsAt: withOffset(-24) },
+      { code: "RACE", label: "Race", startsAt: withOffset(0) }
+    ];
+  }
 
   return [
     { code: "FP1", label: "Practice 1", startsAt: withOffset(-52) },
@@ -1217,6 +1467,33 @@ export function getRaceWeekendSessions(race: Pick<Race, "date" | "time">): RaceS
     { code: "QUALI", label: "Qualifying", startsAt: withOffset(-24) },
     { code: "RACE", label: "Race", startsAt: withOffset(0) }
   ];
+}
+
+export async function getRaceWeekendSessionsWithResults(
+  race: Pick<Race, "date" | "time" | "season" | "circuitId" | "round" | "apiCircuitId">
+): Promise<RaceSession[]> {
+  const sessions = getRaceWeekendSessions(race);
+  const nowMs = Date.now();
+
+  const hydrated = await Promise.all(
+    sessions.map(async (session) => {
+      const sessionStartMs = new Date(session.startsAt).getTime();
+      const sessionEndMs = sessionStartMs + getRaceSessionDurationMs(session.code);
+
+      if (!Number.isFinite(sessionEndMs) || nowMs < sessionEndMs) {
+        return session;
+      }
+
+      const result = await fetchSessionResultValue(race, session);
+
+      return {
+        ...session,
+        ...result
+      };
+    })
+  );
+
+  return hydrated;
 }
 
 function parseNumeric(value?: string): number | null {
