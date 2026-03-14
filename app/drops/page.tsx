@@ -15,7 +15,7 @@ export default function DropsPage() {
           DROPS
         </h1>
         <p className="mt-4 max-w-xl text-base leading-relaxed text-gray-400 md:text-lg">
-          Exclusive Arena merch. Coming soon.
+          The Grid. Exclusive drops, coming soon.
         </p>
 
         <div className="mt-10 rounded-3xl border border-white/10 bg-black/30 p-5 md:p-6">

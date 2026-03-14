@@ -1,8 +1,17 @@
 import { notFound } from "next/navigation";
-import { getRaceCalendar, getRaceDetailByRound, getRaceRecapByRound, getRaceReplayByRound, getRaceWeekendSessionsWithResults } from "@/lib/f1";
+
+import RaceIntelPanel from "@/components/f1/RaceIntelPanel";
 import RaceSidebar from "@/components/f1/RaceSidebar";
 import TrackHero from "@/components/f1/TrackHero";
-import RaceIntelPanel from "@/components/f1/RaceIntelPanel";
+import {
+  getRaceCalendar,
+  getRaceDetailByRound,
+  getRaceRecapByRound,
+  getRaceReplayByRound,
+  getRaceWeekendSessionsWithResults,
+} from "@/lib/f1";
+
+export const revalidate = 60;
 
 type RaceDetailPageProps = {
   params: {
@@ -25,8 +34,8 @@ export async function generateMetadata({ params }: RaceDetailPageProps) {
   }
 
   return {
-    title: `${detail.race.raceName} (Round ${detail.race.round}) - Arena F1`,
-    description: `${detail.race.raceName} at ${detail.circuit.name}, ${detail.circuit.location}`,
+    title: `${detail.race.raceName} (Round ${detail.race.round}) — The Grid`,
+    description: `Weekend schedule, results, track map, and recap for ${detail.race.raceName}.`,
   };
 }
 
@@ -45,34 +54,33 @@ export default async function RaceDetailPage({ params }: RaceDetailPageProps) {
   const sessions = await getRaceWeekendSessionsWithResults(detail.race);
 
   return (
-    <main className="flex-1 flex overflow-hidden relative">
-      <div className="absolute inset-0 bg-grid opacity-20 pointer-events-none z-0 bg-grid-pattern-size"></div>
-      <RaceSidebar
-        races={races}
-        highlightedRound={Number(params.round)}
-      />
-      <TrackHero
-        race={detail.race}
-        trackSvgPath={detail.circuit.trackSvgPath}
-        sectors={detail.circuit.sectors}
-        drsZoneCount={detail.circuit.drsZones}
-        recap={recap}
-        replay={replay}
-      />
-      <RaceIntelPanel
-        race={detail.race}
-        circuitStats={{
-          lengthKm: detail.circuit.lengthKm,
-          turns: detail.circuit.turns,
-          drsZones: detail.circuit.drsZones,
-          firstGrandPrix: detail.circuit.firstGrandPrix,
-        }}
-        lastWinner={detail.stats.lastWinner}
-        fastestLap={detail.stats.fastestLap}
-        sessions={sessions}
-        sectors={detail.circuit.sectors}
-        recap={recap}
-      />
+    <main className="relative flex flex-1 flex-col overflow-hidden">
+      <div className="absolute inset-0 z-0 bg-grid bg-grid-pattern-size opacity-20 pointer-events-none" />
+      <div className="relative z-10 flex min-h-0 flex-1 overflow-hidden">
+        <RaceSidebar races={races} highlightedRound={Number(params.round)} />
+        <TrackHero
+          race={detail.race}
+          trackSvgPath={detail.circuit.trackSvgPath}
+          sectors={detail.circuit.sectors}
+          drsZoneCount={detail.circuit.drsZones}
+          recap={recap}
+          replay={replay}
+        />
+        <RaceIntelPanel
+          race={detail.race}
+          circuitStats={{
+            lengthKm: detail.circuit.lengthKm,
+            turns: detail.circuit.turns,
+            drsZones: detail.circuit.drsZones,
+            firstGrandPrix: detail.circuit.firstGrandPrix,
+          }}
+          lastWinner={detail.stats.lastWinner}
+          fastestLap={detail.stats.fastestLap}
+          sessions={sessions}
+          sectors={detail.circuit.sectors}
+          recap={recap}
+        />
+      </div>
     </main>
   );
 }

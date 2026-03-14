@@ -13,6 +13,7 @@ export default function F1Navigation({ season = "2026" }: F1NavigationProps) {
     const [menuOpen, setMenuOpen] = useState(false);
     const navItems = [
         { href: "/f1", label: "RACE" },
+        { href: "/f1/standings", label: "STANDINGS" },
         { href: "/f1/calendar", label: "CALENDAR" },
         { href: "/f1/drivers", label: "DRIVERS" },
         { href: "/f1/teams", label: "TEAMS" },
@@ -31,15 +32,9 @@ export default function F1Navigation({ season = "2026" }: F1NavigationProps) {
                 <div className="flex items-center gap-4">
                     <Link
                         href="/"
-                        className="flex items-center gap-0.5 logo-text text-xl tracking-tighter cursor-pointer group"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/25 text-lg text-white transition-colors hover:border-grid-primary/40"
                     >
-                        <span className="text-primary font-bold group-hover:text-white transition-colors">
-                            A
-                        </span>
-                        <span className="text-white group-hover:text-primary transition-colors">r</span>
-                        <span className="text-black bg-white px-1 rounded-sm ml-0.5 font-bold group-hover:bg-primary group-hover:text-white transition-colors">
-                            A
-                        </span>
+                        🏎️
                     </Link>
                     <h1 className="text-lg font-bold tracking-[0.22em] uppercase neon-text border-l border-white/20 pl-4 ml-2 font-display md:text-xl">
                         The Grid
@@ -50,7 +45,7 @@ export default function F1Navigation({ season = "2026" }: F1NavigationProps) {
                     {navItems.map((item) => {
                         const active =
                             item.href === "/f1"
-                                ? isActive("/f1") && !pathname.includes("/calendar") && !pathname.includes("/drivers") && !pathname.includes("/teams")
+                                ? isActive("/f1") && !pathname.includes("/standings") && !pathname.includes("/calendar") && !pathname.includes("/drivers") && !pathname.includes("/teams") && !pathname.includes("/leclerc")
                                 : isActive(item.href);
 
                         return (
@@ -85,7 +80,7 @@ export default function F1Navigation({ season = "2026" }: F1NavigationProps) {
                         {navItems.map((item) => {
                             const active =
                                 item.href === "/f1"
-                                    ? isActive("/f1") && !pathname.includes("/calendar") && !pathname.includes("/drivers") && !pathname.includes("/teams")
+                                    ? isActive("/f1") && !pathname.includes("/standings") && !pathname.includes("/calendar") && !pathname.includes("/drivers") && !pathname.includes("/teams") && !pathname.includes("/leclerc")
                                     : isActive(item.href);
 
                             return (

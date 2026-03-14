@@ -19,17 +19,17 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://grid.local"),
-  title: "The Grid — F1 Dashboard 2026",
+  title: "The Grid — Formula 1 2026",
   description:
-    "The ultimate Formula 1 fan dashboard. Live race intel, driver dossiers, circuit data, and constructor standings for the 2026 season.",
+    "Formula 1 race weekends, standings, drivers, teams, and circuits in one place.",
   openGraph: {
-    title: "The Grid — F1 Dashboard 2026",
-    description: "Live F1 race intel, driver stats, and circuit data for the 2026 season.",
+    title: "The Grid — Formula 1 2026",
+    description: "Formula 1 race weekends, standings, drivers, teams, and circuits in one place.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "The Grid — F1 Dashboard 2026",
+    title: "The Grid — Formula 1 2026",
   },
   icons: {
     icon: "/favicon.ico",

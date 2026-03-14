@@ -1,7 +1,8 @@
 import Link from "next/link";
 
+import LocalDateTimeText from "@/components/f1/LocalDateTimeText";
 import type { Race } from "@/lib/f1";
-import { formatRaceDateTime, formatRaceWeekendRange } from "@/lib/f1";
+import { formatRaceWeekendRange } from "@/lib/f1";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type RaceCardProps = {
@@ -23,7 +24,18 @@ export default function RaceCard({ race }: RaceCardProps) {
             {race.locality}, {race.country}
           </p>
           <p className="pt-1 text-xs uppercase tracking-[0.08em] text-muted-foreground">
-            Race Start: {formatRaceDateTime(race.date, race.time)}
+            Race Start:{" "}
+            <LocalDateTimeText
+              iso={`${race.date}T${race.time}`}
+              options={{
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+                timeZoneName: "short"
+              }}
+            />
           </p>
         </CardContent>
       </Card>

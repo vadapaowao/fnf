@@ -1297,7 +1297,7 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
             className="flex w-full items-center justify-between px-3 py-2 text-left"
           >
             <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#E6A3A0]">
-              {isTrackReplayOpen ? "Hide Track Replay" : "Show Track Replay"}
+              {isTrackReplayOpen ? "Hide Highlights" : "Watch Race Highlights"}
             </span>
             <span className={cn("material-icons text-base text-[#E10600] transition-transform", isTrackReplayOpen ? "rotate-180" : "")}>
               expand_more

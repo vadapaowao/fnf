@@ -14,14 +14,14 @@ type MyPitWallCardProps = {
 
 function getStateCopy(state: ProductRaceState) {
   if (state === "upcoming") {
-    return "Your follow list becomes the quick route back in before the weekend starts.";
+    return "The races and drivers you save stay parked here.";
   }
 
   if (state === "live") {
-    return "Your follows stay pinned while the live weekend is moving.";
+    return "Your saved picks stay here while the weekend is on.";
   }
 
-  return "Your follows become the fastest route into the post-race recap loop.";
+  return "Saved picks are still here when you are checking what changed.";
 }
 
 function getEntityIcon(type: "race" | "driver" | "team") {
@@ -42,52 +42,58 @@ export default function MyPitWallCard({ race, className }: MyPitWallCardProps) {
   const recentItems = items.slice(0, 4);
 
   return (
-    <article className={`rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-5 ${className ?? ""}`}>
-      <div className="flex items-start justify-between gap-3">
+    <details className={`group rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark ${className ?? ""}`}>
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-3 px-5 py-4 marker:content-none">
         <div>
-          <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">My Pit Wall</p>
-          <h2 className="mt-2 font-display text-2xl font-bold text-white">Follow mode</h2>
-          <p className="mt-2 text-sm leading-relaxed text-gray-400">{getStateCopy(state)}</p>
+          <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Following</p>
+          <h2 className="mt-2 font-display text-xl font-bold text-white">Saved list</h2>
+          <p className="mt-1 text-sm leading-relaxed text-gray-400">{getStateCopy(state)}</p>
         </div>
-        <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
-          {count} saved
-        </span>
-      </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
+            {count} saved
+          </span>
+          <span className="material-icons text-grid-primary transition-transform duration-200 group-open:rotate-180">
+            expand_more
+          </span>
+        </div>
+      </summary>
 
-      {!hasLoaded ? (
-        <div className="mt-5 rounded-lg border border-white/10 bg-black/20 px-4 py-6 text-center">
-          <p className="text-sm text-gray-400">Loading follow list...</p>
-        </div>
-      ) : recentItems.length === 0 ? (
-        <div className="mt-5 rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-6">
-          <p className="text-sm text-gray-300">No follows yet.</p>
-          <p className="mt-2 text-[11px] leading-relaxed text-gray-500">
-            Follow a race, driver, or team. This card then becomes a compact return surface for the product.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-5 space-y-2">
-          {recentItems.map((item) => (
-            <Link
-              key={item.key}
-              href={item.href}
-              className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-3 transition-colors hover:border-white/20 hover:bg-black/30"
-            >
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="material-icons text-sm" style={{ color: item.accentColor ?? "#E10600" }}>
-                    {getEntityIcon(item.type)}
-                  </span>
-                  <p className="truncate text-sm font-bold text-white">{item.label}</p>
+      <div className="border-t border-white/10 px-5 pb-5 pt-4">
+        {!hasLoaded ? (
+          <div className="rounded-lg border border-white/10 bg-black/20 px-4 py-6 text-center">
+            <p className="text-sm text-gray-400">Loading saved list...</p>
+          </div>
+        ) : recentItems.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-6">
+            <p className="text-sm text-gray-300">Nothing saved yet.</p>
+            <p className="mt-2 text-[11px] leading-relaxed text-gray-500">
+              Save a race, driver, or team and it lands here.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {recentItems.map((item) => (
+              <Link
+                key={item.key}
+                href={item.href}
+                className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-3 transition-colors hover:border-white/20 hover:bg-black/30"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="material-icons text-sm" style={{ color: item.accentColor ?? "#E10600" }}>
+                      {getEntityIcon(item.type)}
+                    </span>
+                    <p className="truncate text-sm font-bold text-white">{item.label}</p>
+                  </div>
+                  <p className="mt-1 truncate text-[11px] text-gray-500">{item.subtitle}</p>
                 </div>
-                <p className="mt-1 truncate text-[11px] text-gray-500">{item.subtitle}</p>
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">Open</span>
-            </Link>
-          ))}
-        </div>
-      )}
-    </article>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">Open</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </details>
   );
 }
-

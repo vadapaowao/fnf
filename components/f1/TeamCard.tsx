@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { ConstructorStanding, DriverStanding } from "@/lib/f1";
+import { formatTeamBadge } from "@/lib/f1-formatting";
 
 const TEAM_TONES: Record<string, string> = {
     red_bull: "#1E41FF",
@@ -37,7 +38,7 @@ export default function TeamCard({ standing, drivers = [] }: TeamCardProps) {
             <div className="relative p-6">
                 <div className="mb-5 flex items-center gap-3">
                     <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-gray-300">
-                        {team.constructorId.toUpperCase()}
+                        {formatTeamBadge(team.constructorId)}
                     </span>
                 </div>
 
