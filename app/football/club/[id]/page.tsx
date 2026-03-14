@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function FootballPage() {
+export default function ClubPage() {
   redirect("/");
 }

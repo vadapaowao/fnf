@@ -1,6 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true
+  reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "cdn.football-data.org",
+      },
+      {
+        protocol: "https",
+        hostname: "crests.football-data.org",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

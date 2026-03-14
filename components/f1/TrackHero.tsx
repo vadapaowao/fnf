@@ -1,4 +1,6 @@
+import CountdownTimer from "@/components/CountdownTimer";
 import TrackMap from "@/components/TrackMap";
+import FollowToggleButton from "@/components/f1/FollowToggleButton";
 import RaceBattleMode from "@/components/f1/RaceBattleMode";
 import RaceStoryMode from "@/components/f1/RaceStoryMode";
 import type { Race, RaceRecap, RaceReplayData, TrackSector } from "@/lib/f1";
@@ -18,6 +20,7 @@ export default function TrackHero({ race, trackSvgPath, sectors, drsZoneCount, r
   const trackDna = getTrackDnaProfile(race.circuitId);
   const stateDisplay = getRaceStateDisplay(raceState);
   const stateNarrative = getRaceStateNarrative(raceState, trackDna.fanHook, recap?.headline);
+  const countdownTargetIso = `${race.date}T${race.time}`;
   const headerStatusCopy =
     raceState === "live" ? "Race Weekend is Live" : raceState === "finished" ? "Race Done" : "Race Weekend Loading";
 
@@ -28,13 +31,31 @@ export default function TrackHero({ race, trackSvgPath, sectors, drsZoneCount, r
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#E10600]">Race {race.round}</p>
             <h1 className="mt-2 text-2xl font-black uppercase tracking-tight text-[#F4F4F4] md:text-4xl">{race.raceName}</h1>
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="mt-2 flex flex-wrap items-start justify-between gap-3 md:items-center">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#9A9A9A] md:text-sm">
                 {race.circuitName} | {race.locality}, {race.country}
               </p>
-              <span className="rounded-full border border-[#E10600]/35 bg-[#150808] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#F56D67]">
-                {headerStatusCopy}
-              </span>
+              <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto">
+                {raceState === "upcoming" ? (
+                  <CountdownTimer targetIso={countdownTargetIso} variant="compact" />
+                ) : (
+                  <span className="rounded-full border border-[#E10600]/35 bg-[#150808] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#F56D67]">
+                    {headerStatusCopy}
+                  </span>
+                )}
+                <FollowToggleButton
+                  type="race"
+                  id={`${race.season}-${race.round}`}
+                  label={race.raceName}
+                  subtitle={`${race.circuitName} | ${race.locality}, ${race.country}`}
+                  href={`/f1/race/${race.round}`}
+                  season={race.season}
+                  compact
+                  followCopy="Follow Race"
+                  followingCopy="Race Followed"
+                  className="rounded-full border-[#E10600]/22 bg-[#090909] text-[#F4F4F4] hover:border-[#E10600]/45"
+                />
+              </div>
             </div>
 
             <div className="mt-4 border border-[#242424] bg-[#090909] px-4 py-3">
