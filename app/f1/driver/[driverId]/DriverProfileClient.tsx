@@ -60,11 +60,22 @@ function formatDelta(value: number) {
   return `${sign}${Math.abs(value).toFixed(2)}`;
 }
 
+function formatAverageFinishValue(value: string) {
+  return value === "—" ? "—" : `P${value}`;
+}
+
+function formatAverageFinishDelta(value: number) {
+  if (!Number.isFinite(value)) {
+    return "—";
+  }
+
+  const sign = value >= 0 ? "+" : "-";
+  return `${sign}${Math.abs(value).toFixed(1)}`;
+}
+
 function buildSeasonSummary(
   snapshot: DriverSeasonSnapshot,
   driverName: string,
-  age: number,
-  nationality: string,
   isLiveSeason: boolean
 ) {
   const placement = snapshot.position
@@ -76,8 +87,12 @@ function buildSeasonSummary(
     snapshot.podiums > 0
       ? `${snapshot.podiums} podiums and ${snapshot.wins} win${snapshot.wins === 1 ? "" : "s"}`
       : `${snapshot.wins} win${snapshot.wins === 1 ? "" : "s"} so far`;
+  const opener =
+    snapshot.position === 1 && isLiveSeason
+      ? `${driverName} leads the ${snapshot.season} Formula 1 championship for ${snapshot.teamName}.`
+      : `${driverName} ${isLiveSeason ? "drives for" : "raced for"} ${snapshot.teamName} and ${placement} in the ${snapshot.season} championship on ${snapshot.points} points.`;
 
-  return `${driverName} raced for ${snapshot.teamName} in ${snapshot.season} and ${placement} on ${snapshot.points} points, with ${podiumLine}. ${driverName} is a ${age}-year-old ${nationality} driver.`;
+  return `${opener} The ${snapshot.season} campaign includes ${podiumLine}.`;
 }
 
 function StatTile({
@@ -150,7 +165,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
 
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded border border-grid-primary/30 bg-grid-primary/10 px-3 py-2 text-[11px] font-mono font-bold uppercase tracking-[0.16em] text-grid-primary">
-              {selectedSeason.season} Driver File
+              {selectedSeason.season} season
             </span>
             {selectedTeamId ? (
               <Link
@@ -214,7 +229,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
             </div>
 
             <p className="mt-5 max-w-3xl text-sm leading-relaxed text-gray-300">
-              {buildSeasonSummary(selectedSeason, driverName, age, driver.nationality, selectedSeason.season === season.season)}
+              {buildSeasonSummary(selectedSeason, driverName, selectedSeason.season === season.season)}
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-4">
@@ -230,9 +245,9 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
           <div className="min-w-0 space-y-6">
             {archive2025 ? (
               <SeasonToggle
-                eyebrow="Season Focus"
-                title="Switch Driver Season"
-                subtitle="Use one season mode at a time. This keeps the profile readable instead of stacking current and archive data together."
+                eyebrow="Season"
+                title="Pick a season"
+                subtitle="One season at a time."
                 options={[
                   {
                     id: season.season,
@@ -256,9 +271,9 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Driver vs Teammate</p>
-                  <h2 className="mt-2 font-display text-2xl font-bold text-white">Head-to-head comparison</h2>
+                  <h2 className="mt-2 font-display text-2xl font-bold text-white">Teammate battle</h2>
                   <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                    Grid and race finish duels against the teammate for the selected season.
+                    Grid and finish numbers against the other car.
                   </p>
                 </div>
                 {selectedHeadToHead ? (
@@ -308,10 +323,10 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                     <div className="rounded-lg border border-white/10 bg-black/20 p-4">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Avg finish</p>
                       <p className="mt-2 text-lg font-bold text-white">
-                        {selectedHeadToHead.averageFinish.driver} vs {selectedHeadToHead.averageFinish.teammate}
+                        {formatAverageFinishValue(selectedHeadToHead.averageFinish.driver)} vs {formatAverageFinishValue(selectedHeadToHead.averageFinish.teammate)}
                       </p>
                       <p className="mt-1 text-[11px] text-gray-500">
-                        Delta {formatDelta(selectedHeadToHead.averageFinish.delta)}
+                        Delta {formatAverageFinishDelta(selectedHeadToHead.averageFinish.delta)}
                       </p>
                     </div>
                   </div>
@@ -320,7 +335,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-sm font-bold text-white">Recent race duels</p>
-                        <p className="mt-1 text-[11px] text-gray-500">Latest shared rounds in this season view.</p>
+                        <p className="mt-1 text-[11px] text-gray-500">Latest shared rounds in this season.</p>
                       </div>
                       <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-300">
                         {selectedHeadToHead.season}
@@ -353,14 +368,14 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                       </div>
                     ) : (
                       <div className="mt-4 rounded-lg border border-dashed border-white/10 bg-black/30 px-4 py-6 text-center">
-                        <p className="text-sm text-gray-400">No shared race duels available yet.</p>
+                        <p className="text-sm text-gray-400">No recent side-by-side races yet.</p>
                       </div>
                     )}
                   </div>
                 </div>
               ) : (
                 <div className="mt-5 rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-6 text-center">
-                  <p className="text-sm text-gray-400">Teammate comparison data is not available for this season.</p>
+                  <p className="text-sm text-gray-400">Teammate comparison is not available for this season.</p>
                 </div>
               )}
             </article>
@@ -369,7 +384,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="font-display text-2xl font-bold text-white">{selectedSeason.season} Results</h2>
-                  <p className="mt-1 text-sm text-gray-500">Full classified race log for the selected season view.</p>
+                  <p className="mt-1 text-sm text-gray-500">Full race log for the selected season.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
@@ -437,7 +452,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                 </div>
               ) : (
                 <div className="mt-5 rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-8 text-center">
-                  <p className="text-sm text-gray-400">No races match the current filter for this season view.</p>
+                  <p className="text-sm text-gray-400">No races match this filter.</p>
                 </div>
               )}
             </article>
@@ -482,11 +497,8 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
               </div>
 
               <div className="mt-6">
-                <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Dossier Rail</p>
-                <h2 className="mt-2 font-display text-3xl font-bold text-white">Quick-scan identity panel</h2>
-                <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                  Key driver markers stay pinned while the season chart and race list scroll.
-                </p>
+                <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Quick Read</p>
+                <h2 className="mt-2 font-display text-3xl font-bold text-white">Key details</h2>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   <StatTile label="Driver Code" value={driver.code || "—"} />
@@ -502,8 +514,8 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
             <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="font-display text-2xl font-bold text-white">Season Snapshot</h2>
-                  <p className="mt-1 text-sm text-gray-500">{selectedSeason.season} focus mode</p>
+                  <h2 className="font-display text-2xl font-bold text-white">This Season</h2>
+                  <p className="mt-1 text-sm text-gray-500">{selectedSeason.season}</p>
                 </div>
                 <span
                   className="rounded px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
@@ -524,7 +536,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
             </article>
 
             <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
-              <h2 className="font-display text-2xl font-bold text-white">Driver Dossier</h2>
+              <h2 className="font-display text-2xl font-bold text-white">Driver Details</h2>
               <div className="mt-5 space-y-4 text-sm">
                 <div className="flex items-center justify-between gap-4 border-b border-white/5 pb-3">
                   <span className="text-gray-500">Nationality</span>
@@ -543,7 +555,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                   <span className="font-semibold text-white">{selectedSeason.teamName}</span>
                 </div>
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-gray-500">Logged Rounds</span>
+                  <span className="text-gray-500">Rounds Run</span>
                   <span className="font-semibold text-white">{selectedSeason.completedRounds}</span>
                 </div>
               </div>
@@ -570,7 +582,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                 href={`/f1/driver/${neighbors.previous.driverId}`}
                 className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-5 transition-colors hover:border-white/20"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Previous Driver</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Previous</p>
                 <p className="mt-2 font-display text-2xl font-bold text-white">
                   {neighbors.previous.name}
                 </p>
@@ -583,7 +595,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                 href={`/f1/driver/${neighbors.next.driverId}`}
                 className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-5 text-right transition-colors hover:border-white/20"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Next Driver</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Next</p>
                 <p className="mt-2 font-display text-2xl font-bold text-white">
                   {neighbors.next.name}
                 </p>

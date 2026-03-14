@@ -6,6 +6,7 @@ import DriverCard from "@/components/f1/drivers/DriverCard";
 import SeasonToggle from "@/components/f1/SeasonToggle";
 import TeamPointsChart from "@/components/f1/TeamPointsChart";
 import FollowToggleButton from "@/components/f1/FollowToggleButton";
+import { formatTeamBadge } from "@/lib/f1-formatting";
 import type { TeamProfileData, TeamSeasonSnapshot } from "@/lib/team-profile";
 
 type TeamProfileClientProps = {
@@ -16,11 +17,11 @@ function formatNumber(value: number | string) {
   return Number(value).toLocaleString("en-US");
 }
 
-function buildTeamSeasonSummary(teamName: string, snapshot: TeamSeasonSnapshot, nationality: string) {
+function buildTeamSeasonSummary(teamName: string, snapshot: TeamSeasonSnapshot) {
   const winsLine = `${snapshot.wins} win${snapshot.wins === 1 ? "" : "s"} and ${snapshot.podiums} podiums`;
   const pointsLine = `${snapshot.points} points across ${snapshot.completedRounds} rounds`;
 
-  return `${teamName} is in ${nationality} colours for ${snapshot.season}, with ${pointsLine}, ${winsLine}, and an average of ${snapshot.averagePoints} points per weekend.`;
+  return `${teamName} has ${pointsLine}, ${winsLine}, and an average of ${snapshot.averagePoints} points a weekend in ${snapshot.season}.`;
 }
 
 function StatTile({
@@ -87,13 +88,13 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
           <div className="relative">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-300">
-                {selectedSeason.season} Team File
+                {selectedSeason.season} season
               </span>
               <span
                 className="rounded px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
                 style={{ backgroundColor: `${teamColor}22`, color: teamColor }}
               >
-                {team.constructorId.toUpperCase()}
+                {formatTeamBadge(team.constructorId)}
               </span>
               <FollowToggleButton
                 type="team"
@@ -115,11 +116,11 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
             </h1>
 
             <p className="mt-5 max-w-3xl text-sm leading-relaxed text-gray-300">
-              {buildTeamSeasonSummary(team.name, selectedSeason, team.nationality)}
+              {buildTeamSeasonSummary(team.name, selectedSeason)}
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-4">
-              <StatTile label="Points" value={formatNumber(selectedSeason.points)} hint={`${selectedSeason.completedRounds} rounds logged`} />
+              <StatTile label="Points" value={formatNumber(selectedSeason.points)} hint={`After ${selectedSeason.completedRounds} race${selectedSeason.completedRounds === 1 ? "" : "s"}`} />
               <StatTile label="Wins" value={formatNumber(selectedSeason.wins)} hint={`${selectedSeason.podiums} podiums`} />
               <StatTile label="Average Points" value={selectedSeason.averagePoints} hint="per round" />
               <StatTile label="Best Finish" value={selectedSeason.bestFinish} />
@@ -135,8 +136,8 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
             >
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Garage Identity</p>
-                  <p className="mt-1 font-display text-3xl font-black text-white">{team.constructorId.toUpperCase()}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Team Code</p>
+                  <p className="mt-1 font-display text-3xl font-black text-white">{formatTeamBadge(team.constructorId)}</p>
                 </div>
                 <div className="flex gap-2">
                   <span className="h-3 w-8 rounded-full bg-white/10" />
@@ -154,11 +155,11 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
           </article>
 
           <article className="min-w-0 rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="font-display text-2xl font-bold text-white">{lineupLabel}</h2>
-                <p className="mt-1 text-sm text-gray-500">Pinned near the top so the roster stays easy to scan.</p>
-              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-2xl font-bold text-white">{lineupLabel}</h2>
+                  <p className="mt-1 text-sm text-gray-500">The two cars for this season.</p>
+                </div>
               <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
                 {selectedDrivers.length} drivers
               </span>
@@ -187,9 +188,9 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
         <section className="mt-6 space-y-6">
           {archive2025 ? (
             <SeasonToggle
-              eyebrow="Season Focus"
-              title="Switch Team Season"
-              subtitle="Use a single season mode for a cleaner read. Archive data is available without stacking it on top of the live view."
+              eyebrow="Season"
+              title="Pick a season"
+              subtitle="Current year or archive, one at a time."
               options={[
                 {
                   id: currentSeason.season,
@@ -210,8 +211,8 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
           <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="font-display text-2xl font-bold text-white">Season Desk</h2>
-                <p className="mt-1 text-sm text-gray-500">Focused stats for the selected season mode.</p>
+                <h2 className="font-display text-2xl font-bold text-white">Season Stats</h2>
+                <p className="mt-1 text-sm text-gray-500">All the main numbers for this year.</p>
               </div>
               <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
                 {selectedSeason.season}
@@ -233,8 +234,8 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
           <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="font-display text-2xl font-bold text-white">Weekend Ledger</h2>
-                <p className="mt-1 text-sm text-gray-500">Race-by-race points and finish quality for the selected season.</p>
+                <h2 className="font-display text-2xl font-bold text-white">Race Log</h2>
+                <p className="mt-1 text-sm text-gray-500">Round-by-round points and finishes.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
@@ -297,12 +298,12 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="mt-5 rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-8 text-center">
-                <p className="text-sm text-gray-400">No team weekends match the current filter.</p>
-              </div>
-            )}
-          </article>
+              ) : (
+                <div className="mt-5 rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-8 text-center">
+                  <p className="text-sm text-gray-400">No races match this filter.</p>
+                </div>
+              )}
+            </article>
         </section>
       </div>
     </main>

@@ -29,7 +29,7 @@ export default async function TeamsPage() {
                     <h1 className="mb-2 font-display text-5xl font-bold text-white">
                         {F1_SEASON} TEAMS
                     </h1>
-                    <p className="text-gray-400">Data-heavy team dossiers, current lineups, and direct access to deeper team performance views.</p>
+                    <p className="text-gray-400">Every team on the grid, with lineups and season form.</p>
                 </div>
 
                 {teamStandings.length > 0 ? (
@@ -38,10 +38,10 @@ export default async function TeamsPage() {
                             <div className="border-b border-white/5 px-6 py-4">
                                 <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Team Directory</p>
                                 <h2 className="mt-2 font-display text-3xl font-bold text-white">
-                                    {teamStandings.length} constructors, one live performance layer
+                                    {teamStandings.length} teams
                                 </h2>
                                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-400">
-                                    Revamped to match the rest of the F1 product: clearer hierarchy, better team identity, lineup context, and deeper detail pages with race-by-race points flow.
+                                    Open any team for drivers, points flow, and race-by-race form.
                                 </p>
                             </div>
 
@@ -63,8 +63,8 @@ export default async function TeamsPage() {
 
                         <StandingsAccordion
                             eyebrow="Constructor Standings"
-                            title={`${F1_SEASON} Constructors`}
-                            subtitle="Current team championship order. Click to expand the full constructor standings."
+                            title={`${F1_SEASON} Team Table`}
+                            subtitle="Championship order right now. Open the full table if you want it all."
                             rows={teamStandings.map((standing) => ({
                                 rank: standing.position,
                                 name: standing.constructor.name,

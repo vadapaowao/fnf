@@ -492,7 +492,6 @@ function buildHeadToHeadSummary(): DriverHeadToHeadSummary {
 function buildBio(
   standing: DriverStanding,
   teamName: string,
-  age: number,
   effectiveSeason: string,
   careerWins: number,
   careerPoles: number,
@@ -505,17 +504,14 @@ function buildBio(
   const seasonLine =
     pointsToLeader === 0
       ? `${name} leads the ${effectiveSeason} Formula 1 championship for ${teamName}.`
-      : `${name} races for ${teamName} and sits P${standing.position} in the ${effectiveSeason} championship on ${standing.points} points.`;
-  const podiumLine =
-    seasonPodiums > 0
-      ? `The current campaign already includes ${seasonPodiums} podium ${seasonPodiums === 1 ? "finish" : "finishes"} and ${standing.wins} win${standing.wins === "1" ? "" : "s"}.`
-      : `The current campaign is still building, with ${standing.wins} win${standing.wins === "1" ? "" : "s"} so far.`;
+      : `${name} drives for ${teamName} and sits P${standing.position} in the ${effectiveSeason} championship on ${standing.points} points.`;
+  const podiumLine = `The ${effectiveSeason} campaign includes ${seasonPodiums} podium ${seasonPodiums === 1 ? "finish" : "finishes"} and ${standing.wins} win${standing.wins === "1" ? "" : "s"}.`;
   const legacyLine =
     championships > 0
-      ? `Career totals stand at ${careerWins} wins, ${careerPoles} poles, ${careerPodiums} podiums and ${championships} world championship${championships === 1 ? "" : "s"}.`
-      : `Career totals stand at ${careerWins} wins, ${careerPoles} poles and ${careerPodiums} podiums.`;
+      ? `Career record: ${careerWins} wins, ${careerPoles} poles, ${careerPodiums} ${careerPodiums === 1 ? "podium" : "podiums"}, ${championships} world championship${championships === 1 ? "" : "s"}.`
+      : `Career record: ${careerWins} wins, ${careerPoles} poles, ${careerPodiums} ${careerPodiums === 1 ? "podium" : "podiums"}.`;
 
-  return `${seasonLine} ${name} is a ${age}-year-old ${standing.driver.nationality} driver. ${podiumLine} ${legacyLine}`;
+  return `${seasonLine} ${podiumLine} ${legacyLine}`;
 }
 
 async function buildSeasonSnapshot(
@@ -674,8 +670,8 @@ async function buildHeadToHead(
       delta: driverPoints - teammatePoints
     },
     averageFinish: {
-      driver: driverAverage !== null ? driverAverage.toFixed(2) : "—",
-      teammate: teammateAverage !== null ? teammateAverage.toFixed(2) : "—",
+      driver: driverAverage !== null ? driverAverage.toFixed(1) : "—",
+      teammate: teammateAverage !== null ? teammateAverage.toFixed(1) : "—",
       delta: averageDelta
     },
     bestFinish: {
@@ -823,7 +819,6 @@ export async function getDriverProfile(driverId: string, season: string = F1_SEA
     bio: buildBio(
       standing,
       teamName,
-      age,
       effectiveSeason,
       winsMeta.wins,
       poles,

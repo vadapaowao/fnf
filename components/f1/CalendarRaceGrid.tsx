@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import FollowToggleButton from "@/components/f1/FollowToggleButton";
 import type { Race } from "@/lib/f1";
 
 type CalendarRaceGridProps = {
@@ -136,7 +137,7 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
               </div>
             </button>
 
-            <div className="border-t border-white/5 px-6 py-3">
+            <div className="flex items-center justify-between gap-3 border-t border-white/5 px-6 py-3">
               <Link
                 href={`/f1/race/${race.round}`}
                 className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-grid-primary hover:text-white"
@@ -144,6 +145,18 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
                 Open Race
                 <span className="material-icons text-sm">arrow_forward</span>
               </Link>
+              <FollowToggleButton
+                type="race"
+                id={`${race.season}-${race.round}`}
+                label={race.raceName}
+                subtitle={`${race.circuitName} | ${race.locality}, ${race.country}`}
+                href={`/f1/race/${race.round}`}
+                season={race.season}
+                compact
+                followCopy="Follow Race"
+                followingCopy="Saved"
+                className="rounded-full"
+              />
             </div>
           </article>
         );

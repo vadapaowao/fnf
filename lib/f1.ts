@@ -294,6 +294,16 @@ type ErgastRaceResultsResponse = {
   };
 };
 
+type ErgastQualifyingResultsResponse = {
+  MRData?: {
+    RaceTable?: {
+      Races?: Array<{
+        QualifyingResults?: ErgastRaceResultEntry[];
+      }>;
+    };
+  };
+};
+
 type ErgastPitStopResponse = {
   MRData?: {
     RaceTable?: {
@@ -346,8 +356,44 @@ type OfficialResultsRoute = {
 
 const OFFICIAL_RESULTS_BASE = "https://www.formula1.com";
 const SPRINT_WEEKEND_CIRCUITS_2026 = new Set(["shanghai", "miami", "villeneuve", "silverstone", "zandvoort", "marina_bay"]);
-const officialResultsRoutesCache = new Map<string, Promise<OfficialResultsRoute[]>>();
-const sessionResultCache = new Map<string, Promise<Pick<RaceSession, "resultLabel" | "resultValue" | "officialUrl"> | null>>();
+const SESSION_RESULTS_REVALIDATE_SECONDS = 60;
+const OFFICIAL_ROUTES_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const SESSION_RESULTS_CACHE_TTL_MS = 60 * 1000;
+const officialResultsRoutesCache = new Map<string, { createdAt: number; promise: Promise<OfficialResultsRoute[]> }>();
+const sessionResultCache = new Map<
+  string,
+  {
+    createdAt: number;
+    promise: Promise<Pick<RaceSession, "resultLabel" | "resultValue" | "officialUrl"> | null>;
+  }
+>();
+
+const OFFICIAL_RESULTS_SLUG_OVERRIDES: Record<string, string[]> = {
+  albert_park: ["australia"],
+  shanghai: ["china"],
+  suzuka: ["japan"],
+  bahrain: ["bahrain"],
+  jeddah: ["saudi-arabia"],
+  miami: ["miami"],
+  imola: ["emilia-romagna", "imola"],
+  villeneuve: ["canada", "montreal"],
+  monaco: ["monaco"],
+  catalunya: ["spain", "barcelona-catalunya", "barcelona"],
+  red_bull_ring: ["austria", "spielberg"],
+  silverstone: ["great-britain", "britain", "silverstone"],
+  spa: ["belgium", "spa"],
+  hungaroring: ["hungary", "budapest"],
+  zandvoort: ["netherlands", "zandvoort"],
+  monza: ["italy", "monza"],
+  baku: ["azerbaijan", "baku"],
+  marina_bay: ["singapore"],
+  americas: ["united-states", "usa", "austin"],
+  rodriguez: ["mexico", "mexico-city"],
+  interlagos: ["sao-paulo", "brazil", "interlagos"],
+  las_vegas: ["las-vegas"],
+  losail: ["qatar", "lusail"],
+  yas_marina: ["abu-dhabi", "yas-marina"],
+};
 
 // Temporary fallback: only used for missing rounds when the 2026 endpoint is partial/unavailable.
 const TEMP_FALLBACK_2026_CALENDAR: Race[] = [
@@ -644,6 +690,33 @@ const CIRCUIT_STATIC: Record<string, CircuitStatic> = {
   yas_marina: { lengthKm: "5.281", turns: "16", drsZones: 2, firstGrandPrix: "2009", trackSvgFile: "yas_marina.svg" }
 };
 
+const CIRCUIT_TIMEZONES: Record<string, string> = {
+  albert_park: "Australia/Melbourne",
+  jeddah: "Asia/Riyadh",
+  bahrain: "Asia/Bahrain",
+  suzuka: "Asia/Tokyo",
+  shanghai: "Asia/Shanghai",
+  miami: "America/New_York",
+  imola: "Europe/Rome",
+  monaco: "Europe/Monaco",
+  catalunya: "Europe/Madrid",
+  villeneuve: "America/Toronto",
+  red_bull_ring: "Europe/Vienna",
+  silverstone: "Europe/London",
+  spa: "Europe/Brussels",
+  hungaroring: "Europe/Budapest",
+  zandvoort: "Europe/Amsterdam",
+  monza: "Europe/Rome",
+  baku: "Asia/Baku",
+  marina_bay: "Asia/Singapore",
+  americas: "America/Chicago",
+  rodriguez: "America/Mexico_City",
+  interlagos: "America/Sao_Paulo",
+  las_vegas: "America/Los_Angeles",
+  losail: "Asia/Qatar",
+  yas_marina: "Asia/Dubai"
+};
+
 const DEFAULT_SECTORS: TrackSector[] = [
   {
     id: "S1",
@@ -889,10 +962,10 @@ function mergeWithFallbackRaces(apiRaces: Race[]): Race[] {
   return sortByRound(Array.from(byRound.values()));
 }
 
-async function fetchJson<T>(url: string): Promise<T | null> {
+async function fetchJson<T>(url: string, revalidateSeconds: number = REVALIDATE_SECONDS): Promise<T | null> {
   try {
     const response = await fetch(url, {
-      next: { revalidate: REVALIDATE_SECONDS }
+      next: { revalidate: revalidateSeconds }
     });
 
     if (!response.ok) {
@@ -905,10 +978,10 @@ async function fetchJson<T>(url: string): Promise<T | null> {
   }
 }
 
-async function fetchText(url: string): Promise<string | null> {
+async function fetchText(url: string, revalidateSeconds: number = REVALIDATE_SECONDS): Promise<string | null> {
   try {
     const response = await fetch(url, {
-      next: { revalidate: REVALIDATE_SECONDS },
+      next: { revalidate: revalidateSeconds },
       headers: {
         "User-Agent": "SportsCore/1.0"
       }
@@ -1063,6 +1136,10 @@ function resolveTrackSvgPath(circuitId: string): string | null {
   return file ? `/tracks/${file}` : null;
 }
 
+export function getTrackSvgPathByCircuitId(circuitId: string): string | null {
+  return resolveTrackSvgPath(circuitId);
+}
+
 function resolveCircuitStatic(circuitId: string) {
   const staticData = CIRCUIT_STATIC[circuitId];
 
@@ -1197,6 +1274,10 @@ export function getRaceDateTimeIso(race: Pick<Race, "date" | "time">): string {
   return `${race.date}T${race.time}`;
 }
 
+export function getCircuitTimeZone(circuitId: string): string {
+  return CIRCUIT_TIMEZONES[circuitId] ?? "UTC";
+}
+
 export function formatRaceDateTime(date: string, time: string): string {
   const eventDate = new Date(getRaceDateTimeIso({ date, time }));
 
@@ -1286,25 +1367,90 @@ function stripHtmlToText(html: string) {
     .trim();
 }
 
+function normalizeOfficialSlugPart(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/['’]/g, "")
+    .replace(/\b(formula\s*1|grand\s*prix|gp)\b/g, " ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getOfficialRouteSlugCandidates(
+  race: Pick<Race, "raceName" | "country" | "locality" | "circuitId" | "apiCircuitId">
+) {
+  const candidates = new Set<string>();
+
+  const push = (value?: string | null) => {
+    const normalized = normalizeOfficialSlugPart(value);
+    if (normalized) {
+      candidates.add(normalized);
+    }
+  };
+
+  push(race.raceName);
+  push(race.country);
+  push(race.locality);
+  push(race.circuitId);
+  push(race.apiCircuitId);
+
+  for (const key of [race.apiCircuitId, race.circuitId]) {
+    if (!key) {
+      continue;
+    }
+
+    for (const override of OFFICIAL_RESULTS_SLUG_OVERRIDES[key] ?? []) {
+      push(override);
+    }
+  }
+
+  if (candidates.has("united-kingdom")) {
+    candidates.add("great-britain");
+    candidates.add("britain");
+  }
+
+  if (candidates.has("united-states")) {
+    candidates.add("usa");
+  }
+
+  if (candidates.has("united-arab-emirates")) {
+    candidates.add("abu-dhabi");
+  }
+
+  return candidates;
+}
+
 function extractSessionWinnerName(html: string) {
-  const text = stripHtmlToText(html);
+  const text = stripHtmlToText(html).replace(/[\u00A0\u202F\u2007]/g, " ");
 
   if (text.includes("No results are currently available")) {
     return null;
   }
 
-  const match = text.match(/\b1\s+\d+\s+([A-Z][A-Za-z'’.\-]+(?:\s+[A-Z][A-Za-z'’.\-]+)+)\s+[A-Z]{3}\b/);
-  return match?.[1]?.trim() ?? null;
+  const numberedMatch = text.match(/\b1\s+\d+\s+([A-Z][A-Za-z'’.\-]+(?:\s+[A-Z][A-Za-z'’.\-]+)+)\s+[A-Z]{3}\b/);
+  if (numberedMatch?.[1]) {
+    return numberedMatch[1].trim();
+  }
+
+  const directMatch = text.match(/\b1\s+([A-Z][A-Za-z'’.\-]+(?:\s+[A-Z][A-Za-z'’.\-]+)+)\s+[A-Z]{3}\b/);
+  return directMatch?.[1]?.trim() ?? null;
 }
 
 async function fetchOfficialResultsRoutes(season: string): Promise<OfficialResultsRoute[]> {
   const cached = officialResultsRoutesCache.get(season);
-  if (cached) {
-    return cached;
+  if (cached && Date.now() - cached.createdAt < OFFICIAL_ROUTES_CACHE_TTL_MS) {
+    return cached.promise;
   }
 
   const request = (async () => {
-  const html = await fetchText(`${OFFICIAL_RESULTS_BASE}/en/results/${season}/races`);
+  const html = await fetchText(`${OFFICIAL_RESULTS_BASE}/en/results/${season}/races`, SESSION_RESULTS_REVALIDATE_SECONDS);
 
   if (!html) {
     return [];
@@ -1334,21 +1480,54 @@ async function fetchOfficialResultsRoutes(season: string): Promise<OfficialResul
     return routes;
   })();
 
-  officialResultsRoutesCache.set(season, request);
+  officialResultsRoutesCache.set(season, {
+    createdAt: Date.now(),
+    promise: request
+  });
   return request;
 }
 
-async function getOfficialResultsRouteForRace(race: Pick<Race, "season" | "round">): Promise<OfficialResultsRoute | null> {
+async function getOfficialResultsRouteForRace(
+  race: Pick<Race, "season" | "round" | "raceName" | "country" | "locality" | "circuitId" | "apiCircuitId">
+): Promise<OfficialResultsRoute | null> {
   const routes = await fetchOfficialResultsRoutes(race.season);
+  const candidates = getOfficialRouteSlugCandidates(race);
+
+  const exactRoute = routes.find((route) => candidates.has(route.slug));
+  if (exactRoute) {
+    return exactRoute;
+  }
+
+  const fuzzyRoute = routes.find((route) =>
+    Array.from(candidates).some((candidate) => route.slug.includes(candidate) || candidate.includes(route.slug))
+  );
+  if (fuzzyRoute) {
+    return fuzzyRoute;
+  }
+
   const index = Math.max(Number(race.round) - 1, 0);
 
   return routes[index] ?? null;
 }
 
 async function fetchRaceWinnerFromApi(race: Pick<Race, "season" | "round">): Promise<string | null> {
-  const data = await fetchJson<ErgastRaceResultsResponse>(`${ERGAST_BASE_URL}/${race.season}/${race.round}/results/1.json`);
+  const data = await fetchJson<ErgastRaceResultsResponse>(
+    `${ERGAST_BASE_URL}/${race.season}/${race.round}/results/1.json`,
+    SESSION_RESULTS_REVALIDATE_SECONDS
+  );
   const winner = data?.MRData?.RaceTable?.Races?.[0]?.Results?.[0];
   const driverName = formatResultDriverName(winner);
+
+  return driverName === UNAVAILABLE ? null : driverName;
+}
+
+async function fetchQualifyingWinnerFromApi(race: Pick<Race, "season" | "round">): Promise<string | null> {
+  const data = await fetchJson<ErgastQualifyingResultsResponse>(
+    `${ERGAST_BASE_URL}/${race.season}/${race.round}/qualifying.json`,
+    SESSION_RESULTS_REVALIDATE_SECONDS
+  );
+  const poleSitter = data?.MRData?.RaceTable?.Races?.[0]?.QualifyingResults?.[0];
+  const driverName = formatResultDriverName(poleSitter);
 
   return driverName === UNAVAILABLE ? null : driverName;
 }
@@ -1360,13 +1539,13 @@ async function fetchCircuitWinnerFallback(race: Pick<Race, "circuitId" | "apiCir
 }
 
 async function fetchSessionResultValue(
-  race: Pick<Race, "season" | "round" | "circuitId" | "apiCircuitId">,
+  race: Pick<Race, "season" | "round" | "raceName" | "country" | "locality" | "circuitId" | "apiCircuitId">,
   session: RaceSession
 ): Promise<Pick<RaceSession, "resultLabel" | "resultValue" | "officialUrl"> | null> {
   const cacheKey = `${race.season}:${race.round}:${session.code}`;
   const cached = sessionResultCache.get(cacheKey);
-  if (cached) {
-    return cached;
+  if (cached && Date.now() - cached.createdAt < SESSION_RESULTS_CACHE_TTL_MS) {
+    return cached.promise;
   }
 
   const request = (async () => {
@@ -1398,7 +1577,7 @@ async function fetchSessionResultValue(
 
   const sessionSlug = getOfficialSessionSlug(session.code);
   const officialUrl = `${OFFICIAL_RESULTS_BASE}/en/results/${race.season}/races/${route.raceId}/${route.slug}/${sessionSlug}`;
-  const html = await fetchText(officialUrl);
+  const html = await fetchText(officialUrl, SESSION_RESULTS_REVALIDATE_SECONDS);
 
   if (html) {
     const winnerName = extractSessionWinnerName(html);
@@ -1407,6 +1586,17 @@ async function fetchSessionResultValue(
       return {
         resultLabel: getCompletedSessionResultLabel(session.code),
         resultValue: winnerName,
+        officialUrl
+      };
+    }
+  }
+
+  if (session.code === "QUALI") {
+    const qualifyingWinner = await fetchQualifyingWinnerFromApi(race);
+    if (qualifyingWinner) {
+      return {
+        resultLabel: getCompletedSessionResultLabel(session.code),
+        resultValue: qualifyingWinner,
         officialUrl
       };
     }
@@ -1439,7 +1629,10 @@ async function fetchSessionResultValue(
     };
   })();
 
-  sessionResultCache.set(cacheKey, request);
+  sessionResultCache.set(cacheKey, {
+    createdAt: Date.now(),
+    promise: request
+  });
   return request;
 }
 
@@ -1470,7 +1663,7 @@ export function getRaceWeekendSessions(race: Pick<Race, "date" | "time" | "seaso
 }
 
 export async function getRaceWeekendSessionsWithResults(
-  race: Pick<Race, "date" | "time" | "season" | "circuitId" | "round" | "apiCircuitId">
+  race: Pick<Race, "date" | "time" | "season" | "round" | "raceName" | "country" | "locality" | "circuitId" | "apiCircuitId">
 ): Promise<RaceSession[]> {
   const sessions = getRaceWeekendSessions(race);
   const nowMs = Date.now();

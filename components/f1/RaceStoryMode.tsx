@@ -2,12 +2,11 @@
 
 import { useMemo, useState } from "react";
 
-import type { Race, RaceRecap } from "@/lib/f1";
+import type { RaceRecap } from "@/lib/f1";
 import type { ProductRaceState, TrackDnaProfile } from "@/lib/f1-product";
 import { cn } from "@/lib/utils";
 
 type RaceStoryModeProps = {
-  race: Race;
   recap?: RaceRecap | null;
   dna: TrackDnaProfile;
   state: ProductRaceState;
@@ -33,7 +32,7 @@ function getStateLabel(state: ProductRaceState) {
   return "Complete";
 }
 
-export default function RaceStoryMode({ race, recap, dna, state }: RaceStoryModeProps) {
+export default function RaceStoryMode({ recap, dna, state }: RaceStoryModeProps) {
   const chapters = useMemo<StoryChapter[]>(() => {
     const launch = recap?.keyMoments[0];
     const middle = recap?.keyMoments[1];
@@ -72,14 +71,14 @@ export default function RaceStoryMode({ race, recap, dna, state }: RaceStoryMode
       <summary className="flex cursor-pointer list-none items-start justify-between gap-4 p-5 marker:content-none">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Race Story Mode</p>
+            <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Race Story</p>
             <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-300">
               {getStateLabel(state)}
             </span>
           </div>
-          <h2 className="mt-2 font-display text-2xl font-bold text-white">Show Race Story</h2>
+          <h2 className="mt-2 font-display text-2xl font-bold text-white">Open the story</h2>
           <p className="mt-2 text-sm leading-relaxed text-gray-400">
-            A compact three-phase read of how {race.raceName} is expected to unfold, or how it actually decided itself once finished.
+            Three beats: the start, the swing, and the finish.
           </p>
         </div>
 
@@ -142,4 +141,3 @@ export default function RaceStoryMode({ race, recap, dna, state }: RaceStoryMode
     </details>
   );
 }
-

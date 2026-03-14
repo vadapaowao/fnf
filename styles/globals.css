@@ -57,6 +57,25 @@
     filter: drop-shadow(0 0 8px rgba(249, 31, 31, 0.6));
   }
 
+  .hero-track-drift {
+    animation: hero-track-drift 18s linear infinite;
+    will-change: transform;
+  }
+
+  .hero-track-outline {
+    stroke-dasharray: 28 14;
+    animation: hero-track-outline 11s linear infinite;
+  }
+
+  .hero-scan {
+    animation: hero-scan 7.5s ease-in-out infinite;
+    will-change: transform, opacity;
+  }
+
+  .hero-card-reveal {
+    animation: hero-card-reveal 850ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
   /* Text Outline */
   .text-outline {
     -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
@@ -137,5 +156,62 @@
   55% {
     transform: scale(0.95);
     opacity: 0.85;
+  }
+}
+
+@keyframes hero-track-drift {
+  0% {
+    transform: translate3d(-1.5%, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(1.5%, 1%, 0) scale(1.03);
+  }
+
+  100% {
+    transform: translate3d(-1.5%, 0, 0) scale(1);
+  }
+}
+
+@keyframes hero-track-outline {
+  from {
+    stroke-dashoffset: 0;
+  }
+
+  to {
+    stroke-dashoffset: -84;
+  }
+}
+
+@keyframes hero-scan {
+  0%,
+  100% {
+    transform: translateY(-28%);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.08;
+  }
+
+  50% {
+    transform: translateY(48vh);
+    opacity: 0.2;
+  }
+
+  80% {
+    opacity: 0.06;
+  }
+}
+
+@keyframes hero-card-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

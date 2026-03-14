@@ -16,7 +16,7 @@ export default function HomeHero() {
           transition={{ duration: 0.35, ease: "easeOut" }}
           className="text-sm font-semibold uppercase tracking-[0.2em] text-primary"
         >
-          Sports Core
+          The Grid
         </motion.p>
 
         <motion.h1
@@ -25,7 +25,7 @@ export default function HomeHero() {
           transition={{ duration: 0.45, ease: "easeOut", delay: 0.05 }}
           className="text-4xl font-semibold tracking-tight text-foreground md:text-6xl"
         >
-          Live Sports. Zero Noise.
+          Formula 1. No filler.
         </motion.h1>
 
         <motion.p
@@ -34,7 +34,7 @@ export default function HomeHero() {
           transition={{ duration: 0.4, ease: "easeOut", delay: 0.12 }}
           className="max-w-2xl text-base text-muted-foreground md:text-lg"
         >
-          Race weekends, football fixtures, and standings in one fast, focused dashboard built for core fans.
+          Race weekends, standings, drivers, and circuits in one fast F1 read.
         </motion.p>
 
         <motion.div
@@ -44,10 +44,10 @@ export default function HomeHero() {
           className="flex flex-wrap items-center gap-3"
         >
           <Link href="/f1" className={buttonVariants({ size: "lg" })}>
-            Explore F1 Calendar
+            Open F1
           </Link>
-          <Link href="/football" className={buttonVariants({ variant: "secondary", size: "lg" })}>
-            Open Football Hub
+          <Link href="/f1/standings" className={buttonVariants({ variant: "secondary", size: "lg" })}>
+            Check Standings
           </Link>
         </motion.div>
       </div>

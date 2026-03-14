@@ -49,9 +49,9 @@ export default function SeasonToggle({
                   isActive ? "bg-grid-primary text-white" : "text-gray-300 hover:bg-white/5 hover:text-white"
                 )}
               >
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em]">{option.label}</p>
+                <p className="break-words text-[10px] font-bold uppercase tracking-[0.16em] leading-tight">{option.label}</p>
                 {option.hint ? (
-                  <p className={cn("mt-1 text-[11px]", isActive ? "text-white/80" : "text-gray-500")}>{option.hint}</p>
+                  <p className={cn("mt-1 break-words text-[11px] leading-snug", isActive ? "text-white/80" : "text-gray-500")}>{option.hint}</p>
                 ) : null}
               </button>
             );

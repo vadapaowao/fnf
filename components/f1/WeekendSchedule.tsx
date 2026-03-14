@@ -1,4 +1,5 @@
 import { getRaceSessionDurationMs, type RaceSession } from "@/lib/f1";
+import LocalDateTimeText from "@/components/f1/LocalDateTimeText";
 
 interface WeekendScheduleProps {
     sessions: RaceSession[];
@@ -40,11 +41,14 @@ export default function WeekendSchedule({ sessions }: WeekendScheduleProps) {
                                     </p>
                                     {sessionDate && (
                                         <p className="text-[10px] text-gray-500">
-                                            {sessionDate.toLocaleDateString("en-US", {
-                                                weekday: "short",
-                                                month: "short",
-                                                day: "numeric",
-                                            })}
+                                            <LocalDateTimeText
+                                                iso={session.startsAt}
+                                                options={{
+                                                    weekday: "short",
+                                                    month: "short",
+                                                    day: "numeric"
+                                                }}
+                                            />
                                         </p>
                                     )}
                                 </div>
@@ -59,13 +63,17 @@ export default function WeekendSchedule({ sessions }: WeekendScheduleProps) {
                                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-grid-primary">Live now</p>
                                 ) : (
                                     <span className="text-xs font-mono text-gray-400">
-                                        {sessionDate
-                                            ? sessionDate.toLocaleTimeString("en-US", {
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                                hour12: false,
-                                            })
-                                            : "TBD"}
+                                        {sessionDate ? (
+                                            <LocalDateTimeText
+                                                iso={session.startsAt}
+                                                options={{
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                    hour12: false,
+                                                    timeZoneName: "short"
+                                                }}
+                                            />
+                                        ) : "TBD"}
                                     </span>
                                 )}
                             </div>

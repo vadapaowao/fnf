@@ -83,7 +83,7 @@ export default function DriverCard({ driver, teamId, teamName, standing }: Drive
                         </span>
                     </div>
                     <span className="rounded px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ backgroundColor: `${accentColor}22`, color: accentColor }}>
-                        {standing ? "2026 live" : "Driver file"}
+                        {standing ? "2026 season" : "Profile"}
                     </span>
                 </div>
 
@@ -108,7 +108,7 @@ export default function DriverCard({ driver, teamId, teamName, standing }: Drive
                 </div>
 
                 <div className="mt-6 rounded-lg border border-white/5 bg-black/20 p-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Profile Markers</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">At a Glance</p>
                     <div className="flex items-center justify-between gap-4">
                         <div>
                             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">
@@ -140,7 +140,7 @@ export default function DriverCard({ driver, teamId, teamName, standing }: Drive
 
                 <div className="mt-4 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">
                     <span>{resolvedTeamName}</span>
-                    <span className="text-grid-primary transition-colors group-hover:text-white">Open Driver</span>
+                    <span className="text-grid-primary transition-colors group-hover:text-white">Open Profile</span>
                 </div>
             </div>
         </Link>

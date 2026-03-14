@@ -47,7 +47,7 @@ export default function StandingsAccordion({
         </div>
 
         <div className="flex shrink-0 items-center gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-3">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-400">Open full standings</span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-400">Full table</span>
           <span className="material-icons text-base text-grid-primary transition-transform duration-200 group-open/standings:rotate-180">
             expand_more
           </span>
