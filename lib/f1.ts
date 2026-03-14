@@ -1,4 +1,4 @@
-import { getOpenF1CompletedRaceStats, getOpenF1RaceRecap, getOpenF1RaceReplay, getOpenF1SessionResultSummary } from "@/lib/openf1";
+import { getOpenF1RaceRecap, getOpenF1RaceReplay, getOpenF1SessionResultSummary } from "@/lib/openf1";
 import { getFastF1RaceBundle } from "@/lib/fastf1-data";
 
 export const F1_SEASON = "2026";
@@ -1243,19 +1243,12 @@ export async function getRaceDetailByRound(round: string): Promise<RaceDetail | 
     return null;
   }
 
-  const [historicalWinner, historicalFastestLap, openF1RaceStats] = await Promise.all([
+  const [historicalWinner, historicalFastestLap] = await Promise.all([
     fetchMostRecentWinner(race.apiCircuitId ?? race.circuitId),
-    fetchFastestLap(race.apiCircuitId ?? race.circuitId),
-    isUpcomingRace(race) ? Promise.resolve(null) : getOpenF1CompletedRaceStats(race)
+    fetchFastestLap(race.apiCircuitId ?? race.circuitId)
   ]);
 
   const circuitStatic = resolveCircuitStatic(race.circuitId);
-  const lastWinner =
-    openF1RaceStats?.winner.driver && openF1RaceStats.winner.driver !== UNAVAILABLE ? openF1RaceStats.winner : historicalWinner;
-  const fastestLap =
-    openF1RaceStats?.fastestLap.driver && openF1RaceStats.fastestLap.driver !== UNAVAILABLE
-      ? openF1RaceStats.fastestLap
-      : historicalFastestLap;
 
   return {
     race,
@@ -1272,8 +1265,8 @@ export async function getRaceDetailByRound(round: string): Promise<RaceDetail | 
       sectors: circuitStatic.sectors
     },
     stats: {
-      lastWinner,
-      fastestLap
+      lastWinner: historicalWinner,
+      fastestLap: historicalFastestLap
     }
   };
 }
