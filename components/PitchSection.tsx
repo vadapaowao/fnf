@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { footballFixtures } from "@/lib/football";
 
 export default function PitchSection() {
@@ -20,12 +22,12 @@ export default function PitchSection() {
                             Track your squad with real-time stats, transfer news, and match highlights.
                             Customized for the die-hard supporter.
                         </p>
-                        <button className="flex items-center gap-3 text-white font-bold uppercase tracking-widest hover:text-accent-green transition-colors group font-display">
+                        <Link href="/football" className="flex items-center gap-3 text-white font-bold uppercase tracking-widest hover:text-accent-green transition-colors group font-display">
                             <span className="border-b border-accent-green pb-1">View All Fixtures</span>
                             <span className="material-icons text-accent-green text-sm group-hover:translate-x-1 transition-transform">
                                 arrow_forward
                             </span>
-                        </button>
+                        </Link>
                     </div>
                     <div className="lg:col-span-7 relative">
                         <div className="glass-card rounded-3xl p-8 relative z-10 transform hover:-translate-y-2 transition-transform duration-500 shadow-2xl shadow-black/80 border-t border-accent-green/20">

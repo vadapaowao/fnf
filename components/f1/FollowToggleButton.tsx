@@ -13,6 +13,8 @@ type FollowToggleButtonProps = {
   season?: string;
   className?: string;
   compact?: boolean;
+  followCopy?: string;
+  followingCopy?: string;
 };
 
 export default function FollowToggleButton({
@@ -24,7 +26,9 @@ export default function FollowToggleButton({
   accentColor = "#E10600",
   season,
   className,
-  compact = false
+  compact = false,
+  followCopy = "Follow",
+  followingCopy = "Following"
 }: FollowToggleButtonProps) {
   const { hasLoaded, isFollowed, toggle } = useFollowedEntities();
   const followed = hasLoaded ? isFollowed(type, id) : false;
@@ -60,8 +64,7 @@ export default function FollowToggleButton({
       >
         {followed ? "done" : "add"}
       </span>
-      {followed ? "Following" : "Follow"}
+      {followed ? followingCopy : followCopy}
     </button>
   );
 }
-
