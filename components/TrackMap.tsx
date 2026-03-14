@@ -544,14 +544,8 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
             detail: moment.detail,
             checkpointMs: moment.checkpointMs
           }))
-        : recap?.keyMoments && recap.keyMoments.length > 0
-        ? recap.keyMoments.map((moment, index) => ({
-            id: `${moment.title}-${index}`,
-            title: moment.title,
-            detail: moment.detail,
-            checkpointMs: moment.checkpointMs
-          }))
-        : [
+        : !recap
+        ? [
             {
               id: "s1-preview",
               title: "Sector 1 Launch",
@@ -567,7 +561,13 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
               title: "Sector 3 Finish",
               detail: "Braking and traction execution into the final sprint."
             }
-          ];
+          ]
+        : [];
+
+    if (baseMoments.length === 0) {
+      return [];
+    }
+
     const duration = replay?.totalRaceMs && replay.totalRaceMs > 0 ? replay.totalRaceMs : 180000;
 
     const distributedMoments = baseMoments.map((moment, index) => ({

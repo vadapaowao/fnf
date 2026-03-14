@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "fastf1:build": "python3 scripts/build_fastf1_race_data.py",
+    "fastf1:build:completed": "python3 scripts/build_fastf1_race_data.py --completed"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

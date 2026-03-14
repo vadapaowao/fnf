@@ -572,7 +572,7 @@ export async function getOpenF1RaceReplay(race: Race): Promise<RaceReplayData | 
     fetchOpenF1Json<OpenF1Pit[]>("pit", { session_key: session.session_key })
   ]);
 
-  if (!results || results.length === 0) {
+  if (!results || results.length === 0 || !laps || laps.length === 0) {
     return null;
   }
 
@@ -593,13 +593,20 @@ export async function getOpenF1RaceReplay(race: Race): Promise<RaceReplayData | 
   const winner = orderedResults[0] ?? null;
   const winnerLaps = winner ? lapsByDriver.get(winner.driver_number) ?? [] : [];
   const winnerKnownDurations = getKnownLapDurations(winnerLaps);
+  const allKnownDurations = getKnownLapDurations(laps);
+  const globalFallbackMs = allKnownDurations.length > 0
+    ? Math.round((allKnownDurations.reduce((sum, value) => sum + value, 0) / allKnownDurations.length) * 1000)
+    : 90000;
   const winnerFallbackMs = winnerKnownDurations.length > 0
     ? Math.round((winnerKnownDurations.reduce((sum, value) => sum + value, 0) / winnerKnownDurations.length) * 1000)
-    : 90000;
+    : globalFallbackMs;
 
   const traces = orderedResults.map((entry) => {
     const driver = driversByNumber.get(entry.driver_number);
     const driverLaps = [...(lapsByDriver.get(entry.driver_number) ?? [])].sort((left, right) => left.lap_number - right.lap_number);
+    if (driverLaps.length === 0) {
+      return null;
+    }
     const cumulativeMs: number[] = [];
     const totalLaps = Math.max(entry.number_of_laps, driverLaps[driverLaps.length - 1]?.lap_number ?? 0);
     const fallbackMs = winnerFallbackMs + (entry.position - 1) * 300;
@@ -618,39 +625,12 @@ export async function getOpenF1RaceReplay(race: Race): Promise<RaceReplayData | 
       finishPosition: entry.position,
       cumulativeMs
     };
-  }).filter((trace) => trace.cumulativeMs.length > 0);
-
-  // If OpenF1 has no lap data yet (e.g. recently completed 2026 races not fully indexed),
-  // build estimated traces from result positions so the track replay always animates
-  // rather than showing a blank "not complete enough yet" placeholder.
-  const hasLapData = traces.some((trace) => trace.cumulativeMs.length > 0 && winnerFallbackMs < 200000);
-  const estimatedTraces = hasLapData
-    ? traces
-    : orderedResults.map((entry) => {
-        const driver = driversByNumber.get(entry.driver_number);
-        // Use typical F1 race: ~58 laps at 90s average. Adjust pace by position.
-        const totalEstimatedLaps = Math.max(entry.number_of_laps, 50);
-        const baseLapMs = 90000;
-        const paceBias = 1 + (entry.position - 1) * 0.003;  // ~0.3% slower per position
-        const lapMs = Math.round(baseLapMs * paceBias);
-        const cumulativeMs: number[] = [];
-        for (let i = 0; i < totalEstimatedLaps; i++) {
-          cumulativeMs.push((cumulativeMs[cumulativeMs.length - 1] ?? 0) + lapMs);
-        }
-        return {
-          driverId: String(entry.driver_number),
-          code: driver?.name_acronym ?? String(entry.driver_number),
-          name: formatDriverName(driver, entry.driver_number),
-          constructor: driver?.team_name ?? UNAVAILABLE,
-          finishPosition: entry.position,
-          cumulativeMs
-        };
-      });
+  }).filter((trace): trace is NonNullable<typeof trace> => trace !== null && trace.cumulativeMs.length > 0);
 
   const totalLaps = orderedResults.reduce((best, entry) => Math.max(best, entry.number_of_laps), 0);
-  const totalRaceMs = estimatedTraces[0]?.cumulativeMs[totalLaps - 1] ?? estimatedTraces[0]?.cumulativeMs[estimatedTraces[0].cumulativeMs.length - 1] ?? 0;
+  const totalRaceMs = traces[0]?.cumulativeMs[totalLaps - 1] ?? traces[0]?.cumulativeMs[traces[0].cumulativeMs.length - 1] ?? 0;
 
-  if (!estimatedTraces.length || totalRaceMs <= 0) {
+  if (!traces.length || totalRaceMs <= 0) {
     return null;
   }
 
@@ -669,7 +649,7 @@ export async function getOpenF1RaceReplay(race: Race): Promise<RaceReplayData | 
   });
 
   const busiestPitLap = Array.from(pitLapCounts.entries()).sort((left, right) => right[1] - left[1])[0] ?? null;
-  const winnerTrace = winner ? estimatedTraces.find((trace) => trace.driverId === String(winner.driver_number)) ?? estimatedTraces[0] : estimatedTraces[0];
+  const winnerTrace = winner ? traces.find((trace) => trace.driverId === String(winner.driver_number)) ?? traces[0] : traces[0];
   const highlights = [
     {
       id: "lights-out",
@@ -698,7 +678,7 @@ export async function getOpenF1RaceReplay(race: Race): Promise<RaceReplayData | 
   return {
     totalLaps,
     totalRaceMs,
-    traces: estimatedTraces,
+    traces,
     winnerDriverId: winner ? String(winner.driver_number) : null,
     highlights
   };

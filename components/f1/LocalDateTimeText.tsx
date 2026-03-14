@@ -14,24 +14,33 @@ export default function LocalDateTimeText({
   options
 }: LocalDateTimeTextProps) {
   const [mounted, setMounted] = useState(false);
+  const [clientTimeZone, setClientTimeZone] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    try {
+      setClientTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+    } catch {
+      setClientTimeZone("UTC");
+    }
   }, []);
 
   const formatted = useMemo(() => {
     const parsed = new Date(iso);
 
-    if (Number.isNaN(parsed.getTime())) {
+    if (Number.isNaN(parsed.getTime()) || !clientTimeZone) {
       return fallback;
     }
 
     try {
-      return parsed.toLocaleString(undefined, options);
+      return parsed.toLocaleString(undefined, {
+        ...options,
+        timeZone: options?.timeZone ?? clientTimeZone
+      });
     } catch {
       return fallback;
     }
-  }, [fallback, iso, options]);
+  }, [clientTimeZone, fallback, iso, options]);
 
-  return <>{mounted ? formatted : fallback}</>;
+  return <span suppressHydrationWarning>{mounted ? formatted : fallback}</span>;
 }

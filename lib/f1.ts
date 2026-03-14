@@ -1,4 +1,5 @@
 import { getOpenF1CompletedRaceStats, getOpenF1RaceRecap, getOpenF1RaceReplay, getOpenF1SessionResultSummary } from "@/lib/openf1";
+import { getFastF1RaceBundle } from "@/lib/fastf1-data";
 
 export const F1_SEASON = "2026";
 const REVALIDATE_SECONDS = 3600;
@@ -305,16 +306,6 @@ type ErgastRaceResultsResponse = {
   };
 };
 
-type ErgastQualifyingResultsResponse = {
-  MRData?: {
-    RaceTable?: {
-      Races?: Array<{
-        QualifyingResults?: ErgastRaceResultEntry[];
-      }>;
-    };
-  };
-};
-
 type ErgastPitStopResponse = {
   MRData?: {
     RaceTable?: {
@@ -404,33 +395,6 @@ const sessionResultCache = new Map<
     promise: Promise<Pick<RaceSession, "resultLabel" | "resultValue" | "officialUrl"> | null>;
   }
 >();
-
-const OFFICIAL_RESULTS_SLUG_OVERRIDES: Record<string, string[]> = {
-  albert_park: ["australia"],
-  shanghai: ["china"],
-  suzuka: ["japan"],
-  bahrain: ["bahrain"],
-  jeddah: ["saudi-arabia"],
-  miami: ["miami"],
-  imola: ["emilia-romagna", "imola"],
-  villeneuve: ["canada", "montreal"],
-  monaco: ["monaco"],
-  catalunya: ["spain", "barcelona-catalunya", "barcelona"],
-  red_bull_ring: ["austria", "spielberg"],
-  silverstone: ["great-britain", "britain", "silverstone"],
-  spa: ["belgium", "spa"],
-  hungaroring: ["hungary", "budapest"],
-  zandvoort: ["netherlands", "zandvoort"],
-  monza: ["italy", "monza"],
-  baku: ["azerbaijan", "baku"],
-  marina_bay: ["singapore"],
-  americas: ["united-states", "usa", "austin"],
-  rodriguez: ["mexico", "mexico-city"],
-  interlagos: ["sao-paulo", "brazil", "interlagos"],
-  las_vegas: ["las-vegas"],
-  losail: ["qatar", "lusail"],
-  yas_marina: ["abu-dhabi", "yas-marina"],
-};
 
 // Temporary fallback: only used for missing rounds when the 2026 endpoint is partial/unavailable.
 const TEMP_FALLBACK_2026_CALENDAR: Race[] = [
@@ -1411,66 +1375,6 @@ function stripHtmlToText(html: string) {
     .trim();
 }
 
-function normalizeOfficialSlugPart(value?: string | null) {
-  if (!value) {
-    return "";
-  }
-
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/['’]/g, "")
-    .replace(/\b(formula\s*1|grand\s*prix|gp)\b/g, " ")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function getOfficialRouteSlugCandidates(
-  race: Pick<Race, "raceName" | "country" | "locality" | "circuitId" | "apiCircuitId">
-) {
-  const candidates = new Set<string>();
-
-  const push = (value?: string | null) => {
-    const normalized = normalizeOfficialSlugPart(value);
-    if (normalized) {
-      candidates.add(normalized);
-    }
-  };
-
-  push(race.raceName);
-  push(race.country);
-  push(race.locality);
-  push(race.circuitId);
-  push(race.apiCircuitId);
-
-  for (const key of [race.apiCircuitId, race.circuitId]) {
-    if (!key) {
-      continue;
-    }
-
-    for (const override of OFFICIAL_RESULTS_SLUG_OVERRIDES[key] ?? []) {
-      push(override);
-    }
-  }
-
-  if (candidates.has("united-kingdom")) {
-    candidates.add("great-britain");
-    candidates.add("britain");
-  }
-
-  if (candidates.has("united-states")) {
-    candidates.add("usa");
-  }
-
-  if (candidates.has("united-arab-emirates")) {
-    candidates.add("abu-dhabi");
-  }
-
-  return candidates;
-}
-
 function extractSessionWinnerName(html: string) {
   const text = stripHtmlToText(html).replace(/[\u00A0\u202F\u2007]/g, " ");
 
@@ -1562,17 +1466,6 @@ async function fetchRaceWinnerFromApi(race: Pick<Race, "season" | "round">): Pro
   );
   const winner = data?.MRData?.RaceTable?.Races?.[0]?.Results?.[0];
   const driverName = formatResultDriverName(winner);
-
-  return driverName === UNAVAILABLE ? null : driverName;
-}
-
-async function fetchQualifyingWinnerFromApi(race: Pick<Race, "season" | "round">): Promise<string | null> {
-  const data = await fetchJson<ErgastQualifyingResultsResponse>(
-    `${ERGAST_BASE_URL}/${race.season}/${race.round}/qualifying.json`,
-    SESSION_RESULTS_REVALIDATE_SECONDS
-  );
-  const poleSitter = data?.MRData?.RaceTable?.Races?.[0]?.QualifyingResults?.[0];
-  const driverName = formatResultDriverName(poleSitter);
 
   return driverName === UNAVAILABLE ? null : driverName;
 }
@@ -1798,6 +1691,11 @@ export async function getRaceRecapByRound(round: string): Promise<RaceRecap | nu
     return null;
   }
 
+  const fastF1Bundle = await getFastF1RaceBundle(race.season, round);
+  if (fastF1Bundle?.recap) {
+    return fastF1Bundle.recap;
+  }
+
   if (race.season === F1_SEASON) {
     const openF1Recap = await getOpenF1RaceRecap(race);
     if (openF1Recap) {
@@ -1952,6 +1850,11 @@ export async function getRaceReplayByRound(round: string): Promise<RaceReplayDat
 
   if (!race || isUpcomingRace(race)) {
     return null;
+  }
+
+  const fastF1Bundle = await getFastF1RaceBundle(race.season, round);
+  if (fastF1Bundle?.replay) {
+    return fastF1Bundle.replay;
   }
 
   if (race.season === F1_SEASON) {

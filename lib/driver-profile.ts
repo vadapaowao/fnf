@@ -514,7 +514,7 @@ function buildBio(
       ? `Career totals stand at ${careerWins} wins, ${careerPoles} poles, ${careerPodiums} ${careerPodiums === 1 ? "podium" : "podiums"} and ${championships} world championship${championships === 1 ? "" : "s"}.`
       : `Career totals stand at ${careerWins} wins, ${careerPoles} poles and ${careerPodiums} ${careerPodiums === 1 ? "podium" : "podiums"}.`;
 
-  return `${seasonLine} ${standing.driver.givenName} is a ${age}-year-old ${standing.driver.nationality} driver. ${podiumLine} ${legacyLine}`;
+  return `${seasonLine} ${podiumLine} ${legacyLine}`;
 }
 
 async function buildSeasonSnapshot(
