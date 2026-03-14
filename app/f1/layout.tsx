@@ -3,15 +3,16 @@ import type { Metadata } from "next";
 import F1Navigation from "@/components/f1/F1Navigation";
 
 export const metadata: Metadata = {
-    title: "The Grid — F1 Hub",
-    description: "Live F1 standings, driver dossiers, race intel, and weekend analysis inside The Arena.",
+    title: "The Grid — Formula 1",
+    description: "Formula 1 race intel, driver profiles, team pages, calendar, and standings.",
     openGraph: {
-        title: "The Arena",
-        description: "Live F1 standings, driver profiles, race intel, and football fixtures.",
+        title: "The Grid — Formula 1",
+        description: "Formula 1 race intel, driver profiles, team pages, calendar, and standings.",
         type: "website",
     },
     twitter: {
         card: "summary_large_image",
+        title: "The Grid — Formula 1",
     },
 };
 

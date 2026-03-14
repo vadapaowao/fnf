@@ -1,6 +1,8 @@
 import { getRaceCalendar } from "@/lib/f1";
 import CalendarRaceGrid from "@/components/f1/CalendarRaceGrid";
 
+export const revalidate = 60;
+
 export default async function CalendarPage() {
     const races = await getRaceCalendar();
 

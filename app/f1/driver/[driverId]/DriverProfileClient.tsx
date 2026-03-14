@@ -57,7 +57,7 @@ function formatDelta(value: number) {
   }
 
   const sign = value >= 0 ? "+" : "-";
-  return `${sign}${Math.abs(value).toFixed(2)}`;
+  return `${sign}${Math.abs(value).toFixed(1)}`;
 }
 
 function buildSeasonSummary(
@@ -150,7 +150,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
 
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded border border-grid-primary/30 bg-grid-primary/10 px-3 py-2 text-[11px] font-mono font-bold uppercase tracking-[0.16em] text-grid-primary">
-              {selectedSeason.season} Driver File
+              {selectedSeason.season} Season
             </span>
             {selectedTeamId ? (
               <Link

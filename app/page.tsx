@@ -1,19 +1,21 @@
-import LandingNav from "@/components/LandingNav";
-import LandingHero from "@/components/LandingHero";
-import GridPreviewSection from "@/components/GridPreviewSection";
-import PitchSection from "@/components/PitchSection";
 import LandingFooter from "@/components/LandingFooter";
+import LandingHero from "@/components/LandingHero";
+import LandingNav from "@/components/LandingNav";
+import GridPreviewSection from "@/components/GridPreviewSection";
+import { getRaceCalendar, isUpcomingRace } from "@/lib/f1";
 
 export default async function HomePage() {
+  const raceCalendar = await getRaceCalendar();
+  const nextRace = raceCalendar.find(isUpcomingRace) ?? raceCalendar[0] ?? null;
+
   return (
-    <div className="bg-background-light dark:bg-background-dark">
+    <main className="relative overflow-hidden bg-black">
       <LandingNav />
-      <LandingHero />
-      <section id="explore-section" className="scroll-mt-28">
+      <LandingHero nextRace={nextRace} />
+      <section id="explore-section" className="relative scroll-mt-28">
         <GridPreviewSection />
       </section>
-      <PitchSection />
       <LandingFooter />
-    </div>
+    </main>
   );
 }

@@ -531,12 +531,25 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
   }, [circuitId, sectorSegments]);
 
   const replayMoments = useMemo<ReplayMoment[]>(() => {
-    const baseMoments =
-      recap?.keyMoments && recap.keyMoments.length > 0
+    const baseMoments: Array<{
+      id: string;
+      title: string;
+      detail: string;
+      checkpointMs?: number;
+    }> =
+      replay?.highlights && replay.highlights.length > 0
+        ? replay.highlights.map((moment) => ({
+            id: moment.id,
+            title: moment.title,
+            detail: moment.detail,
+            checkpointMs: moment.checkpointMs
+          }))
+        : recap?.keyMoments && recap.keyMoments.length > 0
         ? recap.keyMoments.map((moment, index) => ({
             id: `${moment.title}-${index}`,
             title: moment.title,
-            detail: moment.detail
+            detail: moment.detail,
+            checkpointMs: moment.checkpointMs
           }))
         : [
             {
@@ -559,7 +572,9 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
 
     const distributedMoments = baseMoments.map((moment, index) => ({
       ...moment,
-      checkpointMs: Math.round(((index + 1) / (baseMoments.length + 1)) * duration)
+      checkpointMs:
+        moment.checkpointMs ??
+        Math.round(((index + 1) / (baseMoments.length + 1)) * duration)
     }));
     const finishMoment: ReplayMoment = {
       id: "chequered-flag",
@@ -569,7 +584,7 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
     };
 
     return [...distributedMoments, finishMoment];
-  }, [recap, replay?.totalRaceMs]);
+  }, [recap, replay?.highlights, replay?.totalRaceMs]);
 
   const replaySpeed = REPLAY_SPEEDS[replaySpeedIndex] ?? 1;
   const replayDurationMs = replay?.totalRaceMs && replay.totalRaceMs > 0 ? replay.totalRaceMs : 180000;

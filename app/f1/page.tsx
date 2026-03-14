@@ -4,6 +4,8 @@ import TrackHero from "@/components/f1/TrackHero";
 import RaceIntelPanel from "@/components/f1/RaceIntelPanel";
 import { getFeaturedRace } from "@/lib/f1-product";
 
+export const revalidate = 60;
+
 export default async function F1GridPage() {
   const races = await getRaceCalendar();
   const currentRace = getFeaturedRace(races) ?? races[0];

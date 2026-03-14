@@ -28,8 +28,8 @@ export async function generateMetadata({ params }: DriverPageProps) {
   }
 
   return {
-    title: `${profile.standing.driver.givenName} ${profile.standing.driver.familyName} - Arena F1`,
-    description: `${profile.standing.driver.givenName} ${profile.standing.driver.familyName} profile and career statistics.`
+    title: `${profile.standing.driver.givenName} ${profile.standing.driver.familyName} — The Grid`,
+    description: `${profile.standing.driver.givenName} ${profile.standing.driver.familyName} profile, season form, and career numbers.`
   };
 }
 
@@ -42,4 +42,3 @@ export default async function DriverPage({ params }: DriverPageProps) {
 
   return <DriverProfileClient profile={profile} />;
 }
-

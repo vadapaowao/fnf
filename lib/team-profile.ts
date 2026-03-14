@@ -330,12 +330,15 @@ export async function getTeamProfile(constructorId: string, season: string = F1_
   }
 
   const archive2025ContextPromise = fetchConstructorStandingsContext("2025", { strict: true });
-  const currentDriversPromise = getDriverStandings(standingsContext.season).then((standings) =>
+  const currentDriversPromise = getDriverStandings(standingsContext.season, { silent: true }).then((standings) =>
     standings.filter((entry) => entry.constructors.some((constructor) => constructor.constructorId === constructorId))
   );
   const archiveDriversPromise = archive2025ContextPromise.then((archiveContext) => {
-    const archiveSeason = archiveContext?.season ?? "2025";
-    return getDriverStandings(archiveSeason).then((standings) =>
+    if (!archiveContext) {
+      return [];
+    }
+
+    return getDriverStandings(archiveContext.season, { silent: true }).then((standings) =>
       standings.filter((entry) => entry.constructors.some((constructor) => constructor.constructorId === constructorId))
     );
   });

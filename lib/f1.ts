@@ -1,3 +1,5 @@
+import { getOpenF1CompletedRaceStats, getOpenF1RaceRecap, getOpenF1RaceReplay, getOpenF1SessionResultSummary } from "@/lib/openf1";
+
 export const F1_SEASON = "2026";
 const REVALIDATE_SECONDS = 3600;
 const ERGAST_BASE_URL = "https://api.jolpi.ca/ergast/f1";
@@ -61,6 +63,7 @@ export type FastestLapStat = {
 export type RaceRecapMoment = {
   title: string;
   detail: string;
+  checkpointMs?: number;
 };
 
 export type RaceRecapSectorInsight = {
@@ -103,11 +106,19 @@ export type RaceReplayDriverTrace = {
   cumulativeMs: number[];
 };
 
+export type RaceReplayHighlight = {
+  id: string;
+  title: string;
+  detail: string;
+  checkpointMs: number;
+};
+
 export type RaceReplayData = {
   totalLaps: number;
   totalRaceMs: number;
   traces: RaceReplayDriverTrace[];
   winnerDriverId: string | null;
+  highlights?: RaceReplayHighlight[];
 };
 
 export type RaceDetail = {
@@ -343,6 +354,32 @@ type OfficialResultsRoute = {
   raceId: string;
   slug: string;
 };
+
+function normalizeOfficialSlugToken(value: string | null | undefined) {
+  return (value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function buildOfficialRouteMatchTokens(race: Pick<Race, "raceName" | "circuitName" | "locality" | "country">) {
+  const rawTokens = [
+    race.raceName,
+    race.circuitName,
+    race.locality,
+    race.country,
+    race.raceName.replace(/\bgrand prix\b/gi, ""),
+    race.country === "United Kingdom" ? "Great Britain" : null,
+    race.country === "United States" ? "USA" : null
+  ]
+    .filter((token): token is string => Boolean(token))
+    .map((token) => normalizeOfficialSlugToken(token))
+    .filter(Boolean);
+
+  return new Set(rawTokens);
+}
 
 const OFFICIAL_RESULTS_BASE = "https://www.formula1.com";
 const SPRINT_WEEKEND_CIRCUITS_2026 = new Set(["shanghai", "miami", "villeneuve", "silverstone", "zandvoort", "marina_bay"]);
@@ -1063,6 +1100,10 @@ function resolveTrackSvgPath(circuitId: string): string | null {
   return file ? `/tracks/${file}` : null;
 }
 
+export function getTrackSvgPathByCircuitId(circuitId: string): string | null {
+  return resolveTrackSvgPath(circuitId);
+}
+
 function resolveCircuitStatic(circuitId: string) {
   const staticData = CIRCUIT_STATIC[circuitId];
 
@@ -1165,12 +1206,19 @@ export async function getRaceDetailByRound(round: string): Promise<RaceDetail | 
     return null;
   }
 
-  const [lastWinner, fastestLap] = await Promise.all([
+  const [historicalWinner, historicalFastestLap, openF1RaceStats] = await Promise.all([
     fetchMostRecentWinner(race.apiCircuitId ?? race.circuitId),
-    fetchFastestLap(race.apiCircuitId ?? race.circuitId)
+    fetchFastestLap(race.apiCircuitId ?? race.circuitId),
+    isUpcomingRace(race) ? Promise.resolve(null) : getOpenF1CompletedRaceStats(race)
   ]);
 
   const circuitStatic = resolveCircuitStatic(race.circuitId);
+  const lastWinner =
+    openF1RaceStats?.winner.driver && openF1RaceStats.winner.driver !== UNAVAILABLE ? openF1RaceStats.winner : historicalWinner;
+  const fastestLap =
+    openF1RaceStats?.fastestLap.driver && openF1RaceStats.fastestLap.driver !== UNAVAILABLE
+      ? openF1RaceStats.fastestLap
+      : historicalFastestLap;
 
   return {
     race,
@@ -1338,8 +1386,25 @@ async function fetchOfficialResultsRoutes(season: string): Promise<OfficialResul
   return request;
 }
 
-async function getOfficialResultsRouteForRace(race: Pick<Race, "season" | "round">): Promise<OfficialResultsRoute | null> {
+async function getOfficialResultsRouteForRace(
+  race: Pick<Race, "season" | "round" | "raceName" | "circuitName" | "locality" | "country">
+): Promise<OfficialResultsRoute | null> {
   const routes = await fetchOfficialResultsRoutes(race.season);
+  const matchTokens = buildOfficialRouteMatchTokens(race);
+  const matchedRoute = routes.find((route) => {
+    const normalizedSlug = normalizeOfficialSlugToken(route.slug);
+
+    if (matchTokens.has(normalizedSlug)) {
+      return true;
+    }
+
+    return Array.from(matchTokens).some((token) => normalizedSlug.includes(token) || token.includes(normalizedSlug));
+  });
+
+  if (matchedRoute) {
+    return matchedRoute;
+  }
+
   const index = Math.max(Number(race.round) - 1, 0);
 
   return routes[index] ?? null;
@@ -1370,9 +1435,25 @@ async function fetchSessionResultValue(
   }
 
   const request = (async () => {
-  const route = await getOfficialResultsRouteForRace(race);
+  const fullRace = await getRaceByRound(race.round);
+  const openF1Fallback = fullRace ? await getOpenF1SessionResultSummary(fullRace, session.code) : null;
+  const shouldPreferOpenF1 = fullRace?.season === F1_SEASON;
+  const route = fullRace ? await getOfficialResultsRouteForRace(fullRace) : null;
+
+  if (shouldPreferOpenF1 && openF1Fallback) {
+    return {
+      ...openF1Fallback,
+      officialUrl: route
+        ? `${OFFICIAL_RESULTS_BASE}/en/results/${race.season}/races/${route.raceId}/${route.slug}/${getOfficialSessionSlug(session.code)}`
+        : undefined
+    };
+  }
 
   if (!route) {
+    if (openF1Fallback) {
+      return openF1Fallback;
+    }
+
     if (session.code === "RACE") {
       const raceWinner = await fetchRaceWinnerFromApi(race);
       if (raceWinner) {
@@ -1412,6 +1493,13 @@ async function fetchSessionResultValue(
     }
   }
 
+  if (openF1Fallback) {
+    return {
+      ...openF1Fallback,
+      officialUrl
+    };
+  }
+
   if (session.code === "RACE") {
     const raceWinner = await fetchRaceWinnerFromApi(race);
     if (raceWinner) {
@@ -1434,7 +1522,7 @@ async function fetchSessionResultValue(
 
     return {
       resultLabel: getCompletedSessionResultLabel(session.code),
-      resultValue: "Results pending",
+      resultValue: UNAVAILABLE,
       officialUrl
     };
   })();
@@ -1548,13 +1636,20 @@ export async function getRaceRecapByRound(round: string): Promise<RaceRecap | nu
     return null;
   }
 
+  if (race.season === F1_SEASON) {
+    const openF1Recap = await getOpenF1RaceRecap(race);
+    if (openF1Recap) {
+      return openF1Recap;
+    }
+  }
+
   const resultsData = await fetchJson<ErgastRaceResultsResponse>(
     `${ERGAST_BASE_URL}/${race.season}/${round}/results.json`
   );
   const resultEntries = resultsData?.MRData?.RaceTable?.Races?.[0]?.Results ?? [];
 
   if (resultEntries.length === 0) {
-    return null;
+    return getOpenF1RaceRecap(race);
   }
 
   const classified = resultEntries
@@ -1567,7 +1662,7 @@ export async function getRaceRecapByRound(round: string): Promise<RaceRecap | nu
     .sort((a, b) => (a.finishPosition ?? Number.POSITIVE_INFINITY) - (b.finishPosition ?? Number.POSITIVE_INFINITY));
 
   if (classified.length === 0) {
-    return null;
+    return getOpenF1RaceRecap(race);
   }
 
   const winner = classified.find((item) => item.finishPosition === 1) ?? classified[0];
@@ -1697,6 +1792,13 @@ export async function getRaceReplayByRound(round: string): Promise<RaceReplayDat
     return null;
   }
 
+  if (race.season === F1_SEASON) {
+    const openF1Replay = await getOpenF1RaceReplay(race);
+    if (openF1Replay) {
+      return openF1Replay;
+    }
+  }
+
   const [resultsData, laps] = await Promise.all([
     fetchJson<ErgastRaceResultsResponse>(`${ERGAST_BASE_URL}/${race.season}/${round}/results.json`),
     fetchAllRaceLaps(race.season, round)
@@ -1705,7 +1807,7 @@ export async function getRaceReplayByRound(round: string): Promise<RaceReplayDat
   const resultEntries = resultsData?.MRData?.RaceTable?.Races?.[0]?.Results ?? [];
 
   if (resultEntries.length === 0) {
-    return null;
+    return getOpenF1RaceReplay(race);
   }
 
   const orderedDrivers = resultEntries
@@ -1758,6 +1860,10 @@ export async function getRaceReplayByRound(round: string): Promise<RaceReplayDat
     tracesByDriver.set(driverId, nextTrace);
     return nextTrace;
   };
+
+  if (laps.length === 0) {
+    return getOpenF1RaceReplay(race);
+  }
 
   for (const lap of laps) {
     const timings = lap.Timings ?? [];
@@ -1854,7 +1960,7 @@ export async function getRaceReplayByRound(round: string): Promise<RaceReplayDat
     .sort((a, b) => (orderingMap.get(a.driverId) ?? Number.POSITIVE_INFINITY) - (orderingMap.get(b.driverId) ?? Number.POSITIVE_INFINITY));
 
   if (traces.length === 0) {
-    return null;
+    return getOpenF1RaceReplay(race);
   }
 
   const winnerTrace = winnerDriverId ? tracesByDriver.get(winnerDriverId) : null;
@@ -1865,7 +1971,7 @@ export async function getRaceReplayByRound(round: string): Promise<RaceReplayDat
       : traces.reduce((best, trace) => Math.max(best, trace.cumulativeMs[trace.cumulativeMs.length - 1] ?? 0), 0);
 
   if (totalRaceMs <= 0) {
-    return null;
+    return getOpenF1RaceReplay(race);
   }
 
   return {
@@ -2013,7 +2119,8 @@ async function fetchConstructorStandingsForSeason(
  * Falls back to previous seasons only if requested season has no standings yet
  */
 export async function getDriverStandings(
-  season: string = F1_SEASON
+  season: string = F1_SEASON,
+  options?: { silent?: boolean }
 ): Promise<DriverStanding[]> {
   const candidates = getStandingsSeasonCandidates(season);
 
@@ -2028,7 +2135,9 @@ export async function getDriverStandings(
     }
   }
 
-  console.error(`Error fetching driver standings for ${season} and fallback seasons.`);
+  if (!options?.silent) {
+    console.error(`Error fetching driver standings for ${season} and fallback seasons.`);
+  }
   return [];
 }
 
@@ -2133,7 +2242,8 @@ export async function getDriverCareerHistory(
  * Falls back to previous seasons only if requested season has no standings yet
  */
 export async function getConstructorStandings(
-  season: string = F1_SEASON
+  season: string = F1_SEASON,
+  options?: { silent?: boolean }
 ): Promise<ConstructorStanding[]> {
   const candidates = getStandingsSeasonCandidates(season);
 
@@ -2148,7 +2258,9 @@ export async function getConstructorStandings(
     }
   }
 
-  console.error(`Error fetching constructor standings for ${season} and fallback seasons.`);
+  if (!options?.silent) {
+    console.error(`Error fetching constructor standings for ${season} and fallback seasons.`);
+  }
   return [];
 }
 

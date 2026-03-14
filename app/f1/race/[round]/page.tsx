@@ -4,6 +4,8 @@ import RaceSidebar from "@/components/f1/RaceSidebar";
 import TrackHero from "@/components/f1/TrackHero";
 import RaceIntelPanel from "@/components/f1/RaceIntelPanel";
 
+export const revalidate = 60;
+
 type RaceDetailPageProps = {
   params: {
     round: string;
@@ -25,7 +27,7 @@ export async function generateMetadata({ params }: RaceDetailPageProps) {
   }
 
   return {
-    title: `${detail.race.raceName} (Round ${detail.race.round}) - Arena F1`,
+    title: `${detail.race.raceName} (Round ${detail.race.round}) — The Grid`,
     description: `${detail.race.raceName} at ${detail.circuit.name}, ${detail.circuit.location}`,
   };
 }

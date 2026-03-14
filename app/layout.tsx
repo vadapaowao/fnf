@@ -18,16 +18,17 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://arena.local"),
-  title: "The Arena — F1 & Football Hub",
-  description: "The ultimate hub for F1 and football fans. Live standings, driver dossiers, race intel, and fixtures.",
+  metadataBase: new URL("https://the-grid.vercel.app"),
+  title: "The Grid — Formula 1 2026",
+  description: "Formula 1 race intel, driver profiles, team pages, calendar, and standings for the 2026 season.",
   openGraph: {
-    title: "The Arena",
-    description: "Live F1 standings, driver profiles, race intel, and football fixtures.",
+    title: "The Grid — Formula 1 2026",
+    description: "Formula 1 race intel, driver profiles, team pages, calendar, and standings for the 2026 season.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
+    title: "The Grid — Formula 1 2026",
   },
   icons: {
     icon: "/favicon.ico",

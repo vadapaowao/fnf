@@ -10,12 +10,12 @@ export default function DropsPage() {
   return (
     <main className="min-h-screen bg-background-dark px-4 py-24 text-white">
       <div className="mx-auto max-w-3xl rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(225,6,0,0.16),transparent_35%),linear-gradient(145deg,#111111_0%,#080808_65%)] p-8 shadow-[0_25px_80px_rgba(225,6,0,0.15)] md:p-12">
-        <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-primary">Arena Access</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-primary">The Grid</p>
         <h1 className="mt-4 font-display text-5xl font-black tracking-tight text-white md:text-7xl">
           DROPS
         </h1>
         <p className="mt-4 max-w-xl text-base leading-relaxed text-gray-400 md:text-lg">
-          Exclusive Arena merch. Coming soon.
+          The Grid. Exclusive drops, coming soon.
         </p>
 
         <div className="mt-10 rounded-3xl border border-white/10 bg-black/30 p-5 md:p-6">
@@ -41,11 +41,7 @@ export default function DropsPage() {
             <p className="mt-4 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-white">
               You&apos;re on the list. We&apos;ll notify you when the first drop goes live.
             </p>
-          ) : (
-            <p className="mt-4 text-sm text-gray-500">
-              No backend yet. This is the launch waitlist UI.
-            </p>
-          )}
+          ) : null}
         </div>
 
         <Link
@@ -53,7 +49,7 @@ export default function DropsPage() {
           className="mt-8 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-gray-400 transition-colors hover:text-white"
         >
           <span aria-hidden="true">←</span>
-          Back to Arena
+          Back to Grid
         </Link>
       </div>
     </main>
