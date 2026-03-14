@@ -41,11 +41,14 @@ export default function WeekendSchedule({ sessions }: WeekendScheduleProps) {
                                     </p>
                                     {sessionDate && (
                                         <p className="text-[10px] text-gray-500">
-                                            {sessionDate.toLocaleDateString("en-US", {
-                                                weekday: "short",
-                                                month: "short",
-                                                day: "numeric",
-                                            })}
+                                            <LocalDateTimeText
+                                                iso={session.startsAt}
+                                                options={{
+                                                    weekday: "short",
+                                                    month: "short",
+                                                    day: "numeric"
+                                                }}
+                                            />
                                         </p>
                                     )}
                                 </div>

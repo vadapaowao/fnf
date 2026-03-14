@@ -1,3 +1,4 @@
+import MyPitWallCard from "@/components/f1/MyPitWallCard";
 import { getRaceCalendar } from "@/lib/f1";
 import CalendarRaceGrid from "@/components/f1/CalendarRaceGrid";
 
@@ -17,6 +18,7 @@ export default async function CalendarPage() {
                         {races.length} races across the season
                     </p>
                 </div>
+                <MyPitWallCard className="mb-8 max-w-xl" />
                 <CalendarRaceGrid races={races} />
             </div>
         </main>

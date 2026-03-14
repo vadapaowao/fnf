@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import FollowToggleButton from "@/components/f1/FollowToggleButton";
 import type { Race } from "@/lib/f1";
 
 type CalendarRaceGridProps = {
@@ -11,6 +12,15 @@ type CalendarRaceGridProps = {
 
 function getRaceStartMs(race: Race) {
   return new Date(`${race.date}T${race.time}`).getTime();
+}
+
+function formatRaceDate(date: string) {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 function formatCountdown(totalMs: number) {
@@ -31,38 +41,44 @@ function formatCountdown(totalMs: number) {
 }
 
 export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
-  const initialSelectedRound = useMemo(() => {
-    const nowMs = Date.now();
-    const upcomingRace = races.find((race) => getRaceStartMs(race) >= nowMs);
-    return (upcomingRace ?? races[0])?.round ?? "";
-  }, [races]);
+  const fallbackRound = races[0]?.round ?? "";
+  const [selectedRound, setSelectedRound] = useState(fallbackRound);
+  const [nowMs, setNowMs] = useState<number | null>(null);
 
-  const [selectedRound, setSelectedRound] = useState(initialSelectedRound);
-  const [nowMs, setNowMs] = useState(Date.now());
+  const resolvedSelectedRound = useMemo(() => {
+    if (nowMs === null) {
+      return fallbackRound;
+    }
+
+    const upcomingRace = races.find((race) => getRaceStartMs(race) >= nowMs);
+    return (upcomingRace ?? races[0])?.round ?? fallbackRound;
+  }, [fallbackRound, nowMs, races]);
 
   useEffect(() => {
+    setNowMs(Date.now());
     const timer = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
     if (!selectedRound) {
-      setSelectedRound(initialSelectedRound);
+      setSelectedRound(resolvedSelectedRound);
       return;
     }
 
     if (!races.some((race) => race.round === selectedRound)) {
-      setSelectedRound(initialSelectedRound);
+      setSelectedRound(resolvedSelectedRound);
     }
-  }, [initialSelectedRound, races, selectedRound]);
+  }, [races, resolvedSelectedRound, selectedRound]);
 
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
       {races.map((race) => {
         const raceStartMs = getRaceStartMs(race);
-        const isPast = raceStartMs < nowMs;
+        const referenceNowMs = nowMs ?? 0;
+        const isPast = raceStartMs < referenceNowMs;
         const isSelected = race.round === selectedRound;
-        const countdown = formatCountdown(raceStartMs - nowMs);
+        const countdown = nowMs === null ? null : formatCountdown(raceStartMs - nowMs);
 
         return (
           <article
@@ -95,11 +111,11 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
                 <h3 className="font-display text-xl font-bold text-white transition-colors group-hover:text-grid-primary">
                   {race.raceName}
                 </h3>
-                {isSelected && !isPast && (
+                {isSelected && !isPast && countdown ? (
                   <span className="rounded border border-grid-primary/40 bg-grid-primary/10 px-2 py-1 text-[10px] font-mono font-bold text-grid-primary">
                     {countdown}
                   </span>
-                )}
+                ) : null}
               </div>
 
               <div className="mb-4 flex items-center gap-2 text-gray-400">
@@ -112,11 +128,7 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
               <div className="flex items-center gap-2 text-gray-300">
                 <span className="material-icons text-sm">event</span>
                 <span className="text-sm font-mono">
-                  {new Date(`${race.date}T00:00:00Z`).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  {formatRaceDate(race.date)}
                 </span>
               </div>
 
@@ -125,7 +137,7 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
               </div>
             </button>
 
-            <div className="border-t border-white/5 px-6 py-3">
+            <div className="flex items-center justify-between gap-3 border-t border-white/5 px-6 py-3">
               <Link
                 href={`/f1/race/${race.round}`}
                 className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-grid-primary hover:text-white"
@@ -133,6 +145,18 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
                 Open Race
                 <span className="material-icons text-sm">arrow_forward</span>
               </Link>
+              <FollowToggleButton
+                type="race"
+                id={`${race.season}-${race.round}`}
+                label={race.raceName}
+                subtitle={`${race.circuitName} | ${race.locality}, ${race.country}`}
+                href={`/f1/race/${race.round}`}
+                season={race.season}
+                compact
+                followCopy="Follow Race"
+                followingCopy="Saved"
+                className="rounded-full"
+              />
             </div>
           </article>
         );

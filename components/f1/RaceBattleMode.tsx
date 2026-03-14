@@ -115,10 +115,10 @@ export default function RaceBattleMode({ replay }: RaceBattleModeProps) {
   if (traces.length < 2) {
     return (
       <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-5">
-        <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Battle Mode</p>
-        <h2 className="mt-2 font-display text-2xl font-bold text-white">Driver duel unavailable</h2>
+        <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Head to Head</p>
+        <h2 className="mt-2 font-display text-2xl font-bold text-white">No duel data yet</h2>
         <p className="mt-3 text-sm leading-relaxed text-gray-400">
-          Replay traces are not complete enough yet to build a side-by-side lap battle for this race.
+          Replay data is not ready for this race yet.
         </p>
       </article>
     );
@@ -128,10 +128,10 @@ export default function RaceBattleMode({ replay }: RaceBattleModeProps) {
     <details className="group/battle rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
       <summary className="flex cursor-pointer list-none items-start justify-between gap-4 p-5 marker:content-none">
         <div>
-          <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Battle Mode</p>
-          <h2 className="mt-2 font-display text-2xl font-bold text-white">Compare any two drivers</h2>
+          <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Head to Head</p>
+          <h2 className="mt-2 font-display text-2xl font-bold text-white">Pick two drivers</h2>
           <p className="mt-2 text-sm leading-relaxed text-gray-400">
-            Use official replay traces to compare lap-by-lap pace swings instead of only reading the final order.
+            Lap by lap, not just the classified order.
           </p>
         </div>
 
@@ -141,11 +141,11 @@ export default function RaceBattleMode({ replay }: RaceBattleModeProps) {
       </summary>
 
       <div className="border-t border-white/10 p-5">
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="rounded-lg border border-white/10 bg-black/20 p-3">
+        <div className="grid gap-3 lg:grid-cols-2">
+          <label className="min-w-0 rounded-lg border border-white/10 bg-black/20 p-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Driver A</p>
             <select
-              className="mt-2 w-full bg-transparent text-sm font-bold text-white outline-none"
+              className="mt-2 w-full truncate bg-transparent pr-6 text-sm font-bold text-white outline-none"
               value={leftTrace?.driverId ?? ""}
               onChange={(event) => {
                 const nextId = event.target.value;
@@ -158,16 +158,16 @@ export default function RaceBattleMode({ replay }: RaceBattleModeProps) {
             >
               {traces.map((trace) => (
                 <option key={trace.driverId} value={trace.driverId} className="bg-[#0B0B0B]">
-                  {trace.name} ({trace.code})
+                  {trace.code} · {trace.name}
                 </option>
               ))}
             </select>
           </label>
 
-          <label className="rounded-lg border border-white/10 bg-black/20 p-3">
+          <label className="min-w-0 rounded-lg border border-white/10 bg-black/20 p-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Driver B</p>
             <select
-              className="mt-2 w-full bg-transparent text-sm font-bold text-white outline-none"
+              className="mt-2 w-full truncate bg-transparent pr-6 text-sm font-bold text-white outline-none"
               value={rightTrace?.driverId ?? ""}
               onChange={(event) => {
                 const nextId = event.target.value;
@@ -180,7 +180,7 @@ export default function RaceBattleMode({ replay }: RaceBattleModeProps) {
             >
               {traces.map((trace) => (
                 <option key={trace.driverId} value={trace.driverId} className="bg-[#0B0B0B]">
-                  {trace.name} ({trace.code})
+                  {trace.code} · {trace.name}
                 </option>
               ))}
             </select>
@@ -214,9 +214,9 @@ export default function RaceBattleMode({ replay }: RaceBattleModeProps) {
 
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               {segmentLabels.map((segment) => (
-                <div key={segment.label} className="rounded-lg border border-white/10 bg-black/20 px-4 py-3">
+                <div key={segment.label} className="min-w-0 rounded-lg border border-white/10 bg-black/20 px-4 py-3">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">{segment.label}</p>
-                  <p className="mt-2 text-sm font-bold text-white">
+                  <p className="mt-2 truncate text-sm font-bold text-white">
                     {segment.winner === "Left" ? leftTrace.name : segment.winner === "Right" ? rightTrace.name : "Even split"}
                   </p>
                 </div>
@@ -224,9 +224,9 @@ export default function RaceBattleMode({ replay }: RaceBattleModeProps) {
             </div>
 
             <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-bold text-white">Lap delta wall</p>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-white">Lap-by-lap gap</p>
                   <p className="mt-1 text-[11px] text-gray-500">
                     Bars to the left mean {leftTrace.code} was quicker on that lap. Bars to the right mean {rightTrace.code} was quicker.
                   </p>
@@ -241,7 +241,7 @@ export default function RaceBattleMode({ replay }: RaceBattleModeProps) {
                   const width = `${Math.max((Math.abs(lap.deltaMs) / maxDeltaMs) * 100, Math.abs(lap.deltaMs) > 0 ? 6 : 0)}%`;
 
                   return (
-                    <div key={lap.lap} className="grid grid-cols-[46px_minmax(0,1fr)_74px] items-center gap-3">
+                    <div key={lap.lap} className="grid grid-cols-[46px_minmax(0,1fr)_82px] items-center gap-3">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Lap {lap.lap}</p>
                       <div className="relative h-6 overflow-hidden rounded-full bg-[#0A0A0A]">
                         <div className="absolute inset-y-0 left-1/2 w-px bg-white/10" />
@@ -269,4 +269,3 @@ export default function RaceBattleMode({ replay }: RaceBattleModeProps) {
     </details>
   );
 }
-

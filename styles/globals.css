@@ -57,6 +57,25 @@
     filter: drop-shadow(0 0 8px rgba(249, 31, 31, 0.6));
   }
 
+  .hero-track-drift {
+    animation: hero-track-drift 18s linear infinite;
+    will-change: transform;
+  }
+
+  .hero-track-outline {
+    stroke-dasharray: 28 14;
+    animation: hero-track-outline 11s linear infinite;
+  }
+
+  .hero-scan {
+    animation: hero-scan 7.5s ease-in-out infinite;
+    will-change: transform, opacity;
+  }
+
+  .hero-card-reveal {
+    animation: hero-card-reveal 850ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
   /* Text Outline */
   .text-outline {
     -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);

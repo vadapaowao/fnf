@@ -236,24 +236,48 @@ export function getFeaturedRace(races: Race[], now: Date = new Date()): Race | n
   return nextRace ?? sortedRaces[sortedRaces.length - 1] ?? null;
 }
 
+export function getLastCompletedRace(races: Race[], now: Date = new Date()): Race | null {
+  const sortedRaces = [...races].sort((left, right) => getRaceStart(left).getTime() - getRaceStart(right).getTime());
+  const nowMs = now.getTime();
+
+  const completed = sortedRaces.filter((race) => {
+    const { raceEndMs } = getRaceWeekendWindow(race);
+    return Number.isFinite(raceEndMs) && raceEndMs < nowMs;
+  });
+
+  return completed[completed.length - 1] ?? null;
+}
+
+export function getNextRace(races: Race[], now: Date = new Date()): Race | null {
+  const sortedRaces = [...races].sort((left, right) => getRaceStart(left).getTime() - getRaceStart(right).getTime());
+  const nowMs = now.getTime();
+
+  return (
+    sortedRaces.find((race) => {
+      const { weekendStartMs } = getRaceWeekendWindow(race);
+      return Number.isFinite(weekendStartMs) && weekendStartMs >= nowMs;
+    }) ?? null
+  );
+}
+
 export function getRaceStateDisplay(state: ProductRaceState) {
   if (state === "upcoming") {
     return {
-      label: "Pre-Weekend",
-      headline: "What to watch before lights out"
+      label: "Before lights out",
+      headline: "What to watch this weekend"
     };
   }
 
   if (state === "live") {
     return {
-      label: "Weekend Live",
-      headline: "What matters right now"
+      label: "Weekend live",
+      headline: "What's moving right now"
     };
   }
 
   return {
-    label: "Post-Race",
-    headline: "What decided the Grand Prix"
+    label: "Race done",
+    headline: "How this one turned"
   };
 }
 
@@ -263,10 +287,10 @@ export function getRaceStateNarrative(state: ProductRaceState, fanHook: string, 
   }
 
   if (state === "live") {
-    return `The event window is active. Use the track map, watchlist, and battle tools to follow the race pressure points as they become real.`;
+    return "Weekend is on. Track map up, follow where the pressure starts to bite.";
   }
 
-  return recapHeadline ?? "The race is complete. Use the recap surfaces to understand how the result actually formed.";
+  return recapHeadline ?? "Race is done. Open the recap and see where it swung.";
 }
 
 export function getTrackDnaProfile(circuitId: string): TrackDnaProfile {
@@ -291,20 +315,20 @@ export function getTrackDnaProfile(circuitId: string): TrackDnaProfile {
 export function getTrackWatchlistHeading(state: ProductRaceState) {
   if (state === "upcoming") {
     return {
-      title: "Pre-Race Watchlist",
-      subtitle: "What to look for before the weekend turns into race story."
+      title: "Before Lights Out",
+      subtitle: "The places and patterns worth watching before the weekend starts."
     };
   }
 
   if (state === "live") {
     return {
-      title: "Weekend Pressure Points",
-      subtitle: "What matters right now as the event unfolds."
+      title: "Where It Gets Tricky",
+      subtitle: "The corners, calls, and mistakes that matter right now."
     };
   }
 
   return {
-    title: "What Decided The Race",
-    subtitle: "The same pressure points, now viewed as the actual race story."
+    title: "Why It Swung",
+    subtitle: "The same pressure points, now with the answer."
   };
 }

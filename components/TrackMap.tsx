@@ -1083,10 +1083,34 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
   if (hasError || !svgData) {
     return (
       <div className={cn("border border-[#2A2A2A] bg-[#090909] p-3", className)}>
-        <div className={cn(TRACK_FRAME_HEIGHT_CLASS, "flex items-center justify-center border border-[#1E1E1E] bg-[#080808] px-6")}>
-          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E8E]">
-            Track map unavailable for this circuit.
-          </p>
+        <div
+          className={cn(
+            TRACK_FRAME_HEIGHT_CLASS,
+            "relative overflow-hidden border border-[#1E1E1E] bg-[#080808] px-6"
+          )}
+        >
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:28px_28px]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(225,6,0,0.08),transparent_55%)]" />
+          <div className="relative flex h-full flex-col items-center justify-center px-4 text-center">
+            <div className="mb-6 rounded-full border border-[#2A2A2A] bg-[#0D0D0D] p-4">
+              <svg viewBox="0 0 120 84" className="h-10 w-14" aria-hidden="true">
+                <path
+                  d="M18 58C18 46 24 34 34 24C43 15 56 12 67 15C74 17 84 22 91 31C97 39 100 48 98 57C96 67 88 74 77 76C69 78 61 74 55 70C48 66 42 66 35 69C28 72 22 69 20 63C19 61 18 60 18 58Z"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.18)"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <p className="font-mono text-6xl font-bold uppercase tracking-[0.24em] text-gray-700 opacity-20 md:text-8xl">
+              TRACK MAP
+            </p>
+            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-600">
+              Circuit visualization
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -1288,7 +1312,7 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
             className="flex w-full items-center justify-between px-3 py-2 text-left"
           >
             <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#E6A3A0]">
-              {isTrackReplayOpen ? "Hide Track Replay" : "Show Track Replay"}
+              {isTrackReplayOpen ? "Hide Highlights" : "Watch Race Highlights"}
             </span>
             <span className={cn("material-icons text-base text-[#E10600] transition-transform", isTrackReplayOpen ? "rotate-180" : "")}>
               expand_more

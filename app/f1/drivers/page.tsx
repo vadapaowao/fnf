@@ -28,7 +28,7 @@ export default async function DriversPage() {
             {F1_SEASON} DRIVERS
           </h1>
           <p className="text-gray-400">
-            Identity-first driver dossiers with live season context, team metadata, and archive access.
+            Full grid, one page. Pick a driver and get the season quickly.
           </p>
         </div>
 
@@ -38,10 +38,10 @@ export default async function DriversPage() {
               <div className="border-b border-white/5 px-6 py-4">
                 <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Driver Directory</p>
                 <h2 className="mt-2 font-display text-3xl font-bold text-white">
-                  {`${standings.length} dossiers for the full ${F1_SEASON} grid`}
+                  {`${standings.length} drivers on the ${F1_SEASON} grid`}
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-400">
-                  Built as a driver-first directory instead of a standings wall: stronger identity, cleaner team context, permanent numbers, and direct entry into deeper single-driver views with archive layers.
+                  Pick a driver and go straight to results, teammate numbers, and season form.
                 </p>
               </div>
 
@@ -53,22 +53,20 @@ export default async function DriversPage() {
                 <div className="rounded-lg border border-white/5 bg-black/20 p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Teams</p>
                   <p className="mt-2 text-3xl font-black text-white">{teamsRepresented}</p>
-                  <p className="mt-1 text-[11px] text-gray-500">constructors represented</p>
+                  <p className="mt-1 text-[11px] text-gray-500">teams</p>
                 </div>
                 <div className="rounded-lg border border-white/5 bg-black/20 p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Nationalities</p>
                   <p className="mt-2 text-3xl font-black text-white">{nationalitiesRepresented}</p>
-                  <p className="mt-1 text-[11px] text-gray-500">
-                    global spread across the grid
-                  </p>
+                  <p className="mt-1 text-[11px] text-gray-500">nationalities</p>
                 </div>
               </div>
             </article>
 
             <StandingsAccordion
               eyebrow="Current Standings"
-              title={`${F1_SEASON} Driver Standings`}
-              subtitle="Current championship order for the full grid. Click to expand the full table."
+              title={`${F1_SEASON} Driver Table`}
+              subtitle="Championship order right now. Open the full table if you want the whole thing."
               rows={standings.map((standing) => ({
                 rank: standing.position,
                 name: `${standing.driver.givenName} ${standing.driver.familyName}`,

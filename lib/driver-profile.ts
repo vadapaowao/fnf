@@ -492,7 +492,6 @@ function buildHeadToHeadSummary(): DriverHeadToHeadSummary {
 function buildBio(
   standing: DriverStanding,
   teamName: string,
-  age: number,
   effectiveSeason: string,
   careerWins: number,
   careerPoles: number,
@@ -823,7 +822,6 @@ export async function getDriverProfile(driverId: string, season: string = F1_SEA
     bio: buildBio(
       standing,
       teamName,
-      age,
       effectiveSeason,
       winsMeta.wins,
       poles,

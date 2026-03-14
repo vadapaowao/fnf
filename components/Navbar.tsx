@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { label: "Home", href: "/" },
   { label: "F1", href: "/f1" },
-  { label: "Football", href: "/football" }
+  { label: "Standings", href: "/f1/standings" }
 ];
 
 export default function Navbar() {
@@ -22,7 +22,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 border-b border-border/90 bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 md:px-6">
         <Link href="/" className="text-lg font-semibold tracking-wide text-foreground">
-          Sports Core
+          The Grid
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Desktop navigation">
