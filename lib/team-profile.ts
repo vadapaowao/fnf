@@ -16,6 +16,26 @@ const TEAM_ACCENT_COLORS: Record<string, string> = {
   haas: "#B6BABD"
 };
 
+const KNOWN_CONSTRUCTORS: Record<
+  string,
+  {
+    constructorId: string;
+    name: string;
+    nationality: string;
+  }
+> = {
+  red_bull: { constructorId: "red_bull", name: "Red Bull Racing", nationality: "Austrian" },
+  ferrari: { constructorId: "ferrari", name: "Ferrari", nationality: "Italian" },
+  mercedes: { constructorId: "mercedes", name: "Mercedes", nationality: "German" },
+  mclaren: { constructorId: "mclaren", name: "McLaren", nationality: "British" },
+  aston_martin: { constructorId: "aston_martin", name: "Aston Martin", nationality: "British" },
+  alpine: { constructorId: "alpine", name: "Alpine F1 Team", nationality: "French" },
+  williams: { constructorId: "williams", name: "Williams", nationality: "British" },
+  rb: { constructorId: "rb", name: "RB F1 Team", nationality: "Italian" },
+  sauber: { constructorId: "sauber", name: "Sauber", nationality: "Swiss" },
+  haas: { constructorId: "haas", name: "Haas F1 Team", nationality: "American" }
+};
+
 type ErgastConstructorStandingsResponse = {
   MRData?: {
     StandingsTable?: {
@@ -125,6 +145,10 @@ function toFixedNumber(value: string | undefined) {
 
 function getTeamColor(constructorId: string) {
   return TEAM_ACCENT_COLORS[constructorId] ?? "#E10600";
+}
+
+function getKnownConstructor(constructorId: string) {
+  return KNOWN_CONSTRUCTORS[constructorId] ?? null;
 }
 
 function getStrictSeasonCandidates(season: string) {
@@ -262,11 +286,12 @@ function formatAveragePoints(results: TeamRaceResult[]) {
 async function buildTeamSeasonSnapshot(
   constructorId: string,
   season: string,
-  standingContext?: { season: string; standings: ConstructorStanding[] } | null
+  standingContext?: { season: string; standings: ConstructorStanding[] } | null,
+  fallbackStanding?: ConstructorStanding | null
 ): Promise<TeamSeasonSnapshot | null> {
   const effectiveSeason = standingContext?.season ?? season;
   const standings = standingContext?.standings ?? [];
-  const standing = standings.find((entry) => entry.constructor.constructorId === constructorId) ?? null;
+  const standing = standings.find((entry) => entry.constructor.constructorId === constructorId) ?? fallbackStanding ?? null;
   const raceSeries = await fetchConstructorRaceResults(constructorId, effectiveSeason);
 
   if (!standing && raceSeries.length === 0) {
@@ -274,19 +299,22 @@ async function buildTeamSeasonSnapshot(
   }
 
   const leaderPoints = toFixedNumber(standings[0]?.points);
-  const currentPoints = toFixedNumber(standing?.points);
+  const pointsFromResults = raceSeries.reduce((sum, race) => sum + race.points, 0);
+  const currentPoints = standing ? toFixedNumber(standing.points) : pointsFromResults;
   const podiums = raceSeries.reduce((sum, race) => sum + race.podiums, 0);
+  const winsFromResults = raceSeries.reduce((sum, race) => sum + race.wins, 0);
+  const resolvedPosition = standing ? toInt(standing.position) : 0;
 
   return {
     season: effectiveSeason,
-    position: standing ? toInt(standing.position) : null,
+    position: resolvedPosition > 0 ? resolvedPosition : null,
     points: currentPoints,
-    wins: standing ? toInt(standing.wins) : raceSeries.reduce((sum, race) => sum + race.wins, 0),
+    wins: standing ? toInt(standing.wins) || winsFromResults : winsFromResults,
     podiums,
     bestFinish: formatBestFinish(raceSeries),
     averagePoints: formatAveragePoints(raceSeries),
     completedRounds: raceSeries.length,
-    pointsToLeader: Math.max(leaderPoints - currentPoints, 0),
+    pointsToLeader: leaderPoints > 0 ? Math.max(leaderPoints - currentPoints, 0) : 0,
     raceSeries
   };
 }
@@ -311,26 +339,32 @@ async function fetchCareerMeta(constructorId: string) {
 
 function buildNarrative(standing: ConstructorStanding, season: TeamSeasonSnapshot, career: TeamProfileData["career"]) {
   const teamName = standing.constructor.name;
-  const headline = `${teamName} has scored ${standing.points} points in the ${season.season} campaign.`;
+  const headline = `${teamName} has scored ${season.points} points in the ${season.season} campaign.`;
 
   return `${headline} The team has ${season.wins} win${season.wins === 1 ? "" : "s"}, ${season.podiums} podium finishes and an average of ${season.averagePoints} points per round this season. Historically, it has ${career.raceWins} race wins and ${career.polePositions} pole positions since debuting in ${career.firstEntry}.`;
 }
 
 export async function getTeamProfile(constructorId: string, season: string = F1_SEASON): Promise<TeamProfileData | null> {
   const standingsContext = await fetchConstructorStandingsContext(season);
+  const knownConstructor = getKnownConstructor(constructorId);
+  const resolvedStanding =
+    standingsContext?.standings.find((entry) => entry.constructor.constructorId === constructorId) ??
+    (knownConstructor
+      ? {
+          position: "0",
+          points: "0",
+          wins: "0",
+          constructor: knownConstructor
+        }
+      : null);
 
-  if (!standingsContext) {
-    return null;
-  }
-
-  const standing = standingsContext.standings.find((entry) => entry.constructor.constructorId === constructorId);
-
-  if (!standing) {
+  if (!resolvedStanding) {
     return null;
   }
 
   const archive2025ContextPromise = fetchConstructorStandingsContext("2025", { strict: true });
-  const currentDriversPromise = getDriverStandings(standingsContext.season, { silent: true }).then((standings) =>
+  const effectiveCurrentSeason = standingsContext?.season ?? season;
+  const currentDriversPromise = getDriverStandings(effectiveCurrentSeason, { silent: true }).then((standings) =>
     standings.filter((entry) => entry.constructors.some((constructor) => constructor.constructorId === constructorId))
   );
   const archiveDriversPromise = archive2025ContextPromise.then((archiveContext) => {
@@ -344,8 +378,8 @@ export async function getTeamProfile(constructorId: string, season: string = F1_
   });
 
   const [currentSeason, archive2025, career, currentDrivers, archiveDrivers] = await Promise.all([
-    buildTeamSeasonSnapshot(constructorId, standingsContext.season, standingsContext),
-    archive2025ContextPromise.then((archiveContext) => buildTeamSeasonSnapshot(constructorId, "2025", archiveContext)),
+    buildTeamSeasonSnapshot(constructorId, effectiveCurrentSeason, standingsContext, resolvedStanding),
+    archive2025ContextPromise.then((archiveContext) => buildTeamSeasonSnapshot(constructorId, "2025", archiveContext, resolvedStanding)),
     fetchCareerMeta(constructorId),
     currentDriversPromise,
     archiveDriversPromise
@@ -356,13 +390,13 @@ export async function getTeamProfile(constructorId: string, season: string = F1_
   }
 
   return {
-    standing,
+    standing: resolvedStanding,
     teamColor: getTeamColor(constructorId),
     currentDrivers,
     archiveDrivers: archiveDrivers.length > 0 ? archiveDrivers : null,
     currentSeason,
     archive2025,
     career,
-    narrative: buildNarrative(standing, currentSeason, career)
+    narrative: buildNarrative(resolvedStanding, currentSeason, career)
   };
 }
