@@ -1,11 +1,13 @@
 import MyPitWallCard from "@/components/f1/MyPitWallCard";
-import { getRaceCalendar } from "@/lib/f1";
+import { getRaceCalendar, isScheduledRace } from "@/lib/f1";
 import CalendarRaceGrid from "@/components/f1/CalendarRaceGrid";
 
 export const revalidate = 60;
 
 export default async function CalendarPage() {
     const races = await getRaceCalendar();
+    const scheduledCount = races.filter(isScheduledRace).length;
+    const canceledCount = races.length - scheduledCount;
 
     return (
         <main className="flex-1 overflow-y-auto bg-background-dark">
@@ -15,7 +17,7 @@ export default async function CalendarPage() {
                         2026 CALENDAR
                     </h1>
                     <p className="text-gray-400">
-                        {races.length} races across the season
+                        {scheduledCount} scheduled races{canceledCount > 0 ? `, ${canceledCount} canceled` : ""}
                     </p>
                 </div>
                 <MyPitWallCard className="mb-8 max-w-xl" />

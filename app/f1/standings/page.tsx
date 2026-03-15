@@ -1,6 +1,6 @@
 import CountdownTimer from "@/components/CountdownTimer";
 import StandingsAccordion from "@/components/f1/StandingsAccordion";
-import { F1_SEASON, getConstructorStandings, getDriverStandings, getRaceCalendar, getRaceDetailByRound, getRaceRecapByRound, isUpcomingRace } from "@/lib/f1";
+import { F1_SEASON, getConstructorStandings, getDriverStandings, getRaceCalendar, getRaceDetailByRound, getRaceRecapByRound, isScheduledRace, isUpcomingRace } from "@/lib/f1";
 
 export const revalidate = 60;
 
@@ -25,11 +25,12 @@ function toConstructorRows(standings: Awaited<ReturnType<typeof getConstructorSt
 }
 
 export default async function StandingsPage() {
-  const [races, driverStandings, constructorStandings] = await Promise.all([
+  const [rawRaces, driverStandings, constructorStandings] = await Promise.all([
     getRaceCalendar(),
     getDriverStandings(F1_SEASON),
     getConstructorStandings(F1_SEASON)
   ]);
+  const races = rawRaces.filter(isScheduledRace);
 
   const nextRace = races.find(isUpcomingRace) ?? null;
   const lastCompletedRace = [...races].reverse().find((race) => !isUpcomingRace(race)) ?? null;

@@ -14,6 +14,10 @@ function getRaceStartMs(race: Race) {
   return new Date(`${race.date}T${race.time}`).getTime();
 }
 
+function isScheduledCalendarRace(race: Race) {
+  return race.status !== "canceled" && /^\d+$/.test(race.round);
+}
+
 function formatRaceDate(date: string) {
   return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", {
     month: "long",
@@ -41,7 +45,9 @@ function formatCountdown(totalMs: number) {
 }
 
 export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
-  const fallbackRound = races[0]?.round ?? "";
+  const scheduledRaces = useMemo(() => races.filter(isScheduledCalendarRace), [races]);
+  const canceledRaces = useMemo(() => races.filter((race) => !isScheduledCalendarRace(race)), [races]);
+  const fallbackRound = scheduledRaces[0]?.round ?? "";
   const [selectedRound, setSelectedRound] = useState(fallbackRound);
   const [nowMs, setNowMs] = useState<number | null>(null);
 
@@ -50,9 +56,9 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
       return fallbackRound;
     }
 
-    const upcomingRace = races.find((race) => getRaceStartMs(race) >= nowMs);
-    return (upcomingRace ?? races[0])?.round ?? fallbackRound;
-  }, [fallbackRound, nowMs, races]);
+    const upcomingRace = scheduledRaces.find((race) => getRaceStartMs(race) >= nowMs);
+    return (upcomingRace ?? scheduledRaces[0])?.round ?? fallbackRound;
+  }, [fallbackRound, nowMs, scheduledRaces]);
 
   useEffect(() => {
     setNowMs(Date.now());
@@ -66,14 +72,15 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
       return;
     }
 
-    if (!races.some((race) => race.round === selectedRound)) {
+    if (!scheduledRaces.some((race) => race.round === selectedRound)) {
       setSelectedRound(resolvedSelectedRound);
     }
-  }, [races, resolvedSelectedRound, selectedRound]);
+  }, [resolvedSelectedRound, scheduledRaces, selectedRound]);
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {races.map((race) => {
+    <div className="space-y-10">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {scheduledRaces.map((race) => {
         const raceStartMs = getRaceStartMs(race);
         const referenceNowMs = nowMs ?? 0;
         const isPast = raceStartMs < referenceNowMs;
@@ -82,7 +89,7 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
 
         return (
           <article
-            key={race.round}
+            key={`${race.circuitId}-${race.round}-${race.date}`}
             className={`rounded-xl border transition-all ${isPast
               ? "border-white/5 bg-background-dark/50 opacity-70"
               : "border-white/10 bg-gradient-to-br from-surface-dark to-background-dark"
@@ -161,6 +168,59 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
           </article>
         );
       })}
+      </div>
+
+      {canceledRaces.length > 0 ? (
+        <section className="space-y-4">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">Canceled</p>
+              <h2 className="mt-2 font-display text-2xl font-black italic text-white">Calendar changes</h2>
+            </div>
+            <p className="max-w-sm text-right text-xs text-gray-500">
+              These rounds are off the calendar and stay here for reference only.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {canceledRaces.map((race) => (
+              <article
+                key={`${race.circuitId}-${race.date}-canceled`}
+                className="rounded-xl border border-dashed border-white/10 bg-background-dark/40 opacity-80"
+              >
+                <div className="p-6">
+                  <div className="mb-4 flex items-center justify-between">
+                    <span className="text-xs font-mono text-gray-500">Canceled</span>
+                    <span className="rounded bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-300">
+                      CANCELED
+                    </span>
+                  </div>
+
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <h3 className="font-display text-xl font-bold text-white">{race.raceName}</h3>
+                  </div>
+
+                  <div className="mb-4 flex items-center gap-2 text-gray-400">
+                    <span className="material-icons text-sm">location_on</span>
+                    <span className="text-sm">
+                      {race.locality}, {race.country}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-gray-300">
+                    <span className="material-icons text-sm">event</span>
+                    <span className="text-sm font-mono">{formatRaceDate(race.date)}</span>
+                  </div>
+
+                  <div className="mt-4 border-t border-white/5 pt-4">
+                    <p className="truncate text-xs text-gray-500">{race.circuitName}</p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

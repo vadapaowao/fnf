@@ -207,11 +207,13 @@ export function getProductRaceState(race: Race, now: Date = new Date()): Product
 }
 
 export function getFeaturedRace(races: Race[], now: Date = new Date()): Race | null {
-  if (races.length === 0) {
+  const scheduledRaces = races.filter((race) => race.status !== "canceled" && /^\d+$/.test(race.round));
+
+  if (scheduledRaces.length === 0) {
     return null;
   }
 
-  const sortedRaces = [...races].sort((left, right) => getRaceStart(left).getTime() - getRaceStart(right).getTime());
+  const sortedRaces = [...scheduledRaces].sort((left, right) => getRaceStart(left).getTime() - getRaceStart(right).getTime());
   const nowMs = now.getTime();
 
   const recapRace = sortedRaces.find((race) => {

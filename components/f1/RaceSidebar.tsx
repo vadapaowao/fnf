@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { type Race } from "@/lib/f1";
+import type { Race } from "@/lib/f1";
 import { getFeaturedRace, getProductRaceState } from "@/lib/f1-product";
 
 interface RaceSidebarProps {
@@ -13,12 +13,17 @@ interface RaceSidebarProps {
   highlightedRound?: number;
 }
 
+function isScheduledSidebarRace(race: Race) {
+  return race.status !== "canceled" && /^\d+$/.test(race.round);
+}
+
 export default function RaceSidebar({ races, currentRaceRound, highlightedRound }: RaceSidebarProps) {
   const SIDEBAR_SCROLL_KEY = "f1-race-sidebar-scroll-top";
   const SIDEBAR_SEARCH_KEY = "f1-race-sidebar-search";
 
+  const scheduledRaces = useMemo(() => races.filter(isScheduledSidebarRace), [races]);
   const now = new Date();
-  const featuredRace = getFeaturedRace(races, now);
+  const featuredRace = getFeaturedRace(scheduledRaces, now);
   const activeRound = highlightedRound ?? currentRaceRound ?? Number(featuredRace?.round ?? 0);
   const pathname = usePathname();
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -66,16 +71,16 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound 
   const filteredRaces = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
     if (!query) {
-      return races;
+      return scheduledRaces;
     }
 
-    return races.filter((race) =>
+    return scheduledRaces.filter((race) =>
       [race.raceName, race.circuitName, race.locality, race.country, `round ${race.round}`]
         .join(" ")
         .toLowerCase()
         .includes(query)
     );
-  }, [races, searchTerm]);
+  }, [scheduledRaces, searchTerm]);
 
   return (
     <aside className="z-10 flex h-full w-80 shrink-0 flex-col overflow-hidden border-r border-white/10 bg-background-dark/80 backdrop-blur-sm">

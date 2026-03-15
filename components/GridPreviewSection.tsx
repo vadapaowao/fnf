@@ -2,10 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 
 import LocalDateTimeText from "@/components/f1/LocalDateTimeText";
-import { getRaceCalendar, getTrackSvgPathByCircuitId, isUpcomingRace } from "@/lib/f1";
+import { getRaceCalendar, getTrackSvgPathByCircuitId, isScheduledRace, isUpcomingRace } from "@/lib/f1";
 
 export default async function GridPreviewSection() {
-  const raceCalendar = await getRaceCalendar();
+  const raceCalendar = (await getRaceCalendar()).filter(isScheduledRace);
   const upcomingRaces = raceCalendar.filter(isUpcomingRace).slice(0, 3);
 
   if (upcomingRaces.length === 0) {

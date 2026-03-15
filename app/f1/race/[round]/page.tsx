@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import RaceIntelPanel from "@/components/f1/RaceIntelPanel";
 import RaceSidebar from "@/components/f1/RaceSidebar";
 import TrackHero from "@/components/f1/TrackHero";
-import { getRaceCalendar, getRaceDetailByRound, getRacePageBundle } from "@/lib/f1";
+import { getRaceCalendar, getRaceDetailByRound, getRacePageBundle, isScheduledRace } from "@/lib/f1";
 
 export const revalidate = 60;
 
@@ -15,7 +15,7 @@ type RaceDetailPageProps = {
 
 export async function generateStaticParams() {
   const races = await getRaceCalendar();
-  return races.map((race) => ({ round: race.round }));
+  return races.filter(isScheduledRace).map((race) => ({ round: race.round }));
 }
 
 export async function generateMetadata({ params }: RaceDetailPageProps) {

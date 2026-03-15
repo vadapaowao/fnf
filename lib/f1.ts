@@ -1,6 +1,7 @@
 import { getOpenF1RaceRecap, getOpenF1RaceReplay, getOpenF1SessionResultSummary } from "@/lib/openf1";
 import { getFastF1RaceBundle } from "@/lib/fastf1-data";
 import { getFeaturedRace } from "@/lib/f1-product";
+import { HISTORICAL_CIRCUIT_STATS } from "@/lib/circuit-history";
 
 export const F1_SEASON = "2026";
 const REVALIDATE_SECONDS = 3600;
@@ -36,6 +37,7 @@ export type Race = {
   date: string;
   time: string;
   sessionStarts?: Partial<Record<RaceSessionCode, string>>;
+  status?: "scheduled" | "canceled";
 };
 
 export type TrackSector = {
@@ -410,8 +412,8 @@ const SESSION_RESULTS_REVALIDATE_SECONDS = 60;
 const OFFICIAL_ROUTES_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const officialResultsRoutesCache = new Map<string, { createdAt: number; promise: Promise<OfficialResultsRoute[]> }>();
 const raceCalendarCache = new Map<string, { createdAt: number; promise: Promise<Race[]> }>();
-const historicalWinnerCache = new Map<string, { createdAt: number; promise: Promise<WinnerStat> }>();
-const historicalFastestLapCache = new Map<string, { createdAt: number; promise: Promise<FastestLapStat> }>();
+const historicalWinnerCache = new Map<string, { createdAt: number; value: WinnerStat }>();
+const historicalFastestLapCache = new Map<string, { createdAt: number; value: FastestLapStat }>();
 const finishedRaceRecapCache = new Map<string, { createdAt: number; promise: Promise<RaceRecap | null> }>();
 const finishedRaceReplayCache = new Map<string, { createdAt: number; promise: Promise<RaceReplayData | null> }>();
 const finishedSessionResultCache = new Map<
@@ -430,7 +432,7 @@ const liveSessionResultCache = new Map<
 >();
 
 // Temporary fallback: only used for missing rounds when the 2026 endpoint is partial/unavailable.
-const TEMP_FALLBACK_2026_CALENDAR: Race[] = [
+const TEMP_FALLBACK_2026_SCHEDULED_CALENDAR: Race[] = [
   {
     season: "2026",
     round: "1",
@@ -445,237 +447,215 @@ const TEMP_FALLBACK_2026_CALENDAR: Race[] = [
   {
     season: "2026",
     round: "2",
-    raceName: "Saudi Arabian Grand Prix",
-    circuitId: "jeddah",
-    circuitName: "Jeddah Corniche Circuit",
-    country: "Saudi Arabia",
-    locality: "Jeddah",
-    date: "2026-04-19",
-    time: "17:00:00Z"
-  },
-  {
-    season: "2026",
-    round: "3",
-    raceName: "Bahrain Grand Prix",
-    circuitId: "bahrain",
-    circuitName: "Bahrain International Circuit",
-    country: "Bahrain",
-    locality: "Sakhir",
-    date: "2026-04-26",
-    time: "15:00:00Z"
-  },
-  {
-    season: "2026",
-    round: "4",
-    raceName: "Japanese Grand Prix",
-    circuitId: "suzuka",
-    circuitName: "Suzuka Circuit",
-    country: "Japan",
-    locality: "Suzuka",
-    date: "2026-05-10",
-    time: "05:00:00Z"
-  },
-  {
-    season: "2026",
-    round: "5",
     raceName: "Chinese Grand Prix",
     circuitId: "shanghai",
     circuitName: "Shanghai International Circuit",
     country: "China",
     locality: "Shanghai",
-    date: "2026-05-24",
+    date: "2026-03-15",
     time: "07:00:00Z"
   },
   {
     season: "2026",
-    round: "6",
+    round: "3",
+    raceName: "Japanese Grand Prix",
+    circuitId: "suzuka",
+    circuitName: "Suzuka Circuit",
+    country: "Japan",
+    locality: "Suzuka",
+    date: "2026-03-29",
+    time: "05:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "4",
     raceName: "Miami Grand Prix",
     circuitId: "miami",
     circuitName: "Miami International Autodrome",
     country: "United States",
     locality: "Miami",
+    date: "2026-05-03",
+    time: "20:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "5",
+    raceName: "Canadian Grand Prix",
+    circuitId: "villeneuve",
+    circuitName: "Circuit Gilles-Villeneuve",
+    country: "Canada",
+    locality: "Montreal",
+    date: "2026-05-24",
+    time: "20:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "6",
+    raceName: "Monaco Grand Prix",
+    circuitId: "monaco",
+    circuitName: "Circuit de Monaco",
+    country: "Monaco",
+    locality: "Monte Carlo",
     date: "2026-06-07",
-    time: "19:30:00Z"
+    time: "13:00:00Z"
   },
   {
     season: "2026",
     round: "7",
-    raceName: "Emilia Romagna Grand Prix",
-    circuitId: "imola",
-    circuitName: "Autodromo Enzo e Dino Ferrari",
-    country: "Italy",
-    locality: "Imola",
+    raceName: "Barcelona Grand Prix",
+    circuitId: "catalunya",
+    circuitName: "Circuit de Barcelona-Catalunya",
+    country: "Spain",
+    locality: "Barcelona",
     date: "2026-06-14",
     time: "13:00:00Z"
   },
   {
     season: "2026",
     round: "8",
-    raceName: "Monaco Grand Prix",
-    circuitId: "monaco",
-    circuitName: "Circuit de Monaco",
-    country: "Monaco",
-    locality: "Monte Carlo",
+    raceName: "Austrian Grand Prix",
+    circuitId: "red_bull_ring",
+    circuitName: "Red Bull Ring",
+    country: "Austria",
+    locality: "Spielberg",
     date: "2026-06-28",
     time: "13:00:00Z"
   },
   {
     season: "2026",
     round: "9",
-    raceName: "Spanish Grand Prix",
-    circuitId: "catalunya",
-    circuitName: "Circuit de Barcelona-Catalunya",
-    country: "Spain",
-    locality: "Barcelona",
+    raceName: "British Grand Prix",
+    circuitId: "silverstone",
+    circuitName: "Silverstone Circuit",
+    country: "United Kingdom",
+    locality: "Silverstone",
     date: "2026-07-05",
-    time: "13:00:00Z"
+    time: "14:00:00Z"
   },
   {
     season: "2026",
     round: "10",
-    raceName: "Canadian Grand Prix",
-    circuitId: "villeneuve",
-    circuitName: "Circuit Gilles-Villeneuve",
-    country: "Canada",
-    locality: "Montreal",
+    raceName: "Belgian Grand Prix",
+    circuitId: "spa",
+    circuitName: "Circuit de Spa-Francorchamps",
+    country: "Belgium",
+    locality: "Spa",
     date: "2026-07-19",
-    time: "18:00:00Z"
+    time: "13:00:00Z"
   },
   {
     season: "2026",
     round: "11",
-    raceName: "Austrian Grand Prix",
-    circuitId: "red_bull_ring",
-    circuitName: "Red Bull Ring",
-    country: "Austria",
-    locality: "Spielberg",
+    raceName: "Hungarian Grand Prix",
+    circuitId: "hungaroring",
+    circuitName: "Hungaroring",
+    country: "Hungary",
+    locality: "Budapest",
     date: "2026-07-26",
     time: "13:00:00Z"
   },
   {
     season: "2026",
     round: "12",
-    raceName: "British Grand Prix",
-    circuitId: "silverstone",
-    circuitName: "Silverstone Circuit",
-    country: "United Kingdom",
-    locality: "Silverstone",
-    date: "2026-08-02",
-    time: "14:00:00Z"
-  },
-  {
-    season: "2026",
-    round: "13",
-    raceName: "Belgian Grand Prix",
-    circuitId: "spa",
-    circuitName: "Circuit de Spa-Francorchamps",
-    country: "Belgium",
-    locality: "Spa",
-    date: "2026-08-30",
-    time: "13:00:00Z"
-  },
-  {
-    season: "2026",
-    round: "14",
-    raceName: "Hungarian Grand Prix",
-    circuitId: "hungaroring",
-    circuitName: "Hungaroring",
-    country: "Hungary",
-    locality: "Budapest",
-    date: "2026-09-06",
-    time: "13:00:00Z"
-  },
-  {
-    season: "2026",
-    round: "15",
     raceName: "Dutch Grand Prix",
     circuitId: "zandvoort",
     circuitName: "Circuit Zandvoort",
     country: "Netherlands",
     locality: "Zandvoort",
-    date: "2026-09-20",
+    date: "2026-08-23",
     time: "13:00:00Z"
   },
   {
     season: "2026",
-    round: "16",
+    round: "13",
     raceName: "Italian Grand Prix",
     circuitId: "monza",
     circuitName: "Autodromo Nazionale Monza",
     country: "Italy",
     locality: "Monza",
-    date: "2026-09-27",
+    date: "2026-09-06",
     time: "13:00:00Z"
   },
   {
     season: "2026",
-    round: "17",
+    round: "14",
+    raceName: "Spanish Grand Prix",
+    circuitId: "madring",
+    circuitName: "Madring",
+    country: "Spain",
+    locality: "Madrid",
+    date: "2026-09-13",
+    time: "13:00:00Z"
+  },
+  {
+    season: "2026",
+    round: "15",
     raceName: "Azerbaijan Grand Prix",
     circuitId: "baku",
     circuitName: "Baku City Circuit",
     country: "Azerbaijan",
     locality: "Baku",
-    date: "2026-10-11",
+    date: "2026-09-26",
     time: "11:00:00Z"
   },
   {
     season: "2026",
-    round: "18",
+    round: "16",
     raceName: "Singapore Grand Prix",
     circuitId: "marina_bay",
     circuitName: "Marina Bay Street Circuit",
     country: "Singapore",
     locality: "Singapore",
-    date: "2026-10-25",
+    date: "2026-10-11",
     time: "12:00:00Z"
   },
   {
     season: "2026",
-    round: "19",
+    round: "17",
     raceName: "United States Grand Prix",
     circuitId: "americas",
     circuitName: "Circuit of the Americas",
     country: "United States",
     locality: "Austin",
-    date: "2026-11-01",
+    date: "2026-10-25",
     time: "20:00:00Z"
   },
   {
     season: "2026",
-    round: "20",
+    round: "18",
     raceName: "Mexico City Grand Prix",
     circuitId: "rodriguez",
     circuitName: "Autodromo Hermanos Rodriguez",
     country: "Mexico",
     locality: "Mexico City",
-    date: "2026-11-08",
+    date: "2026-11-01",
     time: "20:00:00Z"
   },
   {
     season: "2026",
-    round: "21",
-    raceName: "Sao Paulo Grand Prix",
+    round: "19",
+    raceName: "Brazilian Grand Prix",
     circuitId: "interlagos",
     circuitName: "Autodromo Jose Carlos Pace",
     country: "Brazil",
     locality: "Sao Paulo",
-    date: "2026-11-15",
+    date: "2026-11-08",
     time: "17:00:00Z"
   },
   {
     season: "2026",
-    round: "22",
+    round: "20",
     raceName: "Las Vegas Grand Prix",
     circuitId: "las_vegas",
     circuitName: "Las Vegas Strip Circuit",
     country: "United States",
     locality: "Las Vegas",
     date: "2026-11-22",
-    time: "06:00:00Z"
+    time: "04:00:00Z"
   },
   {
     season: "2026",
-    round: "23",
+    round: "21",
     raceName: "Qatar Grand Prix",
     circuitId: "losail",
     circuitName: "Lusail International Circuit",
@@ -686,7 +666,7 @@ const TEMP_FALLBACK_2026_CALENDAR: Race[] = [
   },
   {
     season: "2026",
-    round: "24",
+    round: "22",
     raceName: "Abu Dhabi Grand Prix",
     circuitId: "yas_marina",
     circuitName: "Yas Marina Circuit",
@@ -694,6 +674,33 @@ const TEMP_FALLBACK_2026_CALENDAR: Race[] = [
     locality: "Abu Dhabi",
     date: "2026-12-06",
     time: "13:00:00Z"
+  }
+];
+
+const TEMP_CANCELED_2026_CALENDAR: Race[] = [
+  {
+    season: "2026",
+    round: "",
+    raceName: "Bahrain Grand Prix",
+    circuitId: "bahrain",
+    circuitName: "Bahrain International Circuit",
+    country: "Bahrain",
+    locality: "Sakhir",
+    date: "2026-04-12",
+    time: "15:00:00Z",
+    status: "canceled"
+  },
+  {
+    season: "2026",
+    round: "",
+    raceName: "Saudi Arabian Grand Prix",
+    circuitId: "jeddah",
+    circuitName: "Jeddah Corniche Circuit",
+    country: "Saudi Arabia",
+    locality: "Jeddah",
+    date: "2026-04-19",
+    time: "17:00:00Z",
+    status: "canceled"
   }
 ];
 
@@ -956,11 +963,25 @@ function resolveCanonicalCircuitId(race: Pick<Race, "circuitId" | "circuitName" 
   return rawId;
 }
 
+function hasValidRaceRound(round: string | null | undefined): round is string {
+  return typeof round === "string" && /^\d+$/.test(round.trim());
+}
+
+export function isScheduledRace(race: Pick<Race, "round" | "status">): boolean {
+  if (race.status === "canceled") {
+    return false;
+  }
+
+  return hasValidRaceRound(race.round);
+}
+
 function normalizeRace(race: ErgastRace): Race {
   const sessionStarts = buildRaceSessionStartMap(race);
+  const round = typeof race.round === "string" ? race.round.trim() : "";
+  const status: Race["status"] = hasValidRaceRound(round) ? "scheduled" : "canceled";
   const raceBase = {
     season: race.season,
-    round: race.round,
+    round,
     raceName: race.raceName,
     circuitId: race.Circuit.circuitId,
     circuitName: race.Circuit.circuitName,
@@ -968,7 +989,8 @@ function normalizeRace(race: ErgastRace): Race {
     locality: race.Circuit.Location.locality,
     date: race.date,
     time: race.time ?? "00:00:00Z",
-    sessionStarts
+    sessionStarts,
+    status
   };
 
   return {
@@ -1041,23 +1063,62 @@ function buildRaceSessionStartMap(race: ErgastRace): Partial<Record<RaceSessionC
 }
 
 function sortByRound(races: Race[]): Race[] {
-  return [...races].sort((a, b) => Number(a.round) - Number(b.round));
+  return [...races].sort((a, b) => {
+    const roundA = hasValidRaceRound(a.round) ? Number(a.round) : Number.POSITIVE_INFINITY;
+    const roundB = hasValidRaceRound(b.round) ? Number(b.round) : Number.POSITIVE_INFINITY;
+
+    if (roundA !== roundB) {
+      return roundA - roundB;
+    }
+
+    return new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
+  });
 }
 
 function mergeWithFallbackRaces(apiRaces: Race[]): Race[] {
-  const byRound = new Map<string, Race>();
+  const scheduledRaces = apiRaces.filter(isScheduledRace);
+  const canceledRaces = apiRaces.filter((race) => !isScheduledRace(race));
 
-  for (const race of apiRaces) {
-    byRound.set(race.round, race);
+  const scheduledByIdentity = new Map<string, Race>();
+  const scheduledRounds = new Set<string>();
+
+  const getIdentityKey = (race: Race) => {
+    const circuitKey = race.circuitId.trim().toLowerCase();
+    if (circuitKey) {
+      return `circuit:${circuitKey}`;
+    }
+
+    return `race:${race.raceName.trim().toLowerCase()}|${race.date}`;
+  };
+
+  for (const race of scheduledRaces) {
+    scheduledByIdentity.set(getIdentityKey(race), race);
+    scheduledRounds.add(race.round);
   }
 
-  for (const fallbackRace of TEMP_FALLBACK_2026_CALENDAR) {
-    if (!byRound.has(fallbackRace.round)) {
-      byRound.set(fallbackRace.round, fallbackRace);
+  for (const fallbackRace of TEMP_FALLBACK_2026_SCHEDULED_CALENDAR) {
+    const identityKey = getIdentityKey(fallbackRace);
+    if (scheduledByIdentity.has(identityKey) || scheduledRounds.has(fallbackRace.round)) {
+      continue;
+    }
+
+    scheduledByIdentity.set(identityKey, fallbackRace);
+    scheduledRounds.add(fallbackRace.round);
+  }
+
+  const canceledByIdentity = new Map<string, Race>();
+  const canceledSources = [...canceledRaces, ...TEMP_CANCELED_2026_CALENDAR];
+
+  for (const race of canceledSources) {
+    const identityKey = getIdentityKey(race);
+    if (!canceledByIdentity.has(identityKey)) {
+      canceledByIdentity.set(identityKey, { ...race, status: "canceled", round: "" });
     }
   }
 
-  return sortByRound(Array.from(byRound.values()));
+  return [...sortByRound(Array.from(scheduledByIdentity.values())), ...Array.from(canceledByIdentity.values()).sort((a, b) => {
+    return new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
+  })];
 }
 
 async function fetchJson<T>(url: string, revalidateSeconds: number = REVALIDATE_SECONDS): Promise<T | null> {
@@ -1267,6 +1328,10 @@ async function fetchMostRecentWinner(circuitId: string): Promise<WinnerStat> {
   };
 }
 
+function isWinnerUnavailable(stat: WinnerStat) {
+  return stat.driver === UNAVAILABLE || stat.year === UNAVAILABLE;
+}
+
 async function fetchFastestLap(circuitId: string): Promise<FastestLapStat> {
   const data = await fetchJson<ErgastResultResponse>(
     `${ERGAST_BASE_URL}/circuits/${circuitId}/fastest/1/results.json?limit=200`
@@ -1305,16 +1370,58 @@ async function fetchFastestLap(circuitId: string): Promise<FastestLapStat> {
   };
 }
 
+function isFastestLapUnavailable(stat: FastestLapStat) {
+  return stat.driver === UNAVAILABLE || stat.time === UNAVAILABLE || stat.year === UNAVAILABLE;
+}
+
 async function getHistoricalWinner(circuitId: string) {
-  return getCachedPromise(historicalWinnerCache, circuitId, HISTORICAL_STATS_CACHE_TTL_MS, () =>
-    fetchMostRecentWinner(circuitId)
-  );
+  const cached = historicalWinnerCache.get(circuitId);
+  if (cached && Date.now() - cached.createdAt < HISTORICAL_STATS_CACHE_TTL_MS) {
+    return cached.value;
+  }
+
+  const live = await fetchMostRecentWinner(circuitId);
+  if (!isWinnerUnavailable(live)) {
+    historicalWinnerCache.set(circuitId, { createdAt: Date.now(), value: live });
+    return live;
+  }
+
+  if (cached && !isWinnerUnavailable(cached.value)) {
+    return cached.value;
+  }
+
+  const fallback = HISTORICAL_CIRCUIT_STATS[circuitId]?.winner;
+  if (fallback && !isWinnerUnavailable(fallback)) {
+    historicalWinnerCache.set(circuitId, { createdAt: Date.now(), value: fallback });
+    return fallback;
+  }
+
+  return live;
 }
 
 async function getHistoricalFastestLap(circuitId: string) {
-  return getCachedPromise(historicalFastestLapCache, circuitId, HISTORICAL_STATS_CACHE_TTL_MS, () =>
-    fetchFastestLap(circuitId)
-  );
+  const cached = historicalFastestLapCache.get(circuitId);
+  if (cached && Date.now() - cached.createdAt < HISTORICAL_STATS_CACHE_TTL_MS) {
+    return cached.value;
+  }
+
+  const live = await fetchFastestLap(circuitId);
+  if (!isFastestLapUnavailable(live)) {
+    historicalFastestLapCache.set(circuitId, { createdAt: Date.now(), value: live });
+    return live;
+  }
+
+  if (cached && !isFastestLapUnavailable(cached.value)) {
+    return cached.value;
+  }
+
+  const fallback = HISTORICAL_CIRCUIT_STATS[circuitId]?.fastestLap;
+  if (fallback && !isFastestLapUnavailable(fallback)) {
+    historicalFastestLapCache.set(circuitId, { createdAt: Date.now(), value: fallback });
+    return fallback;
+  }
+
+  return live;
 }
 
 export async function getRaceCalendar(): Promise<Race[]> {
@@ -1344,7 +1451,7 @@ export async function getRaceCalendar(): Promise<Race[]> {
 
 export async function getRaceByRound(round: string): Promise<Race | null> {
   const races = await getRaceCalendar();
-  return races.find((race) => race.round === round) ?? null;
+  return races.find((race) => isScheduledRace(race) && race.round === round) ?? null;
 }
 
 async function buildRaceDetail(race: Race): Promise<RaceDetail> {
@@ -1406,7 +1513,7 @@ async function buildRacePageBundle(races: Race[], race: Race): Promise<RacePageB
 }
 
 export async function getFeaturedRaceBundle(): Promise<RacePageBundle | null> {
-  const races = await getRaceCalendar();
+  const races = (await getRaceCalendar()).filter(isScheduledRace);
   const race = getFeaturedRace(races) ?? races[0] ?? null;
 
   if (!race) {
@@ -1417,7 +1524,7 @@ export async function getFeaturedRaceBundle(): Promise<RacePageBundle | null> {
 }
 
 export async function getRacePageBundle(round: string): Promise<RacePageBundle | null> {
-  const races = await getRaceCalendar();
+  const races = (await getRaceCalendar()).filter(isScheduledRace);
   const race = races.find((entry) => entry.round === round) ?? null;
 
   if (!race) {
@@ -1471,11 +1578,19 @@ export function formatRaceWeekendRange(date: string): string {
   return `${startDay} ${startMonth} - ${endDay} ${endMonth} ${endYear}`;
 }
 
-export function isUpcomingRace(race: Pick<Race, "date" | "time">): boolean {
+export function isUpcomingRace(race: Pick<Race, "date" | "time" | "status">): boolean {
+  if (race.status === "canceled") {
+    return false;
+  }
+
   return new Date(getRaceDateTimeIso(race)).getTime() >= Date.now();
 }
 
-function isRaceFinished(race: Pick<Race, "date" | "time">) {
+function isRaceFinished(race: Pick<Race, "date" | "time" | "status">) {
+  if (race.status === "canceled") {
+    return false;
+  }
+
   const raceStartMs = new Date(getRaceDateTimeIso(race)).getTime();
 
   if (!Number.isFinite(raceStartMs)) {

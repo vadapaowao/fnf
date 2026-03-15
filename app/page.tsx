@@ -2,10 +2,10 @@ import LandingFooter from "@/components/LandingFooter";
 import LandingHero from "@/components/LandingHero";
 import LandingNav from "@/components/LandingNav";
 import GridPreviewSection from "@/components/GridPreviewSection";
-import { getRaceCalendar, isUpcomingRace } from "@/lib/f1";
+import { getRaceCalendar, isScheduledRace, isUpcomingRace } from "@/lib/f1";
 
 export default async function HomePage() {
-  const raceCalendar = await getRaceCalendar();
+  const raceCalendar = (await getRaceCalendar()).filter(isScheduledRace);
   const nextRace = raceCalendar.find(isUpcomingRace) ?? raceCalendar[0] ?? null;
 
   return (
