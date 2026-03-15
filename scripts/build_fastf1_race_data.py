@@ -16,6 +16,11 @@ OUTPUT_DIR = ROOT / "public" / "data" / "fastf1"
 COMPLETION_BUFFER_HOURS = 6
 
 
+def ensure_fastf1_cache() -> None:
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    fastf1.Cache.enable_cache(str(CACHE_DIR))
+
+
 def timedelta_ms(value: Any) -> Optional[int]:
     if pd.isna(value):
         return None
@@ -124,7 +129,6 @@ def build_trace(row: pd.Series, laps: pd.DataFrame, global_fallback_ms: int) -> 
 
 
 def build_bundle(season: int, round_number: int) -> Dict[str, Any]:
-    fastf1.Cache.enable_cache(str(CACHE_DIR))
     session = fastf1.get_session(season, round_number, "R")
     session.load(laps=True, telemetry=False, weather=False, messages=False)
 
@@ -375,7 +379,7 @@ def main() -> None:
     group.add_argument("--completed", action="store_true", help="Generate bundles for all completed rounds in the season")
     args = parser.parse_args()
 
-    fastf1.Cache.enable_cache(str(CACHE_DIR))
+    ensure_fastf1_cache()
 
     if args.completed:
         rounds = get_completed_rounds(args.season)
