@@ -2,7 +2,7 @@ name: Refresh FastF1 Replay Bundles
 
 on:
   schedule:
-    - cron: "15 */6 * * *"
+    - cron: "15 * * * *"
   workflow_dispatch:
 
 permissions:
