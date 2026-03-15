@@ -7,11 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "tracks:build": "node scripts/build_track_shape_manifest.mjs",
     "fastf1:build": "python3 scripts/build_fastf1_race_data.py",
     "fastf1:build:completed": "python3 scripts/build_fastf1_race_data.py --completed"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.4.7",

@@ -11,6 +11,14 @@ const nextConfig = {
         protocol: "https",
         hostname: "crests.football-data.org",
       },
+      {
+        protocol: "https",
+        hostname: "media.formula1.com",
+      },
+      {
+        protocol: "https",
+        hostname: "flagcdn.com",
+      },
     ],
   },
 };

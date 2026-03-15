@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import { DriverStanding } from "@/lib/f1";
 import { getDriverImageUrl } from "@/lib/f1";
 
@@ -46,10 +48,13 @@ export default function DriverHero({ standing }: DriverHeroProps) {
 
                 {/* Team Badge */}
                 <div className="flex items-center gap-3 mt-4 bg-background-dark/30 backdrop-blur-sm p-2 rounded-lg inline-flex border border-white/5">
-                    <img
+                    <Image
                         src={flagUrl}
-                        className="w-8 h-auto rounded shadow-sm opacity-90"
+                        className="h-auto w-8 rounded shadow-sm opacity-90"
                         alt={`${driver.nationality} Flag`}
+                        width={32}
+                        height={24}
+                        unoptimized
                     />
                     <span className="text-sm lg:text-lg font-display text-gray-200 tracking-widest uppercase font-bold">
                         {team?.name || "Team TBA"}
@@ -74,10 +79,13 @@ export default function DriverHero({ standing }: DriverHeroProps) {
                 <div className="absolute inset-y-0 right-0 bg-gradient-to-l from-background-dark via-transparent to-transparent z-10 w-1/4"></div>
 
                 {/* Driver Image */}
-                <img
+                <Image
                     src={driverImage}
                     alt={`${driver.givenName} ${driver.familyName}`}
-                    className="driver-aura h-[90%] w-auto object-cover object-bottom translate-y-0 relative z-0"
+                    className="driver-aura relative z-0 h-[90%] w-auto translate-y-0 object-cover object-bottom"
+                    width={720}
+                    height={960}
+                    priority
                 />
             </div>
 

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 
 import type { RaceRecap, RaceReplayData, TrackSector } from "@/lib/f1";
+import { TRACK_SHAPES } from "@/lib/track-shapes";
 import { getTrackSectorInsight } from "@/lib/track-sector-insights";
 import { cn } from "@/lib/utils";
 
@@ -292,88 +293,6 @@ function getFallbackTelemetry(circuitId: string) {
   return `Telemetry feed unavailable for ${circuitId.replace(/_/g, " ")}.`;
 }
 
-function parseStrokeOnlyClasses(svgText: string): Set<string> {
-  const classes = new Set<string>();
-  const styleBlocks = Array.from(svgText.matchAll(/\.([a-zA-Z0-9_-]+)\s*\{([^}]*)\}/g));
-
-  for (const [, className, rules] of styleBlocks) {
-    const normalizedRules = rules.toLowerCase().replace(/\s+/g, "");
-    const hasStroke = normalizedRules.includes("stroke:");
-    const hasNoFill = normalizedRules.includes("fill:none");
-
-    if (hasStroke && hasNoFill) {
-      classes.add(className);
-    }
-  }
-
-  return classes;
-}
-
-function parseFillNoneClasses(svgText: string): Set<string> {
-  const classes = new Set<string>();
-  const styleBlocks = Array.from(svgText.matchAll(/\.([a-zA-Z0-9_-]+)\s*\{([^}]*)\}/g));
-
-  for (const [, className, rules] of styleBlocks) {
-    const normalizedRules = rules.toLowerCase().replace(/\s+/g, "");
-    if (normalizedRules.includes("fill:none")) {
-      classes.add(className);
-    }
-  }
-
-  return classes;
-}
-
-function parseStrokeWidth(value: string | null): number | null {
-  if (!value) {
-    return null;
-  }
-
-  const numeric = Number(value.trim());
-  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
-}
-
-function resolvePrimarySubpath(d: string): string {
-  const chunks = d.match(/[Mm][^Mm]*/g);
-
-  if (!chunks || chunks.length <= 1) {
-    return d;
-  }
-
-  return chunks.sort((a, b) => b.length - a.length)[0]?.trim() ?? d;
-}
-
-function parseSvgDimension(rawValue: string | null): number | null {
-  if (!rawValue) {
-    return null;
-  }
-
-  const match = rawValue.match(/-?\d+(\.\d+)?/);
-
-  if (!match) {
-    return null;
-  }
-
-  const numeric = Number(match[0]);
-  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
-}
-
-function resolveViewBox(svgElement: SVGElement | null): string | null {
-  const viewBox = svgElement?.getAttribute("viewBox")?.trim();
-
-  if (viewBox) {
-    return viewBox;
-  }
-
-  const width = parseSvgDimension(svgElement?.getAttribute("width") ?? null);
-  const height = parseSvgDimension(svgElement?.getAttribute("height") ?? null);
-
-  if (width && height) {
-    return `0 0 ${width} ${height}`;
-  }
-
-  return null;
-}
-
 function parseViewBox(viewBox: string): [number, number, number, number] | null {
   const values = viewBox
     .trim()
@@ -391,73 +310,8 @@ function parseViewBox(viewBox: string): [number, number, number, number] | null 
 
   return [minX, minY, width, height];
 }
-
-function resolveMainTrackPath(parsed: Document, svgText: string): string | null {
-  const strokeOnlyClasses = parseStrokeOnlyClasses(svgText);
-  const fillNoneClasses = parseFillNoneClasses(svgText);
-  const allPaths = Array.from(parsed.querySelectorAll("path[d]"));
-
-  if (allPaths.length === 0) {
-    return null;
-  }
-
-  const ranked = allPaths
-    .map((pathElement) => {
-      const d = pathElement.getAttribute("d")?.trim() ?? "";
-      const stroke = pathElement.getAttribute("stroke")?.trim()?.toLowerCase() ?? "";
-      const fill = pathElement.getAttribute("fill")?.trim()?.toLowerCase() ?? "";
-      const strokeWidth = parseStrokeWidth(pathElement.getAttribute("stroke-width"));
-      const classNames = (pathElement.getAttribute("class") ?? "")
-        .split(/\s+/)
-        .map((className) => className.trim())
-        .filter(Boolean);
-
-      const isStrokePath = classNames.some((className) => strokeOnlyClasses.has(className));
-      const hasFillNoneClass = classNames.some((className) => fillNoneClasses.has(className));
-      const hasStrokeAttribute = Boolean(stroke && stroke !== "none");
-      const hasNoFillAttribute = fill === "none";
-      const hasNoFill = hasFillNoneClass || hasNoFillAttribute;
-      const pathScore =
-        d.length +
-        (isStrokePath || hasStrokeAttribute ? 12000 : 0) +
-        (hasNoFill ? 6000 : 0) +
-        (strokeWidth ? strokeWidth * 32 : 0);
-
-      return {
-        d: resolvePrimarySubpath(d),
-        score: pathScore,
-        strokeWidth
-      };
-    })
-    .filter((entry) => entry.d.length > 0)
-    .sort((a, b) => b.score - a.score);
-
-  return ranked[0]?.d ?? null;
-}
-
-function resolveNativeStrokeWidth(parsed: Document): number | null {
-  const paths = Array.from(parsed.querySelectorAll("path[d]"));
-
-  if (paths.length === 0) {
-    return null;
-  }
-
-  const widths = paths
-    .map((pathElement) => parseStrokeWidth(pathElement.getAttribute("stroke-width")))
-    .filter((width): width is number => width !== null);
-
-  if (widths.length === 0) {
-    return null;
-  }
-
-  return widths.sort((a, b) => b - a)[0] ?? null;
-}
-
-export default function TrackMap({ circuitId, trackSvgPath, className, sectors, drsZoneCount, recap, replay }: TrackMapProps) {
-  const [svgData, setSvgData] = useState<TrackSvgData | null>(null);
+export default function TrackMap({ circuitId, className, sectors, drsZoneCount, recap, replay }: TrackMapProps) {
   const [fittedViewBox, setFittedViewBox] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
   const [activeSectorId, setActiveSectorId] = useState<TrackSector["id"] | null>(null);
   const [activeDrsId, setActiveDrsId] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState<SelectionMode | null>(null);
@@ -470,6 +324,8 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
 
   const pathRef = useRef<SVGPathElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
+  const svgData = useMemo<TrackSvgData | null>(() => TRACK_SHAPES[circuitId] ?? null, [circuitId]);
+  const hasError = !svgData;
 
   const layout = useMemo(() => TRACK_LAYOUTS[circuitId] ?? DEFAULT_LAYOUT, [circuitId]);
 
@@ -601,68 +457,6 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
     const generated = Array.from({ length: requestedCount }, (_, index) => (index + 1) / (requestedCount + 1));
     return generated;
   }, [drsZoneCount, layout.drsFractions]);
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    async function loadSvg() {
-      if (!trackSvgPath) {
-        setSvgData(null);
-        setHasError(true);
-        setIsLoading(false);
-        if (typeof window !== "undefined") {
-          console.warn(`[TrackMap] Missing track SVG mapping for circuit '${circuitId}'.`);
-        }
-        return;
-      }
-
-      setIsLoading(true);
-      setHasError(false);
-
-      try {
-        const response = await fetch(trackSvgPath, { cache: "force-cache" });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const svgText = await response.text();
-        const parsed = new DOMParser().parseFromString(svgText, "image/svg+xml");
-        const svg = parsed.querySelector("svg");
-
-        const viewBox = resolveViewBox(svg);
-        const pathData = resolveMainTrackPath(parsed, svgText);
-        const nativeStrokeWidth = resolveNativeStrokeWidth(parsed);
-
-        if (!viewBox || !pathData) {
-          throw new Error("Invalid SVG shape");
-        }
-
-        if (!isCancelled) {
-          setSvgData({ viewBox, pathData, nativeStrokeWidth });
-          setHasError(false);
-        }
-      } catch {
-        if (!isCancelled) {
-          setSvgData(null);
-          setHasError(true);
-          if (typeof window !== "undefined") {
-            console.warn(`[TrackMap] Track SVG file is missing or invalid for '${circuitId}' at '${trackSvgPath}'.`);
-          }
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadSvg();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [circuitId, trackSvgPath]);
 
   useLayoutEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -1090,14 +884,6 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
       clearSelection();
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className={cn("border border-[#2A2A2A] bg-[#090909] p-3", className)}>
-        <div className={cn(TRACK_FRAME_HEIGHT_CLASS, "animate-pulse border border-[#1B1B1B] bg-[#0E0E0E]")} />
-      </div>
-    );
-  }
 
   if (hasError || !svgData) {
     return (

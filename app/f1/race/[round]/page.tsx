@@ -3,13 +3,7 @@ import { notFound } from "next/navigation";
 import RaceIntelPanel from "@/components/f1/RaceIntelPanel";
 import RaceSidebar from "@/components/f1/RaceSidebar";
 import TrackHero from "@/components/f1/TrackHero";
-import {
-  getRaceCalendar,
-  getRaceDetailByRound,
-  getRaceRecapByRound,
-  getRaceReplayByRound,
-  getRaceWeekendSessionsWithResults,
-} from "@/lib/f1";
+import { getRaceCalendar, getRaceDetailByRound, getRacePageBundle } from "@/lib/f1";
 
 export const revalidate = 60;
 
@@ -40,18 +34,12 @@ export async function generateMetadata({ params }: RaceDetailPageProps) {
 }
 
 export default async function RaceDetailPage({ params }: RaceDetailPageProps) {
-  const races = await getRaceCalendar();
-  const [detail, recap, replay] = await Promise.all([
-    getRaceDetailByRound(params.round),
-    getRaceRecapByRound(params.round),
-    getRaceReplayByRound(params.round),
-  ]);
+  const bundle = await getRacePageBundle(params.round);
 
-  if (!detail) {
+  if (!bundle) {
     notFound();
   }
-
-  const sessions = await getRaceWeekendSessionsWithResults(detail.race);
+  const { races, race, detail, recap, replay, sessions } = bundle;
 
   return (
     <main className="relative flex flex-1 flex-col overflow-hidden">
@@ -59,7 +47,7 @@ export default async function RaceDetailPage({ params }: RaceDetailPageProps) {
       <div className="relative z-10 flex min-h-0 flex-1 overflow-hidden">
         <RaceSidebar races={races} highlightedRound={Number(params.round)} />
         <TrackHero
-          race={detail.race}
+          race={race}
           trackSvgPath={detail.circuit.trackSvgPath}
           sectors={detail.circuit.sectors}
           drsZoneCount={detail.circuit.drsZones}
@@ -67,7 +55,7 @@ export default async function RaceDetailPage({ params }: RaceDetailPageProps) {
           replay={replay}
         />
         <RaceIntelPanel
-          race={detail.race}
+          race={race}
           circuitStats={{
             lengthKm: detail.circuit.lengthKm,
             turns: detail.circuit.turns,

@@ -1,7 +1,9 @@
 import { F1_SEASON, type ConstructorStanding, type DriverStanding, getDriverStandings } from "@/lib/f1";
 
 const REVALIDATE_SECONDS = 3600;
+const TEAM_PROFILE_CACHE_TTL_MS = 10 * 60 * 1000;
 const ERGAST_BASE_URL = "https://api.jolpi.ca/ergast/f1";
+const teamProfileCache = new Map<string, { createdAt: number; promise: Promise<TeamProfileData | null> }>();
 
 const TEAM_ACCENT_COLORS: Record<string, string> = {
   red_bull: "#1E41FF",
@@ -344,7 +346,7 @@ function buildNarrative(standing: ConstructorStanding, season: TeamSeasonSnapsho
   return `${headline} The team has ${season.wins} win${season.wins === 1 ? "" : "s"}, ${season.podiums} podium finishes and an average of ${season.averagePoints} points per round this season. Historically, it has ${career.raceWins} race wins and ${career.polePositions} pole positions since debuting in ${career.firstEntry}.`;
 }
 
-export async function getTeamProfile(constructorId: string, season: string = F1_SEASON): Promise<TeamProfileData | null> {
+async function buildTeamProfile(constructorId: string, season: string = F1_SEASON): Promise<TeamProfileData | null> {
   const standingsContext = await fetchConstructorStandingsContext(season);
   const knownConstructor = getKnownConstructor(constructorId);
   const resolvedStanding =
@@ -399,4 +401,20 @@ export async function getTeamProfile(constructorId: string, season: string = F1_
     career,
     narrative: buildNarrative(resolvedStanding, currentSeason, career)
   };
+}
+
+export async function getTeamProfile(constructorId: string, season: string = F1_SEASON): Promise<TeamProfileData | null> {
+  const cacheKey = `${season}:${constructorId}`;
+  const cached = teamProfileCache.get(cacheKey);
+
+  if (cached && Date.now() - cached.createdAt < TEAM_PROFILE_CACHE_TTL_MS) {
+    return cached.promise;
+  }
+
+  const promise = buildTeamProfile(constructorId, season);
+  teamProfileCache.set(cacheKey, {
+    createdAt: Date.now(),
+    promise
+  });
+  return promise;
 }
