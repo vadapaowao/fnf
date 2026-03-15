@@ -5,7 +5,7 @@ import RaceSidebar from "@/components/f1/RaceSidebar";
 import TrackHero from "@/components/f1/TrackHero";
 import { getRaceCalendar, getRaceDetailByRound, getRacePageBundle, isScheduledRace } from "@/lib/f1";
 
-export const revalidate = 60;
+export const revalidate = 1800;
 
 type RaceDetailPageProps = {
   params: {

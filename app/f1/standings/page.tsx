@@ -2,7 +2,7 @@ import CountdownTimer from "@/components/CountdownTimer";
 import StandingsAccordion from "@/components/f1/StandingsAccordion";
 import { F1_SEASON, getConstructorStandings, getDriverStandings, getRaceCalendar, getRaceDetailByRound, getRaceRecapByRound, isScheduledRace, isUpcomingRace } from "@/lib/f1";
 
-export const revalidate = 60;
+export const revalidate = 21600;
 
 function toDriverRows(standings: Awaited<ReturnType<typeof getDriverStandings>>) {
   return standings.map((entry) => ({

@@ -3,7 +3,7 @@ import RaceSidebar from "@/components/f1/RaceSidebar";
 import TrackHero from "@/components/f1/TrackHero";
 import { getFeaturedRaceBundle } from "@/lib/f1";
 
-export const revalidate = 60;
+export const revalidate = 1800;
 
 export default async function F1GridPage() {
   const bundle = await getFeaturedRaceBundle();

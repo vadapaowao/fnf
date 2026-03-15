@@ -7,10 +7,19 @@ export const F1_SEASON = "2026";
 const REVALIDATE_SECONDS = 3600;
 const ERGAST_BASE_URL = "https://api.jolpi.ca/ergast/f1";
 const UNAVAILABLE = "Data unavailable";
-const RACE_CALENDAR_CACHE_TTL_MS = 60 * 60 * 1000;
-const HISTORICAL_STATS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const FINISHED_RACE_REPLAY_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
-const FINISHED_SESSION_RESULTS_CACHE_TTL_MS = 15 * 60 * 1000;
+const RACE_CALENDAR_REVALIDATE_SECONDS = 12 * 60 * 60;
+const STANDINGS_REVALIDATE_SECONDS = 6 * 60 * 60;
+const HISTORICAL_STATS_REVALIDATE_SECONDS = 7 * 24 * 60 * 60;
+const WEEKEND_SESSION_PENDING_REVALIDATE_SECONDS = 5 * 60;
+const WEEKEND_SESSION_IDLE_REVALIDATE_SECONDS = 30 * 60;
+const WEEKEND_SESSION_SETTLED_REVALIDATE_SECONDS = 6 * 60 * 60;
+const RACE_CALENDAR_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+const HISTORICAL_STATS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const FINISHED_RACE_REPLAY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const FINISHED_SESSION_RESULTS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const PRE_WEEKEND_SESSION_RESULTS_TTL_MS = 6 * 60 * 60 * 1000;
+const IDLE_WEEKEND_SESSION_RESULTS_TTL_MS = 30 * 60 * 1000;
+const ACTIVE_SESSION_RESULTS_TTL_MS = 5 * 60 * 1000;
 
 /**
  * Generate F1 official driver image URL
@@ -408,7 +417,6 @@ function buildOfficialRouteMatchTokens(race: Pick<Race, "raceName" | "circuitNam
 
 const OFFICIAL_RESULTS_BASE = "https://www.formula1.com";
 const SPRINT_WEEKEND_CIRCUITS_2026 = new Set(["shanghai", "miami", "villeneuve", "silverstone", "zandvoort", "marina_bay"]);
-const SESSION_RESULTS_REVALIDATE_SECONDS = 60;
 const OFFICIAL_ROUTES_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const officialResultsRoutesCache = new Map<string, { createdAt: number; promise: Promise<OfficialResultsRoute[]> }>();
 const raceCalendarCache = new Map<string, { createdAt: number; promise: Promise<Race[]> }>();
@@ -416,20 +424,19 @@ const historicalWinnerCache = new Map<string, { createdAt: number; value: Winner
 const historicalFastestLapCache = new Map<string, { createdAt: number; value: FastestLapStat }>();
 const finishedRaceRecapCache = new Map<string, { createdAt: number; promise: Promise<RaceRecap | null> }>();
 const finishedRaceReplayCache = new Map<string, { createdAt: number; promise: Promise<RaceReplayData | null> }>();
-const finishedSessionResultCache = new Map<
-  string,
-  {
-    createdAt: number;
-    promise: Promise<Pick<RaceSession, "resultLabel" | "resultValue" | "officialUrl"> | null>;
-  }
->();
-const liveSessionResultCache = new Map<
-  string,
-  {
-    createdAt: number;
-    promise: Promise<Pick<RaceSession, "resultLabel" | "resultValue" | "officialUrl"> | null>;
-  }
->();
+type SessionResultValue = Pick<RaceSession, "resultLabel" | "resultValue" | "officialUrl"> | null;
+type CachedSessionResult = {
+  createdAt: number;
+  value: SessionResultValue;
+};
+type SessionResultFetchPolicy = {
+  transientTtlMs: number;
+  fetchRevalidateSeconds: number;
+};
+
+const finishedSessionResultCache = new Map<string, CachedSessionResult>();
+const liveSessionResultCache = new Map<string, CachedSessionResult>();
+const inflightSessionResultCache = new Map<string, Promise<SessionResultValue>>();
 
 // Temporary fallback: only used for missing rounds when the 2026 endpoint is partial/unavailable.
 const TEMP_FALLBACK_2026_SCHEDULED_CALENDAR: Race[] = [
@@ -1314,7 +1321,8 @@ function resolveCircuitStatic(circuitId: string) {
 
 async function fetchMostRecentWinner(circuitId: string): Promise<WinnerStat> {
   const data = await fetchJson<ErgastResultResponse>(
-    `${ERGAST_BASE_URL}/circuits/${circuitId}/results/1.json?limit=200`
+    `${ERGAST_BASE_URL}/circuits/${circuitId}/results/1.json?limit=200`,
+    HISTORICAL_STATS_REVALIDATE_SECONDS
   );
 
   const races = data?.MRData?.RaceTable?.Races ?? [];
@@ -1334,7 +1342,8 @@ function isWinnerUnavailable(stat: WinnerStat) {
 
 async function fetchFastestLap(circuitId: string): Promise<FastestLapStat> {
   const data = await fetchJson<ErgastResultResponse>(
-    `${ERGAST_BASE_URL}/circuits/${circuitId}/fastest/1/results.json?limit=200`
+    `${ERGAST_BASE_URL}/circuits/${circuitId}/fastest/1/results.json?limit=200`,
+    HISTORICAL_STATS_REVALIDATE_SECONDS
   );
 
   const races = data?.MRData?.RaceTable?.Races ?? [];
@@ -1426,7 +1435,7 @@ async function getHistoricalFastestLap(circuitId: string) {
 
 export async function getRaceCalendar(): Promise<Race[]> {
   return getCachedPromise(raceCalendarCache, F1_SEASON, RACE_CALENDAR_CACHE_TTL_MS, async () => {
-    const data = await fetchJson<ErgastScheduleResponse>(`${ERGAST_BASE_URL}/${F1_SEASON}.json`);
+    const data = await fetchJson<ErgastScheduleResponse>(`${ERGAST_BASE_URL}/${F1_SEASON}.json`, RACE_CALENDAR_REVALIDATE_SECONDS);
 
     const apiRaces = data?.MRData?.RaceTable?.Races?.map(normalizeRace) ?? [];
     const mergedRaces = mergeWithFallbackRaces(apiRaces);
@@ -1640,6 +1649,91 @@ export function getRaceSessionResultHydrationDelayMs(sessionCode: RaceSessionCod
   return 90 * 60 * 1000;
 }
 
+function isDriverNumberFallbackValue(value: string | undefined) {
+  return /^Car \d+$/i.test((value ?? "").trim());
+}
+
+function isUsableSessionResultValue(result: SessionResultValue | undefined) {
+  const resultValue = result?.resultValue?.trim();
+
+  return Boolean(resultValue) && resultValue !== UNAVAILABLE && !isDriverNumberFallbackValue(resultValue);
+}
+
+function getSessionResultCacheKey(race: Race, sessionCode: RaceSessionCode) {
+  return `${race.season}:${race.round}:${sessionCode}:${race.circuitId}`;
+}
+
+function getRaceWeekendStartMs(race: Pick<Race, "date" | "time" | "season" | "circuitId" | "sessionStarts">) {
+  return getRaceWeekendSessions(race).reduce((earliest, session) => {
+    const sessionStartMs = new Date(session.startsAt).getTime();
+
+    if (!Number.isFinite(sessionStartMs)) {
+      return earliest;
+    }
+
+    return Math.min(earliest, sessionStartMs);
+  }, Number.POSITIVE_INFINITY);
+}
+
+function getSessionResultFetchPolicy(
+  race: Race,
+  session: Pick<RaceSession, "code" | "startsAt">,
+  nowMs: number
+): SessionResultFetchPolicy {
+  const sessionStartMs = new Date(session.startsAt).getTime();
+  const sessionEndMs = sessionStartMs + getRaceSessionDurationMs(session.code);
+  const resultHydrationThresholdMs = sessionStartMs + getRaceSessionResultHydrationDelayMs(session.code);
+  const weekendStartMs = getRaceWeekendStartMs(race);
+  const raceEndMs = new Date(getRaceDateTimeIso(race)).getTime() + getRaceSessionDurationMs("RACE");
+
+  if (!Number.isFinite(sessionStartMs) || !Number.isFinite(raceEndMs)) {
+    return {
+      transientTtlMs: PRE_WEEKEND_SESSION_RESULTS_TTL_MS,
+      fetchRevalidateSeconds: WEEKEND_SESSION_SETTLED_REVALIDATE_SECONDS
+    };
+  }
+
+  if (nowMs < weekendStartMs) {
+    return {
+      transientTtlMs: PRE_WEEKEND_SESSION_RESULTS_TTL_MS,
+      fetchRevalidateSeconds: WEEKEND_SESSION_SETTLED_REVALIDATE_SECONDS
+    };
+  }
+
+  if (nowMs < sessionEndMs || nowMs < resultHydrationThresholdMs) {
+    return {
+      transientTtlMs: ACTIVE_SESSION_RESULTS_TTL_MS,
+      fetchRevalidateSeconds: WEEKEND_SESSION_PENDING_REVALIDATE_SECONDS
+    };
+  }
+
+  if (nowMs < raceEndMs) {
+    return {
+      transientTtlMs: IDLE_WEEKEND_SESSION_RESULTS_TTL_MS,
+      fetchRevalidateSeconds: WEEKEND_SESSION_IDLE_REVALIDATE_SECONDS
+    };
+  }
+
+  return {
+    transientTtlMs: PRE_WEEKEND_SESSION_RESULTS_TTL_MS,
+    fetchRevalidateSeconds: WEEKEND_SESSION_SETTLED_REVALIDATE_SECONDS
+  };
+}
+
+function getPriorUsableSessionResult(cacheKey: string) {
+  const finished = finishedSessionResultCache.get(cacheKey)?.value;
+  if (isUsableSessionResultValue(finished)) {
+    return finished;
+  }
+
+  const live = liveSessionResultCache.get(cacheKey)?.value;
+  if (isUsableSessionResultValue(live)) {
+    return live;
+  }
+
+  return null;
+}
+
 function getOfficialSessionSlug(code: RaceSessionCode) {
   if (code === "FP1") return "practice/1";
   if (code === "FP2") return "practice/2";
@@ -1692,7 +1786,7 @@ async function fetchOfficialResultsRoutes(season: string): Promise<OfficialResul
   }
 
   const request = (async () => {
-  const html = await fetchText(`${OFFICIAL_RESULTS_BASE}/en/results/${season}/races`, SESSION_RESULTS_REVALIDATE_SECONDS);
+  const html = await fetchText(`${OFFICIAL_RESULTS_BASE}/en/results/${season}/races`, OFFICIAL_ROUTES_CACHE_TTL_MS / 1000);
 
   if (!html) {
     return [];
@@ -1753,10 +1847,13 @@ async function getOfficialResultsRouteForRace(
   return routes[index] ?? null;
 }
 
-async function fetchRaceWinnerFromApi(race: Pick<Race, "season" | "round">): Promise<string | null> {
+async function fetchRaceWinnerFromApi(
+  race: Pick<Race, "season" | "round">,
+  revalidateSeconds: number
+): Promise<string | null> {
   const data = await fetchJson<ErgastRaceResultsResponse>(
     `${ERGAST_BASE_URL}/${race.season}/${race.round}/results/1.json`,
-    SESSION_RESULTS_REVALIDATE_SECONDS
+    revalidateSeconds
   );
   const winner = data?.MRData?.RaceTable?.Races?.[0]?.Results?.[0];
   const driverName = formatResultDriverName(winner);
@@ -1772,9 +1869,11 @@ async function fetchCircuitWinnerFallback(race: Pick<Race, "circuitId" | "apiCir
 
 async function buildSessionResultValue(
   race: Race,
-  sessionCode: RaceSessionCode
+  sessionCode: RaceSessionCode,
+  fetchRevalidateSeconds: number
 ): Promise<Pick<RaceSession, "resultLabel" | "resultValue" | "officialUrl"> | null> {
-  const openF1Fallback = race.season === F1_SEASON ? await getOpenF1SessionResultSummary(race, sessionCode) : null;
+  const openF1Fallback =
+    race.season === F1_SEASON ? await getOpenF1SessionResultSummary(race, sessionCode, fetchRevalidateSeconds) : null;
   const shouldPreferOpenF1 = race.season === F1_SEASON;
   const route = await getOfficialResultsRouteForRace(race);
 
@@ -1793,7 +1892,7 @@ async function buildSessionResultValue(
     }
 
     if (sessionCode === "RACE") {
-      const raceWinner = await fetchRaceWinnerFromApi(race);
+      const raceWinner = await fetchRaceWinnerFromApi(race, fetchRevalidateSeconds);
       if (raceWinner) {
         return {
           resultLabel: getCompletedSessionResultLabel(sessionCode),
@@ -1815,7 +1914,7 @@ async function buildSessionResultValue(
 
   const sessionSlug = getOfficialSessionSlug(sessionCode);
   const officialUrl = `${OFFICIAL_RESULTS_BASE}/en/results/${race.season}/races/${route.raceId}/${route.slug}/${sessionSlug}`;
-  const html = await fetchText(officialUrl, SESSION_RESULTS_REVALIDATE_SECONDS);
+  const html = await fetchText(officialUrl, fetchRevalidateSeconds);
 
   if (html) {
     const winnerName = extractSessionWinnerName(html);
@@ -1837,7 +1936,7 @@ async function buildSessionResultValue(
   }
 
   if (sessionCode === "RACE") {
-    const raceWinner = await fetchRaceWinnerFromApi(race);
+    const raceWinner = await fetchRaceWinnerFromApi(race, fetchRevalidateSeconds);
     if (raceWinner) {
       return {
         resultLabel: getCompletedSessionResultLabel(sessionCode),
@@ -1865,14 +1964,74 @@ async function buildSessionResultValue(
 
 async function getSessionResultValue(
   race: Race,
-  sessionCode: RaceSessionCode,
-  cacheMode: "live" | "finished"
+  session: Pick<RaceSession, "code" | "startsAt">
 ) {
-  const cache = cacheMode === "finished" ? finishedSessionResultCache : liveSessionResultCache;
-  const ttlMs = cacheMode === "finished" ? FINISHED_SESSION_RESULTS_CACHE_TTL_MS : SESSION_RESULTS_REVALIDATE_SECONDS * 1000;
-  const cacheKey = `${cacheMode}:${race.season}:${race.round}:${sessionCode}:${race.circuitId}`;
+  const nowMs = Date.now();
+  const cacheKey = getSessionResultCacheKey(race, session.code);
+  const finishedCached = finishedSessionResultCache.get(cacheKey);
 
-  return getCachedPromise(cache, cacheKey, ttlMs, () => buildSessionResultValue(race, sessionCode));
+  if (finishedCached && nowMs - finishedCached.createdAt < FINISHED_SESSION_RESULTS_CACHE_TTL_MS) {
+    return finishedCached.value;
+  }
+
+  const fetchPolicy = getSessionResultFetchPolicy(race, session, nowMs);
+  const liveCached = liveSessionResultCache.get(cacheKey);
+
+  if (liveCached && nowMs - liveCached.createdAt < fetchPolicy.transientTtlMs) {
+    return liveCached.value;
+  }
+
+  const priorUsable = getPriorUsableSessionResult(cacheKey);
+  const fallbackValue = priorUsable ?? liveCached?.value ?? finishedCached?.value ?? null;
+  const inflight = inflightSessionResultCache.get(cacheKey);
+
+  if (inflight) {
+    return inflight;
+  }
+
+  const request = buildSessionResultValue(race, session.code, fetchPolicy.fetchRevalidateSeconds)
+    .then((freshValue) => {
+      if (isUsableSessionResultValue(freshValue)) {
+        finishedSessionResultCache.set(cacheKey, {
+          createdAt: Date.now(),
+          value: freshValue
+        });
+        liveSessionResultCache.delete(cacheKey);
+        return freshValue;
+      }
+
+      const nextValue = fallbackValue ?? freshValue;
+
+      liveSessionResultCache.set(cacheKey, {
+        createdAt: Date.now(),
+        value: nextValue
+      });
+
+      return nextValue;
+    })
+    .catch(() => {
+      if (isUsableSessionResultValue(fallbackValue)) {
+        finishedSessionResultCache.set(cacheKey, {
+          createdAt: Date.now(),
+          value: fallbackValue
+        });
+        liveSessionResultCache.delete(cacheKey);
+        return fallbackValue;
+      }
+
+      liveSessionResultCache.set(cacheKey, {
+        createdAt: Date.now(),
+        value: fallbackValue
+      });
+
+      return fallbackValue;
+    })
+    .finally(() => {
+      inflightSessionResultCache.delete(cacheKey);
+    });
+
+  inflightSessionResultCache.set(cacheKey, request);
+  return request;
 }
 
 export function getRaceWeekendSessions(race: Pick<Race, "date" | "time" | "season" | "circuitId" | "sessionStarts">): RaceSession[] {
@@ -1910,18 +2069,17 @@ export async function getRaceWeekendSessionsWithResults(
 ): Promise<RaceSession[]> {
   const sessions = getRaceWeekendSessions(race);
   const nowMs = Date.now();
-  const cacheMode = isRaceFinished(race) ? "finished" : "live";
 
   const hydrated = await Promise.all(
     sessions.map(async (session) => {
       const sessionStartMs = new Date(session.startsAt).getTime();
-      const resultHydrationThresholdMs = sessionStartMs + getRaceSessionResultHydrationDelayMs(session.code);
+      const sessionEndMs = sessionStartMs + getRaceSessionDurationMs(session.code);
 
-      if (!Number.isFinite(resultHydrationThresholdMs) || nowMs < resultHydrationThresholdMs) {
+      if (!Number.isFinite(sessionEndMs) || nowMs < sessionEndMs) {
         return session;
       }
 
-      const result = await getSessionResultValue(race, session.code, cacheMode);
+      const result = await getSessionResultValue(race, session);
 
       return {
         ...session,
@@ -2482,7 +2640,7 @@ function normalizeConstructorStandings(
 async function fetchDriverStandingsForSeason(season: string): Promise<DriverStanding[] | null> {
   const url = `${ERGAST_BASE_URL}/${season}/driverStandings.json`;
   const res = await fetch(url, {
-    next: { revalidate: REVALIDATE_SECONDS },
+    next: { revalidate: STANDINGS_REVALIDATE_SECONDS },
   });
 
   if (!res.ok) {
@@ -2499,7 +2657,7 @@ async function fetchConstructorStandingsForSeason(
 ): Promise<ConstructorStanding[] | null> {
   const url = `${ERGAST_BASE_URL}/${season}/constructorStandings.json`;
   const res = await fetch(url, {
-    next: { revalidate: REVALIDATE_SECONDS },
+    next: { revalidate: STANDINGS_REVALIDATE_SECONDS },
   });
 
   if (!res.ok) {

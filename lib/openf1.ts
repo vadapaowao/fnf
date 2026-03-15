@@ -5,6 +5,30 @@ const OPENF1_REVALIDATE_SECONDS = 60;
 const OPENF1_ACCESS_TOKEN = process.env.OPENF1_ACCESS_TOKEN;
 
 const UNAVAILABLE = "Data unavailable";
+const CURRENT_GRID_DRIVER_NAMES_BY_NUMBER: Record<number, string> = {
+  1: "Lando Norris",
+  3: "Max Verstappen",
+  5: "Gabriel Bortoleto",
+  6: "Isack Hadjar",
+  10: "Pierre Gasly",
+  11: "Sergio Perez",
+  12: "Andrea Kimi Antonelli",
+  14: "Fernando Alonso",
+  16: "Charles Leclerc",
+  18: "Lance Stroll",
+  23: "Alexander Albon",
+  27: "Nico Hulkenberg",
+  30: "Liam Lawson",
+  31: "Esteban Ocon",
+  41: "Arvid Lindblad",
+  43: "Franco Colapinto",
+  44: "Lewis Hamilton",
+  55: "Carlos Sainz",
+  63: "George Russell",
+  77: "Valtteri Bottas",
+  81: "Oscar Piastri",
+  87: "Oliver Bearman"
+};
 
 type OpenF1Session = {
   session_key: number;
@@ -141,7 +165,11 @@ function getOpenF1Headers() {
   };
 }
 
-async function fetchOpenF1Json<T>(path: string, params: Record<string, string | number | undefined>): Promise<T | null> {
+async function fetchOpenF1Json<T>(
+  path: string,
+  params: Record<string, string | number | undefined>,
+  revalidateSeconds: number = OPENF1_REVALIDATE_SECONDS
+): Promise<T | null> {
   const searchParams = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {
@@ -151,7 +179,7 @@ async function fetchOpenF1Json<T>(path: string, params: Record<string, string | 
   });
 
   const response = await fetch(`${OPENF1_BASE_URL}/${path}?${searchParams.toString()}`, {
-    next: { revalidate: OPENF1_REVALIDATE_SECONDS },
+    next: { revalidate: revalidateSeconds },
     headers: getOpenF1Headers()
   }).catch(() => null);
 
@@ -190,13 +218,17 @@ function scoreSessionMatch(race: Race, session: OpenF1Session) {
   return { score, dateDistance };
 }
 
-async function getOpenF1SessionForRace(race: Race, code: RaceSessionCode): Promise<OpenF1Session | null> {
+async function getOpenF1SessionForRace(
+  race: Race,
+  code: RaceSessionCode,
+  revalidateSeconds: number = OPENF1_REVALIDATE_SECONDS
+): Promise<OpenF1Session | null> {
   const sessionName = mapSessionCodeToOpenF1Name(code);
   const sessions = await fetchOpenF1Json<OpenF1Session[]>("sessions", {
     year: race.season,
     country_name: race.country,
     session_name: sessionName
-  });
+  }, revalidateSeconds);
 
   if (!sessions || sessions.length === 0) {
     return null;
@@ -213,13 +245,17 @@ async function getOpenF1SessionForRace(race: Race, code: RaceSessionCode): Promi
     })[0]?.session ?? null;
 }
 
-async function getOpenF1DriversByNumber(sessionKey: number, meetingKey?: number) {
-  const sessionDrivers = await fetchOpenF1Json<OpenF1Driver[]>("drivers", { session_key: sessionKey });
+async function getOpenF1DriversByNumber(
+  sessionKey: number,
+  meetingKey?: number,
+  revalidateSeconds: number = OPENF1_REVALIDATE_SECONDS
+) {
+  const sessionDrivers = await fetchOpenF1Json<OpenF1Driver[]>("drivers", { session_key: sessionKey }, revalidateSeconds);
   const drivers =
     sessionDrivers && sessionDrivers.length > 0
       ? sessionDrivers
       : meetingKey
-        ? await fetchOpenF1Json<OpenF1Driver[]>("drivers", { meeting_key: meetingKey })
+        ? await fetchOpenF1Json<OpenF1Driver[]>("drivers", { meeting_key: meetingKey }, revalidateSeconds)
         : null;
   const byNumber = new Map<number, OpenF1Driver>();
 
@@ -234,18 +270,14 @@ async function getOpenF1DriversByNumber(sessionKey: number, meetingKey?: number)
 }
 
 function formatDriverName(driver: OpenF1Driver | undefined, driverNumber: number) {
-  if (!driver) {
-    return `Car ${driverNumber}`;
-  }
-
-  const firstName = driver.first_name?.trim();
-  const lastName = driver.last_name?.trim();
+  const firstName = driver?.first_name?.trim();
+  const lastName = driver?.last_name?.trim();
 
   if (firstName || lastName) {
     return [firstName, lastName].filter(Boolean).join(" ");
   }
 
-  if (driver.full_name) {
+  if (driver?.full_name) {
     const parts = driver.full_name.split(/\s+/);
     if (parts.length >= 2) {
       return `${parts[0]} ${parts[parts.length - 1]}`;
@@ -254,7 +286,12 @@ function formatDriverName(driver: OpenF1Driver | undefined, driverNumber: number
     return driver.full_name;
   }
 
-  return driver.name_acronym ?? `Car ${driverNumber}`;
+  const fallbackName = CURRENT_GRID_DRIVER_NAMES_BY_NUMBER[driverNumber];
+  if (fallbackName) {
+    return fallbackName;
+  }
+
+  return driver?.name_acronym ?? `Car ${driverNumber}`;
 }
 
 function formatLapDuration(seconds: number | null | undefined) {
@@ -325,21 +362,22 @@ function getReplayCheckpointMs(cumulativeMs: number[], lapNumber: number | null 
 
 export async function getOpenF1SessionResultSummary(
   race: Race,
-  code: RaceSessionCode
+  code: RaceSessionCode,
+  revalidateSeconds: number = OPENF1_REVALIDATE_SECONDS
 ): Promise<OpenF1SessionResultSummary | null> {
-  const session = await getOpenF1SessionForRace(race, code);
+  const session = await getOpenF1SessionForRace(race, code, revalidateSeconds);
 
   if (!session) {
     return null;
   }
 
   const [results, driversByNumber] = await Promise.all([
-    fetchOpenF1Json<OpenF1SessionResult[]>("session_result", { session_key: session.session_key }),
-    getOpenF1DriversByNumber(session.session_key, session.meeting_key)
+    fetchOpenF1Json<OpenF1SessionResult[]>("session_result", { session_key: session.session_key }, revalidateSeconds),
+    getOpenF1DriversByNumber(session.session_key, session.meeting_key, revalidateSeconds)
   ]);
 
   if (code === "FP1" || code === "FP2" || code === "FP3" || code === "QUALI" || code === "SQ") {
-    const laps = await fetchOpenF1Json<OpenF1Lap[]>("laps", { session_key: session.session_key });
+    const laps = await fetchOpenF1Json<OpenF1Lap[]>("laps", { session_key: session.session_key }, revalidateSeconds);
     const fastestLap = (laps ?? [])
       .map((lap) => {
         const driverNumber = normalizeDriverNumber(lap.driver_number);

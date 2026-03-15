@@ -2,7 +2,7 @@ import MyPitWallCard from "@/components/f1/MyPitWallCard";
 import { getRaceCalendar, isScheduledRace } from "@/lib/f1";
 import CalendarRaceGrid from "@/components/f1/CalendarRaceGrid";
 
-export const revalidate = 60;
+export const revalidate = 21600;
 
 export default async function CalendarPage() {
     const races = await getRaceCalendar();
