@@ -1,9 +1,19 @@
 name: Refresh FastF1 Replay Bundles
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/fastf1-replay.yml"
+      - "scripts/build_fastf1_race_data.py"
   schedule:
     - cron: "15 * * * *"
   workflow_dispatch:
+
+concurrency:
+  group: fastf1-replay-refresh
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -11,6 +21,7 @@ permissions:
 jobs:
   refresh-fastf1-bundles:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -61,4 +72,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/data/fastf1
           git commit -m "chore: refresh FastF1 replay bundles"
-          git push
+          git pull --rebase origin main
+          git push origin HEAD:main
