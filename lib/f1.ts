@@ -1396,6 +1396,22 @@ export function getRaceSessionDurationMs(sessionCode: RaceSessionCode) {
   return 90 * 60 * 1000;
 }
 
+export function getRaceSessionResultHydrationDelayMs(sessionCode: RaceSessionCode) {
+  if (sessionCode === "RACE") {
+    return 105 * 60 * 1000;
+  }
+
+  if (sessionCode === "SPRINT") {
+    return 45 * 60 * 1000;
+  }
+
+  if (sessionCode === "QUALI" || sessionCode === "SQ") {
+    return 75 * 60 * 1000;
+  }
+
+  return 90 * 60 * 1000;
+}
+
 function getOfficialSessionSlug(code: RaceSessionCode) {
   if (code === "FP1") return "practice/1";
   if (code === "FP2") return "practice/2";
@@ -1675,9 +1691,9 @@ export async function getRaceWeekendSessionsWithResults(
   const hydrated = await Promise.all(
     sessions.map(async (session) => {
       const sessionStartMs = new Date(session.startsAt).getTime();
-      const sessionEndMs = sessionStartMs + getRaceSessionDurationMs(session.code);
+      const resultHydrationThresholdMs = sessionStartMs + getRaceSessionResultHydrationDelayMs(session.code);
 
-      if (!Number.isFinite(sessionEndMs) || nowMs < sessionEndMs) {
+      if (!Number.isFinite(resultHydrationThresholdMs) || nowMs < resultHydrationThresholdMs) {
         return session;
       }
 

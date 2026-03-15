@@ -907,6 +907,25 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
 
   const replayActiveMoment = replayMoments[replayActiveMomentIndex] ?? replayMoments[0] ?? null;
 
+  useEffect(() => {
+    const syncReplayHashState = () => {
+      if (typeof window === "undefined" || !replayActiveMoment) {
+        return;
+      }
+
+      if (window.location.hash === "#race-highlights-player") {
+        setIsTrackReplayOpen(true);
+      }
+    };
+
+    syncReplayHashState();
+    window.addEventListener("hashchange", syncReplayHashState);
+
+    return () => {
+      window.removeEventListener("hashchange", syncReplayHashState);
+    };
+  }, [replayActiveMoment]);
+
   const replayMarkers = useMemo(() => {
     const element = pathRef.current;
 
@@ -1305,7 +1324,7 @@ export default function TrackMap({ circuitId, trackSvgPath, className, sectors, 
       </div>
 
       {replayActiveMoment ? (
-        <div className="mt-3 border border-[#2C2C2C] bg-[#0B0B0B]">
+        <div id="race-highlights-player" className="mt-3 scroll-mt-24 border border-[#2C2C2C] bg-[#0B0B0B]">
           <button
             type="button"
             onClick={() => setIsTrackReplayOpen((previous) => !previous)}

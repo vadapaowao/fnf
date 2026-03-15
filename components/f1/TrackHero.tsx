@@ -16,7 +16,7 @@ interface TrackHeroProps {
 }
 
 export default function TrackHero({ race, trackSvgPath, sectors, drsZoneCount, recap, replay }: TrackHeroProps) {
-  const raceState = getProductRaceState(race);
+  const raceState = recap || replay ? "finished" : getProductRaceState(race);
   const trackDna = getTrackDnaProfile(race.circuitId);
   const stateDisplay = getRaceStateDisplay(raceState);
   const stateNarrative = getRaceStateNarrative(raceState, trackDna.fanHook, recap?.headline);
@@ -64,8 +64,21 @@ export default function TrackHero({ race, trackSvgPath, sectors, drsZoneCount, r
               {trackDna.archetype}
             </span>
           </div>
-          <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.08em] text-white">{stateDisplay.headline}</p>
-          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-[#A7A7A7]">{stateNarrative}</p>
+          <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-white">{stateDisplay.headline}</p>
+              <p className="mt-1 max-w-3xl text-sm leading-relaxed text-[#A7A7A7]">{stateNarrative}</p>
+            </div>
+            {raceState === "finished" && replay ? (
+              <a
+                href="#race-highlights-player"
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#E10600]/40 bg-[#200909] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#FFE5E4] shadow-[0_0_22px_rgba(225,6,0,0.16)] transition-colors hover:border-[#FF5A52] hover:bg-[#2A0C0C]"
+              >
+                <span className="material-icons text-[14px]">play_arrow</span>
+                Race Highlights
+              </a>
+            ) : null}
+          </div>
         </div>
       </header>
 

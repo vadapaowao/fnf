@@ -181,7 +181,7 @@ export function getRaceWeekendWindow(race: Race) {
   return {
     weekendStartMs: raceStartMs - 52 * 60 * 60 * 1000,
     raceStartMs,
-    raceEndMs: raceStartMs + 6 * 60 * 60 * 1000,
+    raceEndMs: raceStartMs + 3 * 60 * 60 * 1000,
     recapFocusEndMs: raceStartMs + 36 * 60 * 60 * 1000
   };
 }

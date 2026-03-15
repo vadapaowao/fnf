@@ -89,9 +89,9 @@ export default function RaceIntelPanel({
     sessions,
 }: RaceIntelPanelProps) {
     const defaultSessions: RaceSession[] = sessions || getRaceWeekendSessions(race);
-    const hasRaceFinished = new Date(`${race.date}T${race.time}`).getTime() < Date.now();
     const now = new Date();
-    const raceState = getProductRaceState(race);
+    const raceSessionResolved = defaultSessions.some((session) => session.code === "RACE" && hasResolvedSessionState(session));
+    const raceState = raceSessionResolved || recap ? "finished" : getProductRaceState(race);
     const trackDna = getTrackDnaProfile(race.circuitId);
     const watchlistHeading = getTrackWatchlistHeading(raceState);
     const weekendPulse = resolveWeekendPulse(defaultSessions, now);
@@ -421,7 +421,7 @@ export default function RaceIntelPanel({
                 </details>
             )}
 
-            {!recap && hasRaceFinished && (
+            {!recap && raceState === "finished" && (
                 <div className="mb-8 rounded-xl border border-white/10 bg-white/5 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-300">Race Recap</p>
                     <p className="mt-2 text-[11px] text-gray-400">Recap not available yet.</p>
