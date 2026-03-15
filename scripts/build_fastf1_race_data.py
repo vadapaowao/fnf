@@ -13,6 +13,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 CACHE_DIR = ROOT / ".cache" / "fastf1"
 OUTPUT_DIR = ROOT / "public" / "data" / "fastf1"
+COMPLETION_BUFFER_HOURS = 6
 
 
 def timedelta_ms(value: Any) -> Optional[int]:
@@ -350,7 +351,7 @@ def get_completed_rounds(season: int, now: Optional[pd.Timestamp] = None) -> Lis
         cutoff = resolve_event_cutoff(row)
         if cutoff is None:
             continue
-        if cutoff > current_time:
+        if cutoff + pd.Timedelta(hours=COMPLETION_BUFFER_HOURS) > current_time:
             continue
 
         completed_rounds.append(round_number)
@@ -383,10 +384,17 @@ def main() -> None:
             return
 
         print(f"Generating FastF1 bundles for completed rounds: {', '.join(str(round_number) for round_number in rounds)}")
+        wrote_any = False
         for round_number in rounds:
-            bundle = build_bundle(args.season, round_number)
-            output_path = write_bundle(bundle, args.season, round_number)
-            print(f"Wrote {output_path}")
+            try:
+                bundle = build_bundle(args.season, round_number)
+                output_path = write_bundle(bundle, args.season, round_number)
+                print(f"Wrote {output_path}")
+                wrote_any = True
+            except Exception as error:
+                print(f"Skipping round {round_number}: {error}")
+        if not wrote_any:
+            print(f"No FastF1 bundles refreshed for {args.season}. Existing files were left unchanged.")
         return
 
     if args.round is None:

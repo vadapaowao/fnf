@@ -27,6 +27,10 @@ interface RaceIntelPanelProps {
     sectors?: TrackSector[];
 }
 
+function hasResolvedSessionState(session: RaceSession) {
+    return Boolean(session.resultLabel || session.resultValue || session.officialUrl);
+}
+
 function resolveWeekendPulse(sessions: RaceSession[], now: Date) {
     const nowMs = now.getTime();
     let liveSession: RaceSession | null = null;
@@ -35,8 +39,9 @@ function resolveWeekendPulse(sessions: RaceSession[], now: Date) {
     for (const session of sessions) {
         const startMs = new Date(session.startsAt).getTime();
         const endMs = startMs + getRaceSessionDurationMs(session.code);
+        const sessionResolved = hasResolvedSessionState(session);
 
-        if (Number.isFinite(startMs) && startMs <= nowMs && nowMs <= endMs) {
+        if (!sessionResolved && Number.isFinite(startMs) && startMs <= nowMs && nowMs <= endMs) {
             liveSession = session;
             break;
         }
@@ -50,7 +55,7 @@ function resolveWeekendPulse(sessions: RaceSession[], now: Date) {
         liveSession,
         nextSession,
         lastSession: sessions
-            .filter((session) => new Date(session.startsAt).getTime() < nowMs)
+            .filter((session) => hasResolvedSessionState(session) || new Date(session.startsAt).getTime() < nowMs)
             .sort((left, right) => new Date(right.startsAt).getTime() - new Date(left.startsAt).getTime())[0] ?? null
     };
 }
@@ -59,6 +64,10 @@ function getSessionState(session: RaceSession, now: Date) {
     const startMs = new Date(session.startsAt).getTime();
     const endMs = startMs + getRaceSessionDurationMs(session.code);
     const nowMs = now.getTime();
+
+    if (hasResolvedSessionState(session)) {
+        return "completed";
+    }
 
     if (nowMs < startMs) {
         return "upcoming";

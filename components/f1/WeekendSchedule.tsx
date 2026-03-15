@@ -5,6 +5,10 @@ interface WeekendScheduleProps {
     sessions: RaceSession[];
 }
 
+function hasResolvedSessionState(session: RaceSession) {
+    return Boolean(session.resultLabel || session.resultValue || session.officialUrl);
+}
+
 export default function WeekendSchedule({ sessions }: WeekendScheduleProps) {
     const now = new Date();
 
@@ -19,7 +23,13 @@ export default function WeekendSchedule({ sessions }: WeekendScheduleProps) {
                     const isRace = session.code === "RACE";
                     const startMs = sessionDate ? sessionDate.getTime() : Number.NaN;
                     const endMs = startMs + getRaceSessionDurationMs(session.code);
-                    const sessionState = now.getTime() < startMs ? "upcoming" : now.getTime() <= endMs ? "live" : "completed";
+                    const sessionState = hasResolvedSessionState(session)
+                        ? "completed"
+                        : now.getTime() < startMs
+                            ? "upcoming"
+                            : now.getTime() <= endMs
+                                ? "live"
+                                : "completed";
                     const showResult = sessionState === "completed" && Boolean(session.resultValue);
 
                     return (

@@ -30,6 +30,7 @@ export type Race = {
   locality: string;
   date: string;
   time: string;
+  sessionStarts?: Partial<Record<RaceSessionCode, string>>;
 };
 
 export type TrackSector = {
@@ -221,6 +222,13 @@ type ErgastRace = {
   raceName: string;
   date: string;
   time?: string;
+  FirstPractice?: { date?: string; time?: string };
+  SecondPractice?: { date?: string; time?: string };
+  ThirdPractice?: { date?: string; time?: string };
+  Qualifying?: { date?: string; time?: string };
+  Sprint?: { date?: string; time?: string };
+  SprintQualifying?: { date?: string; time?: string };
+  SprintShootout?: { date?: string; time?: string };
   Circuit: {
     circuitId: string;
     circuitName: string;
@@ -924,6 +932,7 @@ function resolveCanonicalCircuitId(race: Pick<Race, "circuitId" | "circuitName" 
 }
 
 function normalizeRace(race: ErgastRace): Race {
+  const sessionStarts = buildRaceSessionStartMap(race);
   const raceBase = {
     season: race.season,
     round: race.round,
@@ -933,7 +942,8 @@ function normalizeRace(race: ErgastRace): Race {
     country: race.Circuit.Location.country,
     locality: race.Circuit.Location.locality,
     date: race.date,
-    time: race.time ?? "00:00:00Z"
+    time: race.time ?? "00:00:00Z",
+    sessionStarts
   };
 
   return {
@@ -941,6 +951,49 @@ function normalizeRace(race: ErgastRace): Race {
     apiCircuitId: race.Circuit.circuitId,
     circuitId: resolveCanonicalCircuitId(raceBase)
   };
+}
+
+function toSessionIso(value?: { date?: string; time?: string }) {
+  if (!value?.date || !value?.time) {
+    return null;
+  }
+
+  const iso = `${value.date}T${value.time}`;
+  const parsed = new Date(iso);
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+function buildRaceSessionStartMap(race: ErgastRace): Partial<Record<RaceSessionCode, string>> {
+  const sessionStarts: Partial<Record<RaceSessionCode, string>> = {};
+
+  const fp1 = toSessionIso(race.FirstPractice);
+  const fp2 = toSessionIso(race.SecondPractice);
+  const fp3 = toSessionIso(race.ThirdPractice);
+  const quali = toSessionIso(race.Qualifying);
+  const sprint = toSessionIso(race.Sprint);
+  const sprintQualifying = toSessionIso(race.SprintQualifying) ?? toSessionIso(race.SprintShootout);
+
+  if (fp1) {
+    sessionStarts.FP1 = fp1;
+  }
+  if (fp2) {
+    sessionStarts.FP2 = fp2;
+  }
+  if (fp3) {
+    sessionStarts.FP3 = fp3;
+  }
+  if (quali) {
+    sessionStarts.QUALI = quali;
+  }
+  if (sprint) {
+    sessionStarts.SPRINT = sprint;
+  }
+  if (sprintQualifying) {
+    sessionStarts.SQ = sprintQualifying;
+  }
+
+  return sessionStarts;
 }
 
 function sortByRound(races: Race[]): Race[] {
@@ -1319,7 +1372,11 @@ export function isUpcomingRace(race: Pick<Race, "date" | "time">): boolean {
   return new Date(getRaceDateTimeIso(race)).getTime() >= Date.now();
 }
 
-function isSprintWeekend(race: Pick<Race, "season" | "circuitId">) {
+function isSprintWeekend(race: Pick<Race, "season" | "circuitId" | "sessionStarts">) {
+  if (race.sessionStarts?.SPRINT || race.sessionStarts?.SQ) {
+    return true;
+  }
+
   return race.season === "2026" && SPRINT_WEEKEND_CIRCUITS_2026.has(race.circuitId);
 }
 
@@ -1579,34 +1636,38 @@ async function fetchSessionResultValue(
   return request;
 }
 
-export function getRaceWeekendSessions(race: Pick<Race, "date" | "time" | "season" | "circuitId">): RaceSession[] {
+export function getRaceWeekendSessions(race: Pick<Race, "date" | "time" | "season" | "circuitId" | "sessionStarts">): RaceSession[] {
   const raceStart = new Date(getRaceDateTimeIso(race));
 
   const withOffset = (hoursOffset: number) => {
     return new Date(raceStart.getTime() + hoursOffset * 60 * 60 * 1000).toISOString();
   };
 
+  const getSessionStart = (code: RaceSessionCode, fallbackOffsetHours: number) => {
+    return race.sessionStarts?.[code] ?? withOffset(fallbackOffsetHours);
+  };
+
   if (isSprintWeekend(race)) {
     return [
-      { code: "FP1", label: "Practice 1", startsAt: withOffset(-51.5) },
-      { code: "SQ", label: "Sprint Qualifying", startsAt: withOffset(-47.5) },
-      { code: "SPRINT", label: "Sprint", startsAt: withOffset(-28) },
-      { code: "QUALI", label: "Qualifying", startsAt: withOffset(-24) },
-      { code: "RACE", label: "Race", startsAt: withOffset(0) }
+      { code: "FP1", label: "Practice 1", startsAt: getSessionStart("FP1", -51.5) },
+      { code: "SQ", label: "Sprint Qualifying", startsAt: getSessionStart("SQ", -47.5) },
+      { code: "SPRINT", label: "Sprint", startsAt: getSessionStart("SPRINT", -28) },
+      { code: "QUALI", label: "Qualifying", startsAt: getSessionStart("QUALI", -24) },
+      { code: "RACE", label: "Race", startsAt: getSessionStart("RACE", 0) }
     ];
   }
 
   return [
-    { code: "FP1", label: "Practice 1", startsAt: withOffset(-52) },
-    { code: "FP2", label: "Practice 2", startsAt: withOffset(-48) },
-    { code: "FP3", label: "Practice 3", startsAt: withOffset(-28) },
-    { code: "QUALI", label: "Qualifying", startsAt: withOffset(-24) },
-    { code: "RACE", label: "Race", startsAt: withOffset(0) }
+    { code: "FP1", label: "Practice 1", startsAt: getSessionStart("FP1", -52) },
+    { code: "FP2", label: "Practice 2", startsAt: getSessionStart("FP2", -48) },
+    { code: "FP3", label: "Practice 3", startsAt: getSessionStart("FP3", -28) },
+    { code: "QUALI", label: "Qualifying", startsAt: getSessionStart("QUALI", -24) },
+    { code: "RACE", label: "Race", startsAt: getSessionStart("RACE", 0) }
   ];
 }
 
 export async function getRaceWeekendSessionsWithResults(
-  race: Pick<Race, "date" | "time" | "season" | "round" | "raceName" | "country" | "locality" | "circuitId" | "apiCircuitId">
+  race: Pick<Race, "date" | "time" | "season" | "round" | "raceName" | "country" | "locality" | "circuitId" | "apiCircuitId" | "sessionStarts">
 ): Promise<RaceSession[]> {
   const sessions = getRaceWeekendSessions(race);
   const nowMs = Date.now();
