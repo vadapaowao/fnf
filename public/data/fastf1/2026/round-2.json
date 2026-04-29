@@ -2,7 +2,7 @@
   "source": "FastF1",
   "season": "2026",
   "round": "2",
-  "generatedAt": "2026-04-29T20:36:16.706658+00:00",
+  "generatedAt": "2026-04-29T22:12:54.175817+00:00",
   "recap": {
     "headline": "Kimi Antonelli got it done at Chinese Grand Prix.",
     "winnerStory": "Kimi Antonelli took the win for Mercedes by 0:05.515.",
@@ -1151,46 +1151,6 @@
           819046,
           919929,
           1069929
-        ]
-      },
-      {
-        "driverId": "81",
-        "code": "PIA",
-        "name": "Oscar Piastri",
-        "constructor": "McLaren",
-        "finishPosition": 19,
-        "cumulativeMs": [
-          99710
-        ]
-      },
-      {
-        "driverId": "1",
-        "code": "NOR",
-        "name": "Lando Norris",
-        "constructor": "McLaren",
-        "finishPosition": 20,
-        "cumulativeMs": [
-          99710
-        ]
-      },
-      {
-        "driverId": "5",
-        "code": "BOR",
-        "name": "Gabriel Bortoleto",
-        "constructor": "Audi",
-        "finishPosition": 21,
-        "cumulativeMs": [
-          99710
-        ]
-      },
-      {
-        "driverId": "23",
-        "code": "ALB",
-        "name": "Alexander Albon",
-        "constructor": "Williams",
-        "finishPosition": 22,
-        "cumulativeMs": [
-          99710
         ]
       }
     ],
