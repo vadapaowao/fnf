@@ -1,6 +1,18 @@
-import type { Race } from "@/lib/f1";
+import type { Race, RaceReplayData, RaceSession, RaceSessionCode } from "@/lib/f1";
 
 export type ProductRaceState = "upcoming" | "live" | "finished";
+
+export type SessionRuntimeState = "upcoming" | "live" | "awaiting-result" | "completed";
+
+export type RaceRuntimeState = {
+  raceState: ProductRaceState;
+  sessionStates: Record<RaceSessionCode, SessionRuntimeState>;
+  raceResultConfirmed: boolean;
+  replayAvailable: boolean;
+  highlightsAvailable: boolean;
+};
+
+const SESSION_CODES: RaceSessionCode[] = ["FP1", "FP2", "FP3", "SQ", "SPRINT", "QUALI", "RACE"];
 
 export type TrackDnaLevel = "Low" | "Medium" | "High";
 
@@ -204,6 +216,77 @@ export function getProductRaceState(race: Race, now: Date = new Date()): Product
   }
 
   return "finished";
+}
+
+export function hasUsableSessionResult(session: RaceSession): boolean {
+  const value = session.resultValue?.trim() ?? "";
+
+  return Boolean(value && value !== "Data unavailable" && !/^Car\s+\d+$/i.test(value));
+}
+
+export function getRaceSessionDurationMs(sessionCode: RaceSessionCode): number {
+  if (sessionCode === "RACE") {
+    return 3 * 60 * 60 * 1000;
+  }
+
+  if (sessionCode === "QUALI" || sessionCode === "SQ") {
+    return 2 * 60 * 60 * 1000;
+  }
+
+  if (sessionCode === "SPRINT") {
+    return 75 * 60 * 1000;
+  }
+
+  return 90 * 60 * 1000;
+}
+
+export function getSessionRuntimeState(session: RaceSession | undefined, now: Date = new Date()): SessionRuntimeState {
+  if (!session) {
+    return "upcoming";
+  }
+
+  if (hasUsableSessionResult(session)) {
+    return "completed";
+  }
+
+  const startMs = new Date(session.startsAt).getTime();
+  if (!Number.isFinite(startMs)) {
+    return "upcoming";
+  }
+
+  const nowMs = now.getTime();
+  const endMs = startMs + getRaceSessionDurationMs(session.code);
+
+  if (nowMs < startMs) {
+    return "upcoming";
+  }
+
+  if (nowMs <= endMs) {
+    return "live";
+  }
+
+  return "awaiting-result";
+}
+
+export function getRaceRuntimeState(
+  race: Race,
+  sessions: RaceSession[],
+  replay: RaceReplayData | null,
+  now: Date = new Date()
+): RaceRuntimeState {
+  const sessionsByCode = new Map(sessions.map((session) => [session.code, session]));
+  const sessionStates = Object.fromEntries(
+    SESSION_CODES.map((code) => [code, getSessionRuntimeState(sessionsByCode.get(code), now)])
+  ) as Record<RaceSessionCode, SessionRuntimeState>;
+  const replayAvailable = Boolean(replay && replay.totalRaceMs > 0 && replay.traces.length > 0);
+
+  return {
+    raceState: getProductRaceState(race, now),
+    sessionStates,
+    raceResultConfirmed: sessionStates.RACE === "completed",
+    replayAvailable,
+    highlightsAvailable: replayAvailable
+  };
 }
 
 export function getFeaturedRace(races: Race[], now: Date = new Date()): Race | null {

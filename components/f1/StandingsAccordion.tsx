@@ -23,7 +23,7 @@ export default function StandingsAccordion({
   const leader = rows[0];
 
   return (
-    <details className="group/standings rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
+    <details open className="group/standings rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
       <summary className="flex cursor-pointer list-none items-start justify-between gap-4 p-6 marker:content-none">
         <div>
           <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">{eyebrow}</p>

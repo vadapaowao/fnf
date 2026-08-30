@@ -1,17 +1,13 @@
-import { getRaceSessionDurationMs, type RaceSession } from "@/lib/f1";
+import type { RaceSession } from "@/lib/f1";
 import LocalDateTimeText from "@/components/f1/LocalDateTimeText";
+import { hasUsableSessionResult, type RaceRuntimeState } from "@/lib/f1-product";
 
 interface WeekendScheduleProps {
     sessions: RaceSession[];
+    runtime: RaceRuntimeState;
 }
 
-function hasResolvedSessionState(session: RaceSession) {
-    return Boolean(session.resultLabel || session.resultValue || session.officialUrl);
-}
-
-export default function WeekendSchedule({ sessions }: WeekendScheduleProps) {
-    const now = new Date();
-
+export default function WeekendSchedule({ sessions, runtime }: WeekendScheduleProps) {
     return (
         <div className="mb-6">
             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
@@ -21,16 +17,8 @@ export default function WeekendSchedule({ sessions }: WeekendScheduleProps) {
                 {sessions.map((session) => {
                     const sessionDate = session.startsAt ? new Date(session.startsAt) : null;
                     const isRace = session.code === "RACE";
-                    const startMs = sessionDate ? sessionDate.getTime() : Number.NaN;
-                    const endMs = startMs + getRaceSessionDurationMs(session.code);
-                    const sessionState = hasResolvedSessionState(session)
-                        ? "completed"
-                        : now.getTime() < startMs
-                            ? "upcoming"
-                            : now.getTime() <= endMs
-                                ? "live"
-                                : "completed";
-                    const showResult = sessionState === "completed" && Boolean(session.resultValue);
+                    const sessionState = runtime.sessionStates[session.code];
+                    const showResult = sessionState === "completed" && hasUsableSessionResult(session);
 
                     return (
                         <div
@@ -71,6 +59,8 @@ export default function WeekendSchedule({ sessions }: WeekendScheduleProps) {
                                     </>
                                 ) : sessionState === "live" ? (
                                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-grid-primary">Live now</p>
+                                ) : sessionState === "awaiting-result" ? (
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500">Awaiting result</p>
                                 ) : sessionDate ? (
                                     <span className="text-xs font-mono text-gray-400">
                                         <LocalDateTimeText

@@ -6,18 +6,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Race } from "@/lib/f1";
 import { getFeaturedRace, getProductRaceState } from "@/lib/f1-product";
+import { cn } from "@/lib/utils";
 
 interface RaceSidebarProps {
   races: Race[];
   currentRaceRound?: number;
   highlightedRound?: number;
+  className?: string;
 }
 
 function isScheduledSidebarRace(race: Race) {
   return race.status !== "canceled" && /^\d+$/.test(race.round);
 }
 
-export default function RaceSidebar({ races, currentRaceRound, highlightedRound }: RaceSidebarProps) {
+export default function RaceSidebar({ races, currentRaceRound, highlightedRound, className }: RaceSidebarProps) {
   const SIDEBAR_SCROLL_KEY = "f1-race-sidebar-scroll-top";
   const SIDEBAR_SEARCH_KEY = "f1-race-sidebar-search";
 
@@ -83,7 +85,7 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound 
   }, [scheduledRaces, searchTerm]);
 
   return (
-    <aside className="z-10 flex h-full w-80 shrink-0 flex-col overflow-hidden border-r border-white/10 bg-background-dark/80 backdrop-blur-sm">
+    <aside className={cn("z-10 flex h-full w-80 shrink-0 flex-col overflow-hidden border-r border-white/10 bg-background-dark/80 backdrop-blur-sm", className)}>
       <div className="border-b border-white/10 p-6">
         <h2 className="mb-1 text-xs font-bold uppercase tracking-widest text-grid-primary">
           Select Race

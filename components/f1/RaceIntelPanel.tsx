@@ -1,8 +1,9 @@
-import { getRaceSessionDurationMs, getRaceWeekendSessions, type Race, type RaceRecap, type RaceSession, type TrackSector } from "@/lib/f1";
+import { getRaceWeekendSessions, type Race, type RaceRecap, type RaceSession, type TrackSector } from "@/lib/f1";
 import LocalDateTimeText from "@/components/f1/LocalDateTimeText";
 import MyPitWallCard from "@/components/f1/MyPitWallCard";
+import WeekendSchedule from "@/components/f1/WeekendSchedule";
 import WinnerHypeButton from "@/components/f1/WinnerHypeButton";
-import { getProductRaceState, getTrackDnaProfile, getTrackWatchlistHeading } from "@/lib/f1-product";
+import { hasUsableSessionResult, getTrackDnaProfile, getTrackWatchlistHeading, type RaceRuntimeState } from "@/lib/f1-product";
 
 interface RaceIntelPanelProps {
     race: Race;
@@ -25,59 +26,23 @@ interface RaceIntelPanelProps {
     recap?: RaceRecap | null;
     sessions?: RaceSession[];
     sectors?: TrackSector[];
+    runtime: RaceRuntimeState;
 }
 
-function hasResolvedSessionState(session: RaceSession) {
-    return Boolean(session.resultLabel || session.resultValue || session.officialUrl);
-}
-
-function resolveWeekendPulse(sessions: RaceSession[], now: Date) {
-    const nowMs = now.getTime();
-    let liveSession: RaceSession | null = null;
-    let nextSession: RaceSession | null = null;
-
-    for (const session of sessions) {
-        const startMs = new Date(session.startsAt).getTime();
-        const endMs = startMs + getRaceSessionDurationMs(session.code);
-        const sessionResolved = hasResolvedSessionState(session);
-
-        if (!sessionResolved && Number.isFinite(startMs) && startMs <= nowMs && nowMs <= endMs) {
-            liveSession = session;
-            break;
-        }
-
-        if (!nextSession && Number.isFinite(startMs) && startMs > nowMs) {
-            nextSession = session;
-        }
-    }
+function resolveWeekendPulse(sessions: RaceSession[], runtime: RaceRuntimeState) {
+    const sortedSessions = [...sessions].sort(
+        (left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime()
+    );
+    const liveSession = sortedSessions.find((session) => runtime.sessionStates[session.code] === "live") ?? null;
+    const nextSession = sortedSessions.find((session) => runtime.sessionStates[session.code] === "upcoming") ?? null;
 
     return {
         liveSession,
         nextSession,
-        lastSession: sessions
-            .filter((session) => hasResolvedSessionState(session) || new Date(session.startsAt).getTime() < nowMs)
+        lastSession: sortedSessions
+            .filter((session) => runtime.sessionStates[session.code] === "completed")
             .sort((left, right) => new Date(right.startsAt).getTime() - new Date(left.startsAt).getTime())[0] ?? null
     };
-}
-
-function getSessionState(session: RaceSession, now: Date) {
-    const startMs = new Date(session.startsAt).getTime();
-    const endMs = startMs + getRaceSessionDurationMs(session.code);
-    const nowMs = now.getTime();
-
-    if (hasResolvedSessionState(session)) {
-        return "completed";
-    }
-
-    if (nowMs < startMs) {
-        return "upcoming";
-    }
-
-    if (nowMs <= endMs) {
-        return "live";
-    }
-
-    return "completed";
 }
 
 export default function RaceIntelPanel({
@@ -87,18 +52,17 @@ export default function RaceIntelPanel({
     fastestLap,
     recap,
     sessions,
+    runtime,
 }: RaceIntelPanelProps) {
     const defaultSessions: RaceSession[] = sessions || getRaceWeekendSessions(race);
-    const now = new Date();
-    const raceSessionResolved = defaultSessions.some((session) => session.code === "RACE" && hasResolvedSessionState(session));
-    const raceState = raceSessionResolved || recap ? "finished" : getProductRaceState(race);
+    const raceState = runtime.raceState;
     const trackDna = getTrackDnaProfile(race.circuitId);
     const watchlistHeading = getTrackWatchlistHeading(raceState);
-    const weekendPulse = resolveWeekendPulse(defaultSessions, now);
+    const weekendPulse = resolveWeekendPulse(defaultSessions, runtime);
     const featuredSession = weekendPulse.liveSession ?? weekendPulse.nextSession ?? weekendPulse.lastSession;
 
     return (
-        <aside className="w-[352px] bg-surface-dark/95 border-l border-white/10 p-5 z-20 overflow-y-auto custom-scrollbar shadow-2xl relative xl:w-[368px]">
+        <aside className="relative z-20 w-full flex-none border-t border-white/10 bg-surface-dark/95 p-5 shadow-2xl xl:h-full xl:w-[368px] xl:shrink-0 xl:overflow-y-auto xl:border-l xl:border-t-0 custom-scrollbar">
             <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
                 <div>
                     <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase">Weekend</h3>
@@ -135,7 +99,7 @@ export default function RaceIntelPanel({
                         <div className="flex items-start justify-between gap-3">
                             <div>
                                 <p className="text-lg font-black text-white">{featuredSession.label}</p>
-                                {featuredSession.resultValue ? (
+                                {hasUsableSessionResult(featuredSession) ? (
                                     <p className="mt-1 text-[11px] text-gray-300">
                                         {featuredSession.resultLabel}: {featuredSession.resultValue}
                                     </p>
@@ -428,80 +392,7 @@ export default function RaceIntelPanel({
                 </div>
             )}
 
-            {/* Weekend Schedule */}
-            <div className="mb-6">
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
-                    Weekend Schedule
-                </h4>
-                <div className="space-y-2">
-                    {defaultSessions.map((session) => {
-                        const sessionDate = session.startsAt ? new Date(session.startsAt) : null;
-                        const isRace = session.code === "RACE";
-                        const sessionState = getSessionState(session, now);
-                        const showResult = sessionState === "completed" && Boolean(session.resultValue);
-
-                        return (
-                            <div
-                                key={session.code}
-                                className={`flex items-center justify-between p-3 rounded-lg ${isRace
-                                        ? "bg-grid-primary/10 border border-grid-primary/30"
-                                        : "bg-white/5 border border-white/5"
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div
-                                        className={`w-2 h-2 rounded-full ${isRace ? "bg-grid-primary" : "bg-gray-600"
-                                            }`}
-                                    ></div>
-                                    <div>
-                                        <p className={`text-xs font-bold ${isRace ? "text-white" : "text-gray-300"}`}>
-                                            {session.label}
-                                        </p>
-                                        {sessionDate && (
-                                            <p className="text-[10px] text-gray-500">
-                                                <LocalDateTimeText
-                                                    iso={session.startsAt}
-                                                    options={{
-                                                        weekday: "short",
-                                                        month: "short",
-                                                        day: "numeric"
-                                                    }}
-                                                />
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    {showResult ? (
-                                        <>
-                                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-grid-primary">
-                                                {session.resultLabel}
-                                            </p>
-                                            <p className="mt-1 text-xs font-bold text-white">{session.resultValue}</p>
-                                        </>
-                                    ) : sessionState === "live" ? (
-                                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-grid-primary">Live now</p>
-                                    ) : (
-                                        <span className="text-xs font-mono text-gray-400">
-                                            {sessionDate ? (
-                                                <LocalDateTimeText
-                                                    iso={session.startsAt}
-                                                    options={{
-                                                        hour: "2-digit",
-                                                        minute: "2-digit",
-                                                        hour12: false,
-                                                        timeZoneName: "short"
-                                                    }}
-                                                />
-                                            ) : "TBD"}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
+            <WeekendSchedule sessions={defaultSessions} runtime={runtime} />
 
         </aside>
     );

@@ -1,6 +1,7 @@
 import CountdownTimer from "@/components/CountdownTimer";
 import StandingsAccordion from "@/components/f1/StandingsAccordion";
 import { F1_SEASON, getConstructorStandings, getDriverStandings, getRaceCalendar, getRaceDetailByRound, getRaceRecapByRound, isScheduledRace, isUpcomingRace } from "@/lib/f1";
+import { getLastCompletedRace } from "@/lib/f1-product";
 
 export const revalidate = 21600;
 
@@ -33,7 +34,7 @@ export default async function StandingsPage() {
   const races = rawRaces.filter(isScheduledRace);
 
   const nextRace = races.find(isUpcomingRace) ?? null;
-  const lastCompletedRace = [...races].reverse().find((race) => !isUpcomingRace(race)) ?? null;
+  const lastCompletedRace = getLastCompletedRace(races);
   const [latestResult, latestRecap] = await Promise.all([
     lastCompletedRace ? getRaceDetailByRound(lastCompletedRace.round) : Promise.resolve(null),
     lastCompletedRace ? getRaceRecapByRound(lastCompletedRace.round) : Promise.resolve(null)

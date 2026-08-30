@@ -1,9 +1,9 @@
+import { unstable_cache } from "next/cache";
+
 import { F1_SEASON, type ConstructorStanding, type DriverStanding, getDriverStandings } from "@/lib/f1";
 
 const REVALIDATE_SECONDS = 3600;
-const TEAM_PROFILE_CACHE_TTL_MS = 10 * 60 * 1000;
 const ERGAST_BASE_URL = "https://api.jolpi.ca/ergast/f1";
-const teamProfileCache = new Map<string, { createdAt: number; promise: Promise<TeamProfileData | null> }>();
 
 const TEAM_ACCENT_COLORS: Record<string, string> = {
   red_bull: "#1E41FF",
@@ -403,18 +403,15 @@ async function buildTeamProfile(constructorId: string, season: string = F1_SEASO
   };
 }
 
-export async function getTeamProfile(constructorId: string, season: string = F1_SEASON): Promise<TeamProfileData | null> {
-  const cacheKey = `${season}:${constructorId}`;
-  const cached = teamProfileCache.get(cacheKey);
-
-  if (cached && Date.now() - cached.createdAt < TEAM_PROFILE_CACHE_TTL_MS) {
-    return cached.promise;
+const getCachedTeamProfile = unstable_cache(
+  (constructorId: string, season: string) => buildTeamProfile(constructorId, season),
+  ["f1-team-profile"],
+  {
+    revalidate: REVALIDATE_SECONDS,
+    tags: ["f1-team-profiles"]
   }
+);
 
-  const promise = buildTeamProfile(constructorId, season);
-  teamProfileCache.set(cacheKey, {
-    createdAt: Date.now(),
-    promise
-  });
-  return promise;
+export async function getTeamProfile(constructorId: string, season: string = F1_SEASON): Promise<TeamProfileData | null> {
+  return getCachedTeamProfile(constructorId, season);
 }

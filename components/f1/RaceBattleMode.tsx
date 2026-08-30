@@ -26,7 +26,12 @@ function formatGap(ms: number) {
 
 function formatAverage(ms: number) {
   const seconds = Math.abs(ms) / 1000;
-  return `${ms >= 0 ? "+" : "-"}${seconds.toFixed(3)}s/lap`;
+  return `${ms >= 0 ? "+" : "-"}${seconds.toFixed(3)}s`;
+}
+
+function formatDriverOption(trace: ReplayTrace) {
+  const surname = trace.name.trim().split(/\s+/).pop() ?? trace.name;
+  return `${trace.code} · ${surname}`;
 }
 
 function buildLapTimes(trace: ReplayTrace) {
@@ -158,7 +163,7 @@ export default function RaceBattleMode({ replay }: RaceBattleModeProps) {
             >
               {traces.map((trace) => (
                 <option key={trace.driverId} value={trace.driverId} className="bg-[#0B0B0B]">
-                  {trace.code} · {trace.name}
+                  {formatDriverOption(trace)}
                 </option>
               ))}
             </select>
@@ -180,7 +185,7 @@ export default function RaceBattleMode({ replay }: RaceBattleModeProps) {
             >
               {traces.map((trace) => (
                 <option key={trace.driverId} value={trace.driverId} className="bg-[#0B0B0B]">
-                  {trace.code} · {trace.name}
+                  {formatDriverOption(trace)}
                 </option>
               ))}
             </select>
@@ -189,24 +194,27 @@ export default function RaceBattleMode({ replay }: RaceBattleModeProps) {
 
         {leftTrace && rightTrace ? (
           <>
-            <div className="mt-4 grid gap-3 md:grid-cols-4">
-              <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="min-w-0 rounded-lg border border-white/10 bg-black/20 p-3 sm:p-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Finish gap</p>
-                <p className="mt-2 text-xl font-black text-white">{formatGap(finalGapMs)}</p>
+                <p className="mt-2 break-words text-lg font-black leading-tight text-white sm:text-xl">{formatGap(finalGapMs)}</p>
                 <p className="mt-1 text-[11px] text-gray-500">
                   P{leftTrace.finishPosition} vs P{rightTrace.finishPosition}
                 </p>
               </div>
-              <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+              <div className="min-w-0 rounded-lg border border-white/10 bg-black/20 p-3 sm:p-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Avg lap delta</p>
-                <p className="mt-2 text-xl font-black text-white">{formatAverage(averageDeltaMs)}</p>
+                <p className="mt-2 text-lg font-black leading-tight text-white sm:text-xl">
+                  {formatAverage(averageDeltaMs)}
+                  <span className="ml-1 text-xs font-bold text-gray-400">/ lap</span>
+                </p>
                 <p className="mt-1 text-[11px] text-gray-500">{lapDeltas.length} shared laps</p>
               </div>
-              <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+              <div className="min-w-0 rounded-lg border border-white/10 bg-black/20 p-3 sm:p-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">{leftTrace.code} faster laps</p>
                 <p className="mt-2 text-xl font-black text-white">{leftFasterLaps}</p>
               </div>
-              <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+              <div className="min-w-0 rounded-lg border border-white/10 bg-black/20 p-3 sm:p-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">{rightTrace.code} faster laps</p>
                 <p className="mt-2 text-xl font-black text-white">{rightFasterLaps}</p>
               </div>
@@ -216,7 +224,7 @@ export default function RaceBattleMode({ replay }: RaceBattleModeProps) {
               {segmentLabels.map((segment) => (
                 <div key={segment.label} className="min-w-0 rounded-lg border border-white/10 bg-black/20 px-4 py-3">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">{segment.label}</p>
-                  <p className="mt-2 truncate text-sm font-bold text-white">
+                  <p className="mt-2 break-words text-sm font-bold leading-snug text-white">
                     {segment.winner === "Left" ? leftTrace.name : segment.winner === "Right" ? rightTrace.name : "Even split"}
                   </p>
                 </div>

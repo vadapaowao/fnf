@@ -1,6 +1,11 @@
 import { getOpenF1RaceRecap, getOpenF1RaceReplay, getOpenF1SessionResultSummary } from "@/lib/openf1";
 import { getFastF1RaceBundle } from "@/lib/fastf1-data";
-import { getFeaturedRace } from "@/lib/f1-product";
+import {
+  getFeaturedRace,
+  getRaceRuntimeState,
+  getRaceSessionDurationMs as getProductRaceSessionDurationMs,
+  type RaceRuntimeState
+} from "@/lib/f1-product";
 import { HISTORICAL_CIRCUIT_STATS } from "@/lib/circuit-history";
 
 export const F1_SEASON = "2026";
@@ -166,6 +171,7 @@ export type RacePageBundle = {
   recap: RaceRecap | null;
   replay: RaceReplayData | null;
   sessions: RaceSession[];
+  runtime: RaceRuntimeState;
 };
 
 export type Driver = {
@@ -1510,6 +1516,7 @@ async function buildRacePageBundle(races: Race[], race: Race): Promise<RacePageB
     replayPromise,
     getRaceWeekendSessionsWithResults(race)
   ]);
+  const runtime = getRaceRuntimeState(race, sessions, replay);
 
   return {
     races,
@@ -1517,7 +1524,8 @@ async function buildRacePageBundle(races: Race[], race: Race): Promise<RacePageB
     detail,
     recap,
     replay,
-    sessions
+    sessions,
+    runtime
   };
 }
 
@@ -1618,19 +1626,7 @@ function isSprintWeekend(race: Pick<Race, "season" | "circuitId" | "sessionStart
 }
 
 export function getRaceSessionDurationMs(sessionCode: RaceSessionCode) {
-  if (sessionCode === "RACE") {
-    return 3 * 60 * 60 * 1000;
-  }
-
-  if (sessionCode === "QUALI" || sessionCode === "SQ") {
-    return 2 * 60 * 60 * 1000;
-  }
-
-  if (sessionCode === "SPRINT") {
-    return 75 * 60 * 1000;
-  }
-
-  return 90 * 60 * 1000;
+  return getProductRaceSessionDurationMs(sessionCode);
 }
 
 export function getRaceSessionResultHydrationDelayMs(sessionCode: RaceSessionCode) {

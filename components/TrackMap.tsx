@@ -386,45 +386,28 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
     });
   }, [circuitId, sectorSegments]);
 
+  const hasReplayTelemetry = Boolean(replay && replay.traces.length > 0 && replay.totalRaceMs > 0);
+
   const replayMoments = useMemo<ReplayMoment[]>(() => {
+    if (!hasReplayTelemetry || !replay) {
+      return [];
+    }
+
     const baseMoments: Array<{
       id: string;
       title: string;
       detail: string;
       checkpointMs?: number;
     }> =
-      replay?.highlights && replay.highlights.length > 0
+      replay.highlights && replay.highlights.length > 0
         ? replay.highlights.map((moment) => ({
             id: moment.id,
             title: moment.title,
             detail: moment.detail,
             checkpointMs: moment.checkpointMs
           }))
-        : !recap
-        ? [
-            {
-              id: "s1-preview",
-              title: "Sector 1 Launch",
-              detail: "Opening phase racecraft and positioning pressure."
-            },
-            {
-              id: "s2-preview",
-              title: "Sector 2 Flow",
-              detail: "Mid-lap pace balance and overtake setup windows."
-            },
-            {
-              id: "s3-preview",
-              title: "Sector 3 Finish",
-              detail: "Braking and traction execution into the final sprint."
-            }
-          ]
         : [];
-
-    if (baseMoments.length === 0) {
-      return [];
-    }
-
-    const duration = replay?.totalRaceMs && replay.totalRaceMs > 0 ? replay.totalRaceMs : 180000;
+    const duration = replay.totalRaceMs;
 
     const distributedMoments = baseMoments.map((moment, index) => ({
       ...moment,
@@ -440,12 +423,11 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
     };
 
     return [...distributedMoments, finishMoment];
-  }, [recap, replay?.highlights, replay?.totalRaceMs]);
+  }, [hasReplayTelemetry, replay]);
 
   const replaySpeed = REPLAY_SPEEDS[replaySpeedIndex] ?? 1;
   const replayDurationMs = replay?.totalRaceMs && replay.totalRaceMs > 0 ? replay.totalRaceMs : 180000;
-  const replayModeLabel = replay?.traces?.length ? "Official lap trace replay" : "Preview track replay";
-  const hasReplayTelemetry = Boolean(replay && replay.traces.length > 0 && replay.totalRaceMs > 0);
+  const replayModeLabel = "Official lap trace replay";
 
   const drsFractions = useMemo(() => {
     const requestedCount = parseDrsCount(drsZoneCount, layout.drsFractions.length);

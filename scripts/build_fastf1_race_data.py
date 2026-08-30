@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 from statistics import mean
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import fastf1
 import pandas as pd
@@ -363,12 +363,25 @@ def get_completed_rounds(season: int, now: Optional[pd.Timestamp] = None) -> Lis
     return sorted(set(completed_rounds))
 
 
-def write_bundle(bundle: Dict[str, Any], season: int, round_number: int) -> Path:
+def bundle_payload(bundle: Dict[str, Any]) -> Dict[str, Any]:
+    return {key: value for key, value in bundle.items() if key != "generatedAt"}
+
+
+def write_bundle(bundle: Dict[str, Any], season: int, round_number: int) -> Tuple[Path, bool]:
     output_dir = OUTPUT_DIR / str(season)
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"round-{round_number}.json"
+
+    if output_path.exists():
+        try:
+            existing_bundle = json.loads(output_path.read_text(encoding="utf-8"))
+            if bundle_payload(existing_bundle) == bundle_payload(bundle):
+                return output_path, False
+        except (json.JSONDecodeError, OSError):
+            pass
+
     output_path.write_text(json.dumps(bundle, indent=2), encoding="utf-8")
-    return output_path
+    return output_path, True
 
 
 def main() -> None:
@@ -388,25 +401,37 @@ def main() -> None:
             return
 
         print(f"Generating FastF1 bundles for completed rounds: {', '.join(str(round_number) for round_number in rounds)}")
-        wrote_any = False
+        changed_any = False
+        missing_rounds: List[int] = []
         for round_number in rounds:
             try:
                 bundle = build_bundle(args.season, round_number)
-                output_path = write_bundle(bundle, args.season, round_number)
-                print(f"Wrote {output_path}")
-                wrote_any = True
+                output_path, changed = write_bundle(bundle, args.season, round_number)
+                if changed:
+                    print(f"Wrote {output_path}")
+                    changed_any = True
+                else:
+                    print(f"Unchanged {output_path}")
             except Exception as error:
                 print(f"Skipping round {round_number}: {error}")
-        if not wrote_any:
-            print(f"No FastF1 bundles refreshed for {args.season}. Existing files were left unchanged.")
+                expected_path = OUTPUT_DIR / str(args.season) / f"round-{round_number}.json"
+                if not expected_path.exists():
+                    missing_rounds.append(round_number)
+
+        if missing_rounds:
+            missing_list = ", ".join(str(round_number) for round_number in missing_rounds)
+            raise RuntimeError(f"Missing FastF1 bundles for completed rounds: {missing_list}")
+
+        if not changed_any:
+            print(f"No FastF1 bundle content changed for {args.season}.")
         return
 
     if args.round is None:
         raise RuntimeError("A round number is required unless --completed is used.")
 
     bundle = build_bundle(args.season, args.round)
-    output_path = write_bundle(bundle, args.season, args.round)
-    print(f"Wrote {output_path}")
+    output_path, changed = write_bundle(bundle, args.season, args.round)
+    print(f"{'Wrote' if changed else 'Unchanged'} {output_path}")
 
 
 if __name__ == "__main__":

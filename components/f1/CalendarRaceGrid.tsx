@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import FollowToggleButton from "@/components/f1/FollowToggleButton";
 import type { Race } from "@/lib/f1";
+import { getProductRaceState } from "@/lib/f1-product";
 
 type CalendarRaceGridProps = {
   races: Race[];
@@ -48,16 +49,18 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
   const scheduledRaces = useMemo(() => races.filter(isScheduledCalendarRace), [races]);
   const canceledRaces = useMemo(() => races.filter((race) => !isScheduledCalendarRace(race)), [races]);
   const fallbackRound = scheduledRaces[0]?.round ?? "";
-  const [selectedRound, setSelectedRound] = useState(fallbackRound);
+  const [selectedRound, setSelectedRound] = useState("");
   const [nowMs, setNowMs] = useState<number | null>(null);
 
   const resolvedSelectedRound = useMemo(() => {
     if (nowMs === null) {
-      return fallbackRound;
+      return "";
     }
 
-    const upcomingRace = scheduledRaces.find((race) => getRaceStartMs(race) >= nowMs);
-    return (upcomingRace ?? scheduledRaces[0])?.round ?? fallbackRound;
+    const now = new Date(nowMs);
+    const liveRace = scheduledRaces.find((race) => getProductRaceState(race, now) === "live");
+    const upcomingRace = scheduledRaces.find((race) => getProductRaceState(race, now) === "upcoming");
+    return (liveRace ?? upcomingRace ?? scheduledRaces[scheduledRaces.length - 1])?.round ?? fallbackRound;
   }, [fallbackRound, nowMs, scheduledRaces]);
 
   useEffect(() => {
@@ -83,7 +86,9 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
         {scheduledRaces.map((race) => {
         const raceStartMs = getRaceStartMs(race);
         const referenceNowMs = nowMs ?? 0;
-        const isPast = raceStartMs < referenceNowMs;
+        const raceState = nowMs === null ? "upcoming" : getProductRaceState(race, new Date(referenceNowMs));
+        const isPast = raceState === "finished";
+        const isLive = raceState === "live";
         const isSelected = race.round === selectedRound;
         const countdown = nowMs === null ? null : formatCountdown(raceStartMs - nowMs);
 
@@ -92,6 +97,8 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
             key={`${race.circuitId}-${race.round}-${race.date}`}
             className={`rounded-xl border transition-all ${isPast
               ? "border-white/5 bg-background-dark/50 opacity-70"
+              : isLive
+              ? "border-grid-primary/40 bg-gradient-to-br from-grid-primary/10 to-background-dark"
               : "border-white/10 bg-gradient-to-br from-surface-dark to-background-dark"
               } ${isSelected ? "ring-1 ring-grid-primary/70" : ""}`}
           >
@@ -110,7 +117,7 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
                     : "bg-grid-primary/20 text-grid-primary"
                     }`}
                 >
-                  {isPast ? "FINISHED" : "UPCOMING"}
+                  {isPast ? "FINISHED" : isLive ? "LIVE" : "UPCOMING"}
                 </span>
               </div>
 
@@ -118,7 +125,7 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
                 <h3 className="font-display text-xl font-bold text-white transition-colors group-hover:text-grid-primary">
                   {race.raceName}
                 </h3>
-                {isSelected && !isPast && countdown ? (
+                {isSelected && raceState === "upcoming" && countdown ? (
                   <span className="rounded border border-grid-primary/40 bg-grid-primary/10 px-2 py-1 text-[10px] font-mono font-bold text-grid-primary">
                     {countdown}
                   </span>

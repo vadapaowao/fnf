@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import RaceIntelPanel from "@/components/f1/RaceIntelPanel";
+import MobileRaceSelector from "@/components/f1/MobileRaceSelector";
 import RaceSidebar from "@/components/f1/RaceSidebar";
 import TrackHero from "@/components/f1/TrackHero";
 import { getRaceCalendar, getRaceDetailByRound, getRacePageBundle, isScheduledRace } from "@/lib/f1";
@@ -39,13 +40,14 @@ export default async function RaceDetailPage({ params }: RaceDetailPageProps) {
   if (!bundle) {
     notFound();
   }
-  const { races, race, detail, recap, replay, sessions } = bundle;
+  const { races, race, detail, recap, replay, sessions, runtime } = bundle;
 
   return (
     <main className="relative flex flex-1 flex-col overflow-hidden">
       <div className="absolute inset-0 z-0 bg-grid bg-grid-pattern-size opacity-20 pointer-events-none" />
-      <div className="relative z-10 flex min-h-0 flex-1 overflow-hidden">
-        <RaceSidebar races={races} highlightedRound={Number(params.round)} />
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto xl:flex-row xl:overflow-hidden">
+        <RaceSidebar races={races} highlightedRound={Number(params.round)} className="hidden xl:flex" />
+        <MobileRaceSelector races={races} currentRound={race.round} />
         <TrackHero
           race={race}
           trackSvgPath={detail.circuit.trackSvgPath}
@@ -53,6 +55,7 @@ export default async function RaceDetailPage({ params }: RaceDetailPageProps) {
           drsZoneCount={detail.circuit.drsZones}
           recap={recap}
           replay={replay}
+          runtime={runtime}
         />
         <RaceIntelPanel
           race={race}
@@ -67,6 +70,7 @@ export default async function RaceDetailPage({ params }: RaceDetailPageProps) {
           sessions={sessions}
           sectors={detail.circuit.sectors}
           recap={recap}
+          runtime={runtime}
         />
       </div>
     </main>

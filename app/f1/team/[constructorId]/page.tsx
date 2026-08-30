@@ -8,7 +8,14 @@ type Params = {
   constructorId: string;
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
+export const dynamic = "force-static";
+export const dynamicParams = true;
+
+// Team pages are generated on first visit, then served from the ISR cache.
+export function generateStaticParams(): Params[] {
+  return [];
+}
 
 export default async function TeamPage({ params }: { params: Params }) {
   const profile = await getTeamProfile(params.constructorId, F1_SEASON);
