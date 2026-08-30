@@ -63,7 +63,7 @@ jobs:
 
       - name: Commit updated bundles
         run: |
-          if git diff --quiet -- public/data/fastf1; then
+          if [[ -z "$(git status --porcelain -- public/data/fastf1)" ]]; then
             echo "No FastF1 replay changes to commit."
             exit 0
           fi
