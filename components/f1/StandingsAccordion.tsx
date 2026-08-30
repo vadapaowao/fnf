@@ -23,15 +23,15 @@ export default function StandingsAccordion({
   const leader = rows[0];
 
   return (
-    <details open className="group/standings rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
-      <summary className="flex cursor-pointer list-none items-start justify-between gap-4 p-6 marker:content-none">
-        <div>
+    <details open className="group/standings min-w-0 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
+      <summary className="flex cursor-pointer list-none flex-col items-start justify-between gap-4 p-4 marker:content-none sm:flex-row sm:p-6">
+        <div className="min-w-0 max-w-full">
           <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">{eyebrow}</p>
           <h2 className="mt-2 font-display text-3xl font-bold text-white">{title}</h2>
           <p className="mt-2 max-w-md text-sm leading-relaxed text-gray-400">{subtitle}</p>
 
           {leader ? (
-            <div className="mt-4 inline-flex max-w-full items-center gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-3">
+            <div className="mt-4 inline-grid max-w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-3 sm:gap-3 sm:px-4">
               <span className="rounded-full border border-white/10 bg-black/30 px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
                 P{leader.rank}
               </span>
@@ -46,7 +46,7 @@ export default function StandingsAccordion({
           ) : null}
         </div>
 
-        <div className="flex shrink-0 items-center gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-3">
+        <div className="flex shrink-0 self-start items-center gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-3">
           <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-400">Full table</span>
           <span className="material-icons text-base text-grid-primary transition-transform duration-200 group-open/standings:rotate-180">
             expand_more
@@ -54,12 +54,12 @@ export default function StandingsAccordion({
         </div>
       </summary>
 
-      <div className="border-t border-white/10 px-4 pb-4 pt-2">
+      <div className="min-w-0 border-t border-white/10 px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
         <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
           {rows.map((row) => (
             <div
               key={`${row.rank}-${row.name}`}
-              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 rounded-lg border border-white/10 bg-black/20 px-4 py-3"
+              className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-3 sm:gap-4 sm:px-4"
             >
               <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
                 P{row.rank}
@@ -71,7 +71,7 @@ export default function StandingsAccordion({
                 {row.meta ? <p className="truncate text-[10px] uppercase tracking-[0.14em] text-gray-600">{row.meta}</p> : null}
               </div>
 
-              <span className="text-right text-sm font-black text-white" style={{ color: row.accentColor ?? "#FFFFFF" }}>
+              <span className="whitespace-nowrap text-right text-xs font-black text-white sm:text-sm" style={{ color: row.accentColor ?? "#FFFFFF" }}>
                 {row.value}
               </span>
             </div>

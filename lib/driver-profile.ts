@@ -39,6 +39,7 @@ export type DriverSeasonSnapshot = {
   pointsToLeader: number;
   recentResults: DriverSeasonResult[];
   paceSeries: DriverSeasonResult[];
+  hasRaceData: boolean;
 };
 
 export type DriverProfileNeighbor = {
@@ -230,10 +231,10 @@ const CHAMPIONSHIP_YEARS_BY_DRIVER: Record<string, string[]> = {
   max_verstappen: ["2021", "2022", "2023"]
 };
 
-async function fetchJson<T>(url: string): Promise<T | null> {
+async function fetchJson<T>(url: string, options?: { noStore?: boolean }): Promise<T | null> {
   try {
     const response = await fetch(url, {
-      next: { revalidate: REVALIDATE_SECONDS },
+      ...(options?.noStore ? { cache: "no-store" as const } : { next: { revalidate: REVALIDATE_SECONDS } }),
       headers: {
         "User-Agent": "SportsCore/1.0 (driver-profile)"
       }
@@ -247,6 +248,10 @@ async function fetchJson<T>(url: string): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+async function fetchJsonWithRetry<T>(url: string): Promise<T | null> {
+  return (await fetchJson<T>(url)) ?? fetchJson<T>(url, { noStore: true });
 }
 
 function toInt(value: string | undefined): number {
@@ -347,12 +352,12 @@ function getAgeFromDate(dateOfBirth: string): number {
 }
 
 async function fetchTotalFromEndpoint(endpoint: string): Promise<number> {
-  const data = await fetchJson<ErgastTotalResponse>(`${ERGAST_BASE_URL}${endpoint}`);
+  const data = await fetchJsonWithRetry<ErgastTotalResponse>(`${ERGAST_BASE_URL}${endpoint}`);
   return toInt(data?.MRData?.total);
 }
 
 async function fetchCareerResultsMeta(driverId: string): Promise<{ starts: number; debutYear: string }> {
-  const data = await fetchJson<ErgastTotalResponse>(`${ERGAST_BASE_URL}/drivers/${driverId}/results.json?limit=1`);
+  const data = await fetchJsonWithRetry<ErgastTotalResponse>(`${ERGAST_BASE_URL}/drivers/${driverId}/results.json?limit=1`);
 
   return {
     starts: toInt(data?.MRData?.total),
@@ -361,7 +366,7 @@ async function fetchCareerResultsMeta(driverId: string): Promise<{ starts: numbe
 }
 
 async function fetchWinsMeta(driverId: string): Promise<{ wins: number; firstWinYear: string }> {
-  const data = await fetchJson<ErgastTotalResponse>(`${ERGAST_BASE_URL}/drivers/${driverId}/results/1.json?limit=1`);
+  const data = await fetchJsonWithRetry<ErgastTotalResponse>(`${ERGAST_BASE_URL}/drivers/${driverId}/results/1.json?limit=1`);
 
   return {
     wins: toInt(data?.MRData?.total),
@@ -375,9 +380,13 @@ function getRaceShortLabel(raceName: string) {
 }
 
 async function fetchSeasonResults(driverId: string, season: string): Promise<DriverSeasonResult[]> {
-  const data = await fetchJson<ErgastDriverSeasonResultsResponse>(
+  const url =
     `${ERGAST_BASE_URL}/${season}/drivers/${driverId}/results.json?limit=100`
-  );
+  let data = await fetchJson<ErgastDriverSeasonResultsResponse>(url);
+
+  if (!data) {
+    data = await fetchJson<ErgastDriverSeasonResultsResponse>(url, { noStore: true });
+  }
 
   const races = data?.MRData?.RaceTable?.Races ?? [];
 
@@ -534,6 +543,8 @@ async function buildSeasonSnapshot(
   const leaderPoints = toFixedNumber(standings[0]?.points);
   const currentPoints = toFixedNumber(standing?.points);
   const podiums = seasonResults.filter((result) => result.finish !== null && result.finish <= 3).length;
+  const standingHasResults = standing ? currentPoints > 0 || toInt(standing.wins) > 0 : false;
+  const hasRaceData = seasonResults.length > 0 || !standingHasResults;
 
   return {
     season: effectiveSeason,
@@ -549,7 +560,8 @@ async function buildSeasonSnapshot(
     completedRounds: seasonResults.length,
     pointsToLeader: Math.max(leaderPoints - currentPoints, 0),
     recentResults: seasonResults,
-    paceSeries: seasonResults
+    paceSeries: seasonResults,
+    hasRaceData
   };
 }
 

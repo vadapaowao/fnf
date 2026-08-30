@@ -741,6 +741,8 @@ const CIRCUIT_STATIC: Record<string, CircuitStatic> = {
   interlagos: { lengthKm: "4.309", turns: "15", drsZones: 2, firstGrandPrix: "1973", trackSvgFile: "interlagos.svg" },
   las_vegas: { lengthKm: "6.201", turns: "17", drsZones: 2, firstGrandPrix: "2023", trackSvgFile: "las_vegas.svg" },
   losail: { lengthKm: "5.419", turns: "16", drsZones: 1, firstGrandPrix: "2021", trackSvgFile: "losail.svg" },
+  madring: { lengthKm: "5.474", turns: "22", drsZones: 3, firstGrandPrix: "2026", trackSvgFile: "madring.svg" },
+  sepang: { lengthKm: "5.543", turns: "15", drsZones: 2, firstGrandPrix: "1999", trackSvgFile: "sepang.svg" },
   yas_marina: { lengthKm: "5.281", turns: "16", drsZones: 2, firstGrandPrix: "2009", trackSvgFile: "yas_marina.svg" }
 };
 
@@ -768,6 +770,8 @@ const CIRCUIT_TIMEZONES: Record<string, string> = {
   interlagos: "America/Sao_Paulo",
   las_vegas: "America/Los_Angeles",
   losail: "Asia/Qatar",
+  madring: "Europe/Madrid",
+  sepang: "Asia/Kuala_Lumpur",
   yas_marina: "Asia/Dubai"
 };
 
@@ -924,6 +928,9 @@ function resolveCanonicalCircuitId(race: Pick<Race, "circuitId" | "circuitName" 
     las_vegas_strip_circuit: "las_vegas",
     losail: "losail",
     lusail: "losail",
+    madring: "madring",
+    sepang: "sepang",
+    sepang_international_circuit: "sepang",
     yas_marina: "yas_marina"
   };
 
@@ -2142,13 +2149,6 @@ async function buildRaceRecap(race: Race): Promise<RaceRecap | null> {
     return fastF1Bundle.recap;
   }
 
-  if (race.season === F1_SEASON) {
-    const openF1Recap = await getOpenF1RaceRecap(race);
-    if (openF1Recap) {
-      return openF1Recap;
-    }
-  }
-
   const resultsData = await fetchJson<ErgastRaceResultsResponse>(
     `${ERGAST_BASE_URL}/${race.season}/${race.round}/results.json`
   );
@@ -2320,13 +2320,6 @@ async function buildRaceReplay(race: Race): Promise<RaceReplayData | null> {
   const fastF1Bundle = await getFastF1RaceBundle(race.season, race.round);
   if (fastF1Bundle?.replay) {
     return fastF1Bundle.replay;
-  }
-
-  if (race.season === F1_SEASON) {
-    const openF1Replay = await getOpenF1RaceReplay(race);
-    if (openF1Replay) {
-      return openF1Replay;
-    }
   }
 
   const [resultsData, laps] = await Promise.all([

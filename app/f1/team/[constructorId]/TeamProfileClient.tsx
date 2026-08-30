@@ -18,6 +18,10 @@ function formatNumber(value: number | string) {
 }
 
 function buildTeamSeasonSummary(teamName: string, snapshot: TeamSeasonSnapshot) {
+  if (!snapshot.hasRaceData) {
+    return `${teamName} has ${snapshot.points} points in the ${snapshot.season} standings. Round-by-round results are not available right now.`;
+  }
+
   const winsLine = `${snapshot.wins} win${snapshot.wins === 1 ? "" : "s"} and ${snapshot.podiums} podiums`;
   const pointsLine = `${snapshot.points} points across ${snapshot.completedRounds} rounds`;
 
@@ -120,10 +124,10 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-4">
-              <StatTile label="Points" value={formatNumber(selectedSeason.points)} hint={`After ${selectedSeason.completedRounds} race${selectedSeason.completedRounds === 1 ? "" : "s"}`} />
-              <StatTile label="Wins" value={formatNumber(selectedSeason.wins)} hint={`${selectedSeason.podiums} podiums`} />
-              <StatTile label="Average Points" value={selectedSeason.averagePoints} hint="per round" />
-              <StatTile label="Best Finish" value={selectedSeason.bestFinish} />
+              <StatTile label="Points" value={formatNumber(selectedSeason.points)} hint={selectedSeason.hasRaceData ? `After ${selectedSeason.completedRounds} race${selectedSeason.completedRounds === 1 ? "" : "s"}` : undefined} />
+              <StatTile label="Wins" value={formatNumber(selectedSeason.wins)} hint={selectedSeason.hasRaceData ? `${selectedSeason.podiums} podiums` : "From the standings"} />
+              <StatTile label="Average Points" value={selectedSeason.hasRaceData ? selectedSeason.averagePoints : "—"} hint={selectedSeason.hasRaceData ? "per round" : undefined} />
+              <StatTile label="Best Finish" value={selectedSeason.hasRaceData ? selectedSeason.bestFinish : "—"} />
             </div>
           </div>
         </section>
@@ -222,14 +226,20 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatTile label="Points" value={formatNumber(selectedSeason.points)} />
               <StatTile label="Wins" value={formatNumber(selectedSeason.wins)} />
-              <StatTile label="Podiums" value={formatNumber(selectedSeason.podiums)} />
-              <StatTile label="Best Finish" value={selectedSeason.bestFinish} />
-              <StatTile label="Average Points" value={selectedSeason.averagePoints} />
-              <StatTile label="Logged Rounds" value={formatNumber(selectedSeason.completedRounds)} />
+              <StatTile label="Podiums" value={selectedSeason.hasRaceData ? formatNumber(selectedSeason.podiums) : "—"} />
+              <StatTile label="Best Finish" value={selectedSeason.hasRaceData ? selectedSeason.bestFinish : "—"} />
+              <StatTile label="Average Points" value={selectedSeason.hasRaceData ? selectedSeason.averagePoints : "—"} />
+              <StatTile label="Logged Rounds" value={selectedSeason.hasRaceData ? formatNumber(selectedSeason.completedRounds) : "—"} />
             </div>
           </article>
 
-          <TeamPointsChart snapshot={selectedSeason} accentColor={teamColor} title={`${selectedSeason.season} Points Flow`} />
+          {selectedSeason.hasRaceData ? (
+            <TeamPointsChart snapshot={selectedSeason} accentColor={teamColor} title={`${selectedSeason.season} Points Flow`} />
+          ) : (
+            <div className="rounded-xl border border-dashed border-white/10 bg-black/20 px-4 py-8 text-center">
+              <p className="text-sm text-gray-400">Race-by-race data is not available right now.</p>
+            </div>
+          )}
 
           <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -239,7 +249,7 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
-                  {selectedSeason.completedRounds} rounds
+                  {selectedSeason.hasRaceData ? `${selectedSeason.completedRounds} rounds` : "Unavailable"}
                 </span>
                 <div className="flex flex-wrap gap-1 rounded-lg border border-white/10 bg-black/20 p-1">
                   {[
@@ -300,7 +310,9 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
               </div>
               ) : (
                 <div className="mt-5 rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-8 text-center">
-                  <p className="text-sm text-gray-400">No races match this filter.</p>
+                  <p className="text-sm text-gray-400">
+                    {selectedSeason.hasRaceData ? "No races match this filter." : "Race results are not available right now."}
+                  </p>
                 </div>
               )}
             </article>

@@ -6,7 +6,7 @@ import path from "path";
 import type { RaceRecap, RaceReplayData } from "@/lib/f1";
 
 export type FastF1RaceBundle = {
-  source: "FastF1";
+  source: "FastF1" | "Jolpica";
   season: string;
   round: string;
   generatedAt: string;

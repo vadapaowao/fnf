@@ -101,6 +101,8 @@ const TRACK_LAYOUTS: Record<string, TrackLayout> = {
   interlagos: { sectorStops: [0, 0.34, 0.69, 1], drsFractions: [0.15, 0.72] },
   las_vegas: { sectorStops: [0, 0.34, 0.67, 1], drsFractions: [0.11, 0.43] },
   losail: { sectorStops: [0, 0.35, 0.69, 1], drsFractions: [0.17] },
+  madring: { sectorStops: [0, 0.34, 0.68, 1], drsFractions: [0.12, 0.49, 0.82] },
+  sepang: { sectorStops: [0, 0.35, 0.67, 1], drsFractions: [0.18, 0.73] },
   yas_marina: { sectorStops: [0, 0.32, 0.66, 1], drsFractions: [0.23, 0.77] }
 };
 
@@ -156,6 +158,8 @@ const TRACK_TURN_COUNTS: Record<string, number> = {
   interlagos: 15,
   las_vegas: 17,
   losail: 16,
+  madring: 22,
+  sepang: 15,
   yas_marina: 16
 };
 

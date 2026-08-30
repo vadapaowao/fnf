@@ -17,12 +17,14 @@ const CANONICAL_TRACKS = [
   "jeddah",
   "las_vegas",
   "losail",
+  "madring",
   "marina_bay",
   "miami",
   "monaco",
   "monza",
   "red_bull_ring",
   "rodriguez",
+  "sepang",
   "shanghai",
   "silverstone",
   "spa",
@@ -31,6 +33,11 @@ const CANONICAL_TRACKS = [
   "yas_marina",
   "zandvoort"
 ];
+
+const VIEW_BOX_OVERRIDES = {
+  // The source applies nested translations; this viewBox preserves that geometry after path extraction.
+  sepang: "268.015 -63.103 1145.6632 945.31122"
+};
 
 function parseStrokeOnlyClasses(svgText) {
   const classes = new Set();
@@ -177,7 +184,7 @@ async function buildManifest() {
   for (const trackId of CANONICAL_TRACKS) {
     const filePath = path.join(tracksDir, `${trackId}.svg`);
     const svgText = await fs.readFile(filePath, "utf8");
-    const viewBox = resolveViewBox(svgText);
+    const viewBox = VIEW_BOX_OVERRIDES[trackId] ?? resolveViewBox(svgText);
     const mainPath = extractPathEntries(svgText)[0]?.d ?? null;
 
     if (!viewBox || !mainPath) {

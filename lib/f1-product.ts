@@ -166,6 +166,8 @@ const CIRCUIT_DNA: Record<string, CircuitDnaConfig> = {
   interlagos: { archetype: "balanced_technical", fanHook: "Short-lap volatility means the race state can flip quickly.", tags: ["short lap", "weather", "strategy"] },
   las_vegas: { archetype: "power_track", fanHook: "Long straights and cold-grip management create a very modern duel pattern.", tags: ["cold track", "top speed", "late braking"] },
   losail: { archetype: "high_speed_sweepers", fanHook: "Sustained high-speed loading exposes balance and tyre resilience.", tags: ["high-speed", "tyres", "stability"] },
+  madring: { archetype: "street_pressure", fanHook: "A new semi-street layout where braking confidence and track evolution will set the order.", tags: ["new circuit", "street", "braking"] },
+  sepang: { archetype: "tyre_stress_marathon", fanHook: "Heat, long loaded corners, and heavy braking make tyre life the central question.", tags: ["heat", "tyres", "wide track"] },
   yas_marina: { archetype: "traction_rotation", fanHook: "Low-speed exits and braking release are worth more than headline speed.", tags: ["traction", "night race", "strategy"] }
 };
 

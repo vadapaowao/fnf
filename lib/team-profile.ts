@@ -116,6 +116,7 @@ export type TeamSeasonSnapshot = {
   completedRounds: number;
   pointsToLeader: number;
   raceSeries: TeamRaceResult[];
+  hasRaceData: boolean;
 };
 
 export type TeamProfileData = {
@@ -167,10 +168,10 @@ function getSeasonCandidates(season: string) {
   return [String(numericSeason), String(numericSeason - 1), String(numericSeason - 2)];
 }
 
-async function fetchJson<T>(url: string): Promise<T | null> {
+async function fetchJson<T>(url: string, options?: { noStore?: boolean }): Promise<T | null> {
   try {
     const response = await fetch(url, {
-      next: { revalidate: REVALIDATE_SECONDS },
+      ...(options?.noStore ? { cache: "no-store" as const } : { next: { revalidate: REVALIDATE_SECONDS } }),
       headers: {
         "User-Agent": "SportsCore/1.0 (team-profile)"
       }
@@ -184,6 +185,10 @@ async function fetchJson<T>(url: string): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+async function fetchJsonWithRetry<T>(url: string): Promise<T | null> {
+  return (await fetchJson<T>(url)) ?? fetchJson<T>(url, { noStore: true });
 }
 
 function normalizeConstructorStandings(data: ErgastConstructorStandingsResponse): ConstructorStanding[] {
@@ -233,9 +238,13 @@ function getRaceShortLabel(raceName: string) {
 }
 
 async function fetchConstructorRaceResults(constructorId: string, season: string): Promise<TeamRaceResult[]> {
-  const data = await fetchJson<ErgastConstructorRaceResultsResponse>(
+  const url =
     `${ERGAST_BASE_URL}/${season}/constructors/${constructorId}/results.json?limit=100`
-  );
+  let data = await fetchJson<ErgastConstructorRaceResultsResponse>(url);
+
+  if (!data) {
+    data = await fetchJson<ErgastConstructorRaceResultsResponse>(url, { noStore: true });
+  }
 
   const races = data?.MRData?.RaceTable?.Races ?? [];
 
@@ -306,6 +315,8 @@ async function buildTeamSeasonSnapshot(
   const podiums = raceSeries.reduce((sum, race) => sum + race.podiums, 0);
   const winsFromResults = raceSeries.reduce((sum, race) => sum + race.wins, 0);
   const resolvedPosition = standing ? toInt(standing.position) : 0;
+  const standingHasResults = standing ? toFixedNumber(standing.points) > 0 || toInt(standing.wins) > 0 : false;
+  const hasRaceData = raceSeries.length > 0 || !standingHasResults;
 
   return {
     season: effectiveSeason,
@@ -317,17 +328,18 @@ async function buildTeamSeasonSnapshot(
     averagePoints: formatAveragePoints(raceSeries),
     completedRounds: raceSeries.length,
     pointsToLeader: leaderPoints > 0 ? Math.max(leaderPoints - currentPoints, 0) : 0,
-    raceSeries
+    raceSeries,
+    hasRaceData
   };
 }
 
 async function fetchCareerMeta(constructorId: string) {
   const [startsData, winsData, secondPlaces, thirdPlaces, polesData] = await Promise.all([
-    fetchJson<ErgastConstructorRaceResultsResponse>(`${ERGAST_BASE_URL}/constructors/${constructorId}/results.json?limit=1`),
-    fetchJson<ErgastConstructorRaceResultsResponse>(`${ERGAST_BASE_URL}/constructors/${constructorId}/results/1.json?limit=1`),
-    fetchJson<ErgastConstructorRaceResultsResponse>(`${ERGAST_BASE_URL}/constructors/${constructorId}/results/2.json?limit=1`),
-    fetchJson<ErgastConstructorRaceResultsResponse>(`${ERGAST_BASE_URL}/constructors/${constructorId}/results/3.json?limit=1`),
-    fetchJson<ErgastConstructorQualifyingResponse>(`${ERGAST_BASE_URL}/constructors/${constructorId}/qualifying/1.json?limit=1`)
+    fetchJsonWithRetry<ErgastConstructorRaceResultsResponse>(`${ERGAST_BASE_URL}/constructors/${constructorId}/results.json?limit=1`),
+    fetchJsonWithRetry<ErgastConstructorRaceResultsResponse>(`${ERGAST_BASE_URL}/constructors/${constructorId}/results/1.json?limit=1`),
+    fetchJsonWithRetry<ErgastConstructorRaceResultsResponse>(`${ERGAST_BASE_URL}/constructors/${constructorId}/results/2.json?limit=1`),
+    fetchJsonWithRetry<ErgastConstructorRaceResultsResponse>(`${ERGAST_BASE_URL}/constructors/${constructorId}/results/3.json?limit=1`),
+    fetchJsonWithRetry<ErgastConstructorQualifyingResponse>(`${ERGAST_BASE_URL}/constructors/${constructorId}/qualifying/1.json?limit=1`)
   ]);
 
   return {
@@ -342,6 +354,10 @@ async function fetchCareerMeta(constructorId: string) {
 function buildNarrative(standing: ConstructorStanding, season: TeamSeasonSnapshot, career: TeamProfileData["career"]) {
   const teamName = standing.constructor.name;
   const headline = `${teamName} has scored ${season.points} points in the ${season.season} campaign.`;
+
+  if (!season.hasRaceData) {
+    return `${headline} Round-by-round results are not available right now.`;
+  }
 
   return `${headline} The team has ${season.wins} win${season.wins === 1 ? "" : "s"}, ${season.podiums} podium finishes and an average of ${season.averagePoints} points per round this season. Historically, it has ${career.raceWins} race wins and ${career.polePositions} pole positions since debuting in ${career.firstEntry}.`;
 }
@@ -405,7 +421,7 @@ async function buildTeamProfile(constructorId: string, season: string = F1_SEASO
 
 const getCachedTeamProfile = unstable_cache(
   (constructorId: string, season: string) => buildTeamProfile(constructorId, season),
-  ["f1-team-profile"],
+  ["f1-team-profile-v2"],
   {
     revalidate: REVALIDATE_SECONDS,
     tags: ["f1-team-profiles"]

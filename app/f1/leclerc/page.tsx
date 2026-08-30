@@ -15,6 +15,8 @@ export const metadata = {
   description: "Charles Leclerc results, standing, gap to the next car ahead, and the good internet stuff."
 };
 
+export const revalidate = 3600;
+
 function getLeclercImagePath() {
   const candidates = ["leclerc-easter.jpg", "leclerc-easter.jpeg", "leclerc-easter.png", "charles-leclerc.jpg"];
 
@@ -143,8 +145,9 @@ export default async function LeclercPage() {
 
             <div className="rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(18,18,18,0.92),rgba(6,6,6,0.98))] p-6">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#FFB48A]">Recent results</p>
-              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {recentResults.map((result) => (
+              {recentResults.length > 0 ? (
+                <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {recentResults.map((result) => (
                   <div key={`${result.round}-${result.raceName}`} className="rounded-xl border border-white/10 bg-black/20 p-4">
                     <p className="text-[10px] uppercase tracking-[0.16em] text-gray-500">Round {result.round}</p>
                     <h2 className="mt-2 text-lg font-bold text-white">{result.raceName}</h2>
@@ -158,8 +161,13 @@ export default async function LeclercPage() {
                       <span className="font-bold text-white">{result.points}</span>
                     </div>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-5 rounded-xl border border-dashed border-white/10 bg-black/20 px-4 py-6 text-sm text-gray-400">
+                  Recent results are not available right now.
+                </p>
+              )}
             </div>
           </section>
 
@@ -186,7 +194,7 @@ export default async function LeclercPage() {
 
             <div className="rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(18,18,18,0.92),rgba(6,6,6,0.98))] p-5">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#FFB48A]">Teammate check</p>
-              {headToHead ? (
+              {headToHead && profile.season.hasRaceData ? (
                 <>
                   <h2 className="mt-3 text-2xl font-black text-white">{headToHead.teammate.name}</h2>
                   <div className="mt-4 space-y-2 text-sm text-gray-300">
