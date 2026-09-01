@@ -29,7 +29,7 @@ export default function DriverStats({ wins, poles = "N/A", rank }: DriverStatsPr
                         <span className={`material-icons ${stat.color} opacity-80 text-xl`}>
                             {stat.icon}
                         </span>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 font-display">
+                        <span className="text-xs font-bold uppercase tracking-widest text-gray-500 font-display">
                             {stat.label}
                         </span>
                     </div>

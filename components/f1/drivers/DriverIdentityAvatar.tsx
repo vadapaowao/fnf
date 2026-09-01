@@ -20,18 +20,20 @@ export default function DriverIdentityAvatar({
   className
 }: DriverIdentityAvatarProps) {
   const initials = getInitials(givenName, familyName);
-  const shellSize = variant === "hero" ? "h-[220px] w-[220px]" : "h-[148px] w-[148px]";
-  const initialsSize = variant === "hero" ? "text-7xl" : "text-5xl";
-  const nameSize = variant === "hero" ? "text-xs tracking-[0.22em]" : "text-[10px] tracking-[0.18em]";
+  const shellSize = variant === "hero"
+    ? "h-[164px] w-[164px] sm:h-[220px] sm:w-[220px]"
+    : "h-24 w-24 sm:h-[120px] sm:w-[120px] lg:h-[148px] lg:w-[148px]";
+  const initialsSize = variant === "hero" ? "text-5xl sm:text-7xl" : "text-3xl sm:text-4xl lg:text-5xl";
+  const nameSize = variant === "hero" ? "text-xs tracking-[0.22em]" : "text-xs tracking-[0.18em]";
 
   return (
     <div className={cn("relative", shellSize, className)}>
       <div
-        className="absolute inset-0 rounded-[2rem] blur-3xl"
+        className="absolute inset-0 rounded-2xl blur-3xl sm:rounded-[2rem]"
         style={{ background: `radial-gradient(circle, ${accentColor}30, transparent 72%)` }}
       />
 
-      <div className="relative h-full w-full overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(160deg,#131313_0%,#090909_100%)]">
+      <div className="relative h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(160deg,#131313_0%,#090909_100%)] sm:rounded-[2rem]">
         <div
           className="absolute inset-x-0 top-0 h-2"
           style={{ background: `linear-gradient(90deg, ${accentColor}, rgba(255,255,255,0.9))` }}

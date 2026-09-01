@@ -11,16 +11,16 @@ export default async function CalendarPage() {
 
     return (
         <main className="flex-1 overflow-y-auto bg-background-dark">
-            <div className="container mx-auto px-6 py-12">
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-white mb-2 font-display">
+            <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8 md:py-12">
+                <div className="mb-6 sm:mb-8">
+                    <h1 className="mb-2 font-display text-3xl font-bold text-white sm:text-4xl">
                         2026 CALENDAR
                     </h1>
                     <p className="text-gray-400">
                         {scheduledCount} scheduled races{canceledCount > 0 ? `, ${canceledCount} canceled` : ""}
                     </p>
                 </div>
-                <MyPitWallCard className="mb-8 max-w-xl" />
+                <MyPitWallCard className="mb-6 max-w-xl sm:mb-8" />
                 <CalendarRaceGrid races={races} />
             </div>
         </main>

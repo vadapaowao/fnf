@@ -28,7 +28,7 @@ export default function TelemetryPanel({ sectors }: TelemetryPanelProps) {
                             ></span>
                             <span className="text-xs font-bold text-white">{sector.name}</span>
                         </div>
-                        <p className="text-[10px] text-gray-400 leading-relaxed">{sector.telemetry}</p>
+                        <p className="text-xs text-gray-400 leading-relaxed">{sector.telemetry}</p>
                     </div>
                 ))}
             </div>

@@ -1,7 +1,4 @@
-import RaceIntelPanel from "@/components/f1/RaceIntelPanel";
-import MobileRaceSelector from "@/components/f1/MobileRaceSelector";
-import RaceSidebar from "@/components/f1/RaceSidebar";
-import TrackHero from "@/components/f1/TrackHero";
+import RaceWorkspace from "@/components/f1/RaceWorkspace";
 import { getFeaturedRaceBundle } from "@/lib/f1";
 
 export const revalidate = 1800;
@@ -22,34 +19,25 @@ export default async function F1GridPage() {
   return (
     <main className="relative flex flex-1 flex-col overflow-hidden">
       <div className="absolute inset-0 z-0 bg-grid bg-grid-pattern-size opacity-20 pointer-events-none" />
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto xl:flex-row xl:overflow-hidden">
-        <RaceSidebar races={races} currentRaceRound={Number(race.round)} className="hidden xl:flex" />
-        <MobileRaceSelector races={races} currentRound={race.round} />
-        <TrackHero
-          race={race}
-          trackSvgPath={detail.circuit.trackSvgPath || null}
-          sectors={detail.circuit.sectors}
-          drsZoneCount={detail.circuit.drsZones}
-          recap={recap}
-          replay={replay}
-          runtime={runtime}
-        />
-        <RaceIntelPanel
-          race={race}
-          circuitStats={{
-            lengthKm: detail.circuit.lengthKm,
-            turns: detail.circuit.turns,
-            drsZones: detail.circuit.drsZones,
-            firstGrandPrix: detail.circuit.firstGrandPrix,
-          }}
-          lastWinner={detail.stats.lastWinner}
-          fastestLap={detail.stats.fastestLap}
-          sectors={detail.circuit.sectors}
-          recap={recap}
-          sessions={sessions}
-          runtime={runtime}
-        />
-      </div>
+      <RaceWorkspace
+        races={races}
+        race={race}
+        trackSvgPath={detail.circuit.trackSvgPath || null}
+        sectors={detail.circuit.sectors}
+        drsZoneCount={detail.circuit.drsZones}
+        recap={recap}
+        replay={replay}
+        sessions={sessions}
+        runtime={runtime}
+        circuitStats={{
+          lengthKm: detail.circuit.lengthKm,
+          turns: detail.circuit.turns,
+          drsZones: detail.circuit.drsZones,
+          firstGrandPrix: detail.circuit.firstGrandPrix,
+        }}
+        lastWinner={detail.stats.lastWinner}
+        fastestLap={detail.stats.fastestLap}
+      />
     </main>
   );
 }

@@ -13,15 +13,15 @@ export default async function GridPreviewSection() {
   }
 
   return (
-    <section className="relative overflow-hidden bg-black px-4 pb-20 pt-6">
+    <section className="relative overflow-hidden bg-black px-4 pb-14 pt-6 sm:pb-20">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:48px_48px] opacity-10" />
       <div className="absolute left-0 top-12 h-80 w-80 rounded-full bg-primary/10 blur-[120px]" />
 
       <div className="relative mx-auto max-w-6xl">
-        <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div className="mb-7 flex flex-col gap-3 sm:mb-10 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary">Lights out ahead</p>
-            <h2 className="mt-2 font-display text-4xl font-black italic tracking-tight text-white md:text-6xl">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Lights out ahead</p>
+            <h2 className="mt-2 font-display text-3xl font-black italic tracking-tight text-white sm:text-4xl md:text-6xl">
               Next three rounds
             </h2>
           </div>
@@ -38,18 +38,18 @@ export default async function GridPreviewSection() {
               <Link
                 key={race.round}
                 href={`/f1/race/${race.round}`}
-                className="group rounded-[1.75rem] border border-white/10 bg-[linear-gradient(165deg,rgba(17,17,17,0.96),rgba(6,6,6,0.98))] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30"
+                className="group rounded-2xl border border-white/10 bg-[linear-gradient(165deg,rgba(17,17,17,0.96),rgba(6,6,6,0.98))] p-4 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 sm:rounded-[1.75rem] sm:p-5"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+                  <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-primary">
                     Round {race.round}
                   </span>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
                     {race.country}
                   </span>
                 </div>
 
-                <div className="mt-6 flex h-40 items-center justify-center overflow-hidden rounded-2xl border border-white/5 bg-black/30 px-4">
+                <div className="mt-5 flex h-32 items-center justify-center overflow-hidden rounded-2xl border border-white/5 bg-black/30 px-4 sm:mt-6 sm:h-40">
                   {trackSvgPath ? (
                     <Image
                       src={trackSvgPath}
@@ -66,7 +66,7 @@ export default async function GridPreviewSection() {
                 </div>
 
                 <div className="mt-5">
-                  <h3 className="font-display text-3xl font-black italic text-white">
+                  <h3 className="font-display text-2xl font-black italic text-white sm:text-3xl">
                     {race.raceName.replace("Grand Prix", "GP")}
                   </h3>
                   <p className="mt-1 text-sm uppercase tracking-[0.14em] text-gray-500">
@@ -75,7 +75,7 @@ export default async function GridPreviewSection() {
                 </div>
 
                 <div className="mt-5 border-t border-white/10 pt-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">Lights out</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-gray-500">Lights out</p>
                   <p className="mt-2 text-sm text-gray-200">
                     <LocalDateTimeText
                       iso={`${race.date}T${race.time}`}

@@ -22,9 +22,9 @@ export default async function DriversPage() {
 
   return (
     <main className="flex-1 overflow-y-auto bg-background-dark">
-      <div className="container mx-auto px-6 py-12">
-        <div className="mb-8">
-          <h1 className="mb-2 font-display text-4xl font-bold text-white md:text-5xl">
+      <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8 md:py-12">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="mb-2 font-display text-3xl font-bold text-white sm:text-4xl md:text-5xl">
             {F1_SEASON} DRIVERS
           </h1>
           <p className="text-gray-400">
@@ -33,11 +33,11 @@ export default async function DriversPage() {
         </div>
 
         {standings.length > 0 ? (
-          <section className="mb-8 grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+          <section className="mb-6 grid gap-4 sm:mb-8 sm:gap-6 lg:grid-cols-[1.25fr_0.75fr]">
             <article className="overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
-              <div className="border-b border-white/5 px-6 py-4">
+              <div className="border-b border-white/5 px-4 py-4 sm:px-6">
                 <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Driver Directory</p>
-                <h2 className="mt-2 font-display text-3xl font-bold text-white">
+                <h2 className="mt-2 font-display text-2xl font-bold text-white sm:text-3xl">
                   {`${standings.length} drivers on the ${F1_SEASON} grid`}
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-400">
@@ -45,20 +45,20 @@ export default async function DriversPage() {
                 </p>
               </div>
 
-              <div className="grid gap-4 px-6 py-5 sm:grid-cols-3">
-                <div className="rounded-lg border border-white/5 bg-black/20 p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Grid Size</p>
-                  <p className="mt-2 text-3xl font-black text-white">{standings.length}</p>
+              <div className="grid grid-cols-3 gap-2 px-4 py-4 sm:gap-4 sm:px-6 sm:py-5">
+                <div className="min-w-0 rounded-lg border border-white/5 bg-black/20 p-3 sm:p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Grid Size</p>
+                  <p className="mt-2 text-2xl font-black text-white sm:text-3xl">{standings.length}</p>
                 </div>
-                <div className="rounded-lg border border-white/5 bg-black/20 p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Teams</p>
-                  <p className="mt-2 text-3xl font-black text-white">{teamsRepresented}</p>
-                  <p className="mt-1 text-[11px] text-gray-500">teams</p>
+                <div className="min-w-0 rounded-lg border border-white/5 bg-black/20 p-3 sm:p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Teams</p>
+                  <p className="mt-2 text-2xl font-black text-white sm:text-3xl">{teamsRepresented}</p>
+                  <p className="mt-1 text-xs text-gray-500">teams</p>
                 </div>
-                <div className="rounded-lg border border-white/5 bg-black/20 p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Nationalities</p>
-                  <p className="mt-2 text-3xl font-black text-white">{nationalitiesRepresented}</p>
-                  <p className="mt-1 text-[11px] text-gray-500">nationalities</p>
+                <div className="min-w-0 rounded-lg border border-white/5 bg-black/20 p-3 sm:p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Nationalities</p>
+                  <p className="mt-2 text-2xl font-black text-white sm:text-3xl">{nationalitiesRepresented}</p>
+                  <p className="mt-1 text-xs text-gray-500">nationalities</p>
                 </div>
               </div>
             </article>
@@ -84,7 +84,7 @@ export default async function DriversPage() {
             <p className="text-lg text-gray-400">Driver list unavailable.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {standings.map((standing) => (
               <DriverCard
                 key={standing.driver.driverId}

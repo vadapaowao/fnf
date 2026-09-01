@@ -43,14 +43,14 @@ export default function MyPitWallCard({ race, className }: MyPitWallCardProps) {
 
   return (
     <details className={`group rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark ${className ?? ""}`}>
-      <summary className="flex cursor-pointer list-none items-start justify-between gap-3 px-5 py-4 marker:content-none">
+      <summary className="flex min-h-14 cursor-pointer list-none items-start justify-between gap-3 px-4 py-4 marker:content-none sm:px-5">
         <div>
           <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Following</p>
           <h2 className="mt-2 font-display text-xl font-bold text-white">Saved list</h2>
           <p className="mt-1 text-sm leading-relaxed text-gray-400">{getStateCopy(state)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
+          <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
             {count} saved
           </span>
           <span className="material-icons text-grid-primary transition-transform duration-200 group-open:rotate-180">
@@ -59,7 +59,7 @@ export default function MyPitWallCard({ race, className }: MyPitWallCardProps) {
         </div>
       </summary>
 
-      <div className="border-t border-white/10 px-5 pb-5 pt-4">
+      <div className="border-t border-white/10 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
         {!hasLoaded ? (
           <div className="rounded-lg border border-white/10 bg-black/20 px-4 py-6 text-center">
             <p className="text-sm text-gray-400">Loading saved list...</p>
@@ -67,7 +67,7 @@ export default function MyPitWallCard({ race, className }: MyPitWallCardProps) {
         ) : recentItems.length === 0 ? (
           <div className="rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-6">
             <p className="text-sm text-gray-300">Nothing saved yet.</p>
-            <p className="mt-2 text-[11px] leading-relaxed text-gray-500">
+            <p className="mt-2 text-xs leading-relaxed text-gray-500">
               Save a race, driver, or team and it lands here.
             </p>
           </div>
@@ -77,7 +77,7 @@ export default function MyPitWallCard({ race, className }: MyPitWallCardProps) {
               <Link
                 key={item.key}
                 href={item.href}
-                className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-3 transition-colors hover:border-white/20 hover:bg-black/30"
+                className="flex min-h-14 items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-3 transition-colors hover:border-white/20 hover:bg-black/30"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -86,9 +86,9 @@ export default function MyPitWallCard({ race, className }: MyPitWallCardProps) {
                     </span>
                     <p className="truncate text-sm font-bold text-white">{item.label}</p>
                   </div>
-                  <p className="mt-1 truncate text-[11px] text-gray-500">{item.subtitle}</p>
+                  <p className="mt-1 truncate text-xs text-gray-500">{item.subtitle}</p>
                 </div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">Open</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">Open</span>
               </Link>
             ))}
           </div>

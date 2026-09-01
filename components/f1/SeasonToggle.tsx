@@ -26,7 +26,7 @@ export default function SeasonToggle({
   onChange
 }: SeasonToggleProps) {
   return (
-    <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+    <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
       <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">{eyebrow}</p>
       <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -49,9 +49,9 @@ export default function SeasonToggle({
                   isActive ? "bg-grid-primary text-white" : "text-gray-300 hover:bg-white/5 hover:text-white"
                 )}
               >
-                <p className="break-words text-[10px] font-bold uppercase tracking-[0.16em] leading-tight">{option.label}</p>
+                <p className="break-words text-xs font-bold uppercase tracking-[0.16em] leading-tight">{option.label}</p>
                 {option.hint ? (
-                  <p className={cn("mt-1 break-words text-[11px] leading-snug", isActive ? "text-white/80" : "text-gray-500")}>{option.hint}</p>
+                  <p className={cn("mt-1 break-words text-xs leading-snug", isActive ? "text-white/80" : "text-gray-500")}>{option.hint}</p>
                 ) : null}
               </button>
             );

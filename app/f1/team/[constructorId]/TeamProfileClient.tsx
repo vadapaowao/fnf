@@ -38,10 +38,10 @@ function StatTile({
   hint?: string;
 }) {
   return (
-    <div className="rounded-lg border border-white/5 bg-black/20 p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">{label}</p>
-      <p className="mt-2 text-2xl font-black tracking-tight text-white">{value}</p>
-      {hint ? <p className="mt-1 text-[11px] text-gray-500">{hint}</p> : null}
+    <div className="min-w-0 rounded-lg border border-white/5 bg-black/20 p-3 sm:p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">{label}</p>
+      <p className="mt-2 break-words text-xl font-black tracking-tight text-white sm:text-2xl">{value}</p>
+      {hint ? <p className="mt-1 text-xs text-gray-500">{hint}</p> : null}
     </div>
   );
 }
@@ -82,8 +82,8 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
 
   return (
     <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background-dark">
-      <div className="container mx-auto px-6 py-12">
-        <section className="relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+      <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8 md:py-12">
+        <section className="relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
           <div
             className="pointer-events-none absolute inset-y-0 right-0 w-1/2 opacity-70 blur-3xl"
             style={{ background: `radial-gradient(circle at top right, ${teamColor}40, transparent 65%)` }}
@@ -91,11 +91,11 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
 
           <div className="relative">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-300">
+              <span className="rounded border border-white/10 bg-black/20 px-2 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300">
                 {selectedSeason.season} season
               </span>
               <span
-                className="rounded px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
+                className="rounded px-2 py-1 text-xs font-bold uppercase tracking-[0.16em]"
                 style={{ backgroundColor: `${teamColor}22`, color: teamColor }}
               >
                 {formatTeamBadge(team.constructorId)}
@@ -112,7 +112,7 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
               />
             </div>
 
-            <h1 className="mt-4 font-display text-5xl font-bold leading-[0.9] tracking-tight text-white md:text-6xl">
+            <h1 className="mt-4 break-words font-display text-4xl font-bold leading-[0.9] tracking-tight text-white sm:text-5xl md:text-6xl">
               {team.name}
               <span className="mt-2 block text-base font-semibold uppercase tracking-[0.18em] text-gray-500">
                 {team.nationality}
@@ -123,7 +123,7 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
               {buildTeamSeasonSummary(team.name, selectedSeason)}
             </p>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-4">
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
               <StatTile label="Points" value={formatNumber(selectedSeason.points)} hint={selectedSeason.hasRaceData ? `After ${selectedSeason.completedRounds} race${selectedSeason.completedRounds === 1 ? "" : "s"}` : undefined} />
               <StatTile label="Wins" value={formatNumber(selectedSeason.wins)} hint={selectedSeason.hasRaceData ? `${selectedSeason.podiums} podiums` : "From the standings"} />
               <StatTile label="Average Points" value={selectedSeason.hasRaceData ? selectedSeason.averagePoints : "—"} hint={selectedSeason.hasRaceData ? "per round" : undefined} />
@@ -132,15 +132,15 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
           </div>
         </section>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-          <article className="min-w-0 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+        <section className="mt-5 grid gap-4 sm:mt-6 sm:gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+          <article className="min-w-0 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
             <div
-              className="rounded-[2rem] border border-white/10 bg-black/20 p-6"
+              className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6"
               style={{ boxShadow: `inset 0 0 0 1px ${teamColor}55` }}
             >
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Team Code</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Team Code</p>
                   <p className="mt-1 font-display text-3xl font-black text-white">{formatTeamBadge(team.constructorId)}</p>
                 </div>
                 <div className="flex gap-2">
@@ -158,13 +158,13 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
             </div>
           </article>
 
-          <article className="min-w-0 rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+          <article className="min-w-0 rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="font-display text-2xl font-bold text-white">{lineupLabel}</h2>
                   <p className="mt-1 text-sm text-gray-500">The two cars for this season.</p>
                 </div>
-              <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
+              <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-xs font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
                 {selectedDrivers.length} drivers
               </span>
             </div>
@@ -189,7 +189,7 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
           </article>
         </section>
 
-        <section className="mt-6 space-y-6">
+        <section className="mt-5 space-y-4 sm:mt-6 sm:space-y-6">
           {archive2025 ? (
             <SeasonToggle
               eyebrow="Season"
@@ -212,13 +212,13 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
             />
           ) : null}
 
-          <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+          <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="font-display text-2xl font-bold text-white">Season Stats</h2>
                 <p className="mt-1 text-sm text-gray-500">All the main numbers for this year.</p>
               </div>
-              <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
+              <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-xs font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
                 {selectedSeason.season}
               </span>
             </div>
@@ -241,14 +241,14 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
             </div>
           )}
 
-          <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+          <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="font-display text-2xl font-bold text-white">Race Log</h2>
                 <p className="mt-1 text-sm text-gray-500">Round-by-round points and finishes.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
+                <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-xs font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
                   {selectedSeason.hasRaceData ? `${selectedSeason.completedRounds} rounds` : "Unavailable"}
                 </span>
                 <div className="flex flex-wrap gap-1 rounded-lg border border-white/10 bg-black/20 p-1">
@@ -265,7 +265,7 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
                         key={filter.id}
                         type="button"
                         onClick={() => setLedgerFilter(filter.id as typeof ledgerFilter)}
-                        className={`rounded px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors ${active ? "bg-grid-primary text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                        className={`min-h-11 rounded px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] transition-colors ${active ? "bg-grid-primary text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
                       >
                         {filter.label}
                       </button>
@@ -281,24 +281,24 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
                   <div key={`${selectedSeason.season}-${race.round}-${race.raceName}`} className="rounded-lg border border-white/10 bg-black/20 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
                           Round {race.round} • {race.label}
                         </p>
                         <h3 className="mt-1 text-base font-bold text-white">{race.raceName}</h3>
                         <p className="mt-1 text-sm text-gray-500">{race.circuitName}</p>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-3 text-right">
+                      <div className="grid w-full grid-cols-3 gap-2 text-left sm:w-auto sm:gap-3 sm:text-right">
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Points</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Points</p>
                           <p className="mt-1 text-lg font-black text-white">{formatNumber(race.points)}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Best finish</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Best finish</p>
                           <p className="mt-1 text-lg font-black text-white">{race.bestFinish}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Weekend tags</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Weekend tags</p>
                           <p className="mt-1 text-lg font-black" style={{ color: race.wins > 0 || race.podiums > 0 ? teamColor : "#FFFFFF" }}>
                             {race.wins > 0 ? `${race.wins}W` : race.podiums > 0 ? `${race.podiums}P` : "Flat"}
                           </p>

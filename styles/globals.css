@@ -13,7 +13,18 @@
 
   body {
     font-family: var(--font-space-grotesk), sans-serif;
+    min-height: 100dvh;
     overflow-x: hidden;
+    overscroll-behavior-x: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  summary {
+    touch-action: manipulation;
   }
 }
 
@@ -145,6 +156,17 @@
 
   .hero-scan {
     animation: hero-scan-sweep 5.4s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

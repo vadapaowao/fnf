@@ -35,40 +35,40 @@ export default function TeamCard({ standing, drivers = [] }: TeamCardProps) {
                 style={{ background: `linear-gradient(90deg, ${accentColor}66, transparent 70%)` }}
             />
 
-            <div className="relative p-6">
+            <div className="relative p-4 sm:p-6">
                 <div className="mb-5 flex items-center gap-3">
-                    <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-gray-300">
+                    <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs font-mono font-bold uppercase tracking-[0.18em] text-gray-300">
                         {formatTeamBadge(team.constructorId)}
                     </span>
                 </div>
 
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">{team.nationality}</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">{team.nationality}</p>
                         <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                             {team.name}
                         </h3>
                     </div>
                     <div
-                        className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.5rem] border border-white/10 bg-black/20 font-display text-2xl font-black text-white"
+                        className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-black/20 font-display text-xl font-black text-white sm:h-20 sm:w-20 sm:rounded-[1.5rem] sm:text-2xl"
                         style={{ boxShadow: `inset 0 0 0 1px ${accentColor}55` }}
                     >
                         {team.name.slice(0, 2).toUpperCase()}
                     </div>
                 </div>
 
-                <div className="mt-6 rounded-lg border border-white/5 bg-black/20 p-4">
-                    <div className="flex items-center justify-between gap-4">
+                <div className="mt-5 rounded-lg border border-white/5 bg-black/20 p-3 sm:mt-6 sm:p-4">
+                    <div className="grid grid-cols-3 items-end gap-2 sm:gap-4">
                         <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Season Points</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Season Points</p>
                             <p className="mt-1 text-2xl font-black text-white">{points}</p>
                         </div>
                         <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Wins</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Wins</p>
                             <p className="mt-1 text-2xl font-black text-white">{wins}</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Drivers</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Drivers</p>
                             <p className="mt-1 text-2xl font-black" style={{ color: accentColor }}>{drivers.length || "—"}</p>
                         </div>
                     </div>
@@ -83,7 +83,7 @@ export default function TeamCard({ standing, drivers = [] }: TeamCardProps) {
                     {drivers.slice(0, 2).map((driver) => (
                         <span
                             key={driver.driver.driverId}
-                            className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-300"
+                            className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-gray-300"
                         >
                             {driver.driver.code || `${driver.driver.givenName.charAt(0)}${driver.driver.familyName.charAt(0)}`}
                         </span>

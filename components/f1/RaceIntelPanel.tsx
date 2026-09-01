@@ -1,9 +1,10 @@
-import { getRaceWeekendSessions, type Race, type RaceRecap, type RaceSession, type TrackSector } from "@/lib/f1";
+import type { Race, RaceRecap, RaceSession, TrackSector } from "@/lib/f1";
 import LocalDateTimeText from "@/components/f1/LocalDateTimeText";
 import MyPitWallCard from "@/components/f1/MyPitWallCard";
 import WeekendSchedule from "@/components/f1/WeekendSchedule";
 import WinnerHypeButton from "@/components/f1/WinnerHypeButton";
 import { hasUsableSessionResult, getTrackDnaProfile, getTrackWatchlistHeading, type RaceRuntimeState } from "@/lib/f1-product";
+import { cn } from "@/lib/utils";
 
 interface RaceIntelPanelProps {
     race: Race;
@@ -24,9 +25,10 @@ interface RaceIntelPanelProps {
         year: string;
     };
     recap?: RaceRecap | null;
-    sessions?: RaceSession[];
+    sessions: RaceSession[];
     sectors?: TrackSector[];
     runtime: RaceRuntimeState;
+    className?: string;
 }
 
 function resolveWeekendPulse(sessions: RaceSession[], runtime: RaceRuntimeState) {
@@ -53,8 +55,9 @@ export default function RaceIntelPanel({
     recap,
     sessions,
     runtime,
+    className,
 }: RaceIntelPanelProps) {
-    const defaultSessions: RaceSession[] = sessions || getRaceWeekendSessions(race);
+    const defaultSessions = sessions;
     const raceState = runtime.raceState;
     const trackDna = getTrackDnaProfile(race.circuitId);
     const watchlistHeading = getTrackWatchlistHeading(raceState);
@@ -62,11 +65,11 @@ export default function RaceIntelPanel({
     const featuredSession = weekendPulse.liveSession ?? weekendPulse.nextSession ?? weekendPulse.lastSession;
 
     return (
-        <aside className="relative z-20 w-full flex-none border-t border-white/10 bg-surface-dark/95 p-5 shadow-2xl xl:h-full xl:w-[368px] xl:shrink-0 xl:overflow-y-auto xl:border-l xl:border-t-0 custom-scrollbar">
+        <aside className={cn("relative z-20 w-full min-w-0 flex-none border-t border-white/10 bg-surface-dark/95 p-4 shadow-2xl sm:p-5 xl:h-full xl:w-[368px] xl:shrink-0 xl:overflow-y-auto xl:border-l xl:border-t-0 custom-scrollbar", className)}>
             <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
                 <div>
                     <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase">Weekend</h3>
-                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
                         {raceState === "upcoming" ? "Weekend pending" : raceState === "live" ? "Weekend live" : "Weekend complete"}
                     </p>
                 </div>
@@ -81,7 +84,7 @@ export default function RaceIntelPanel({
                 <div className="mb-8 overflow-hidden rounded-xl border border-[#E10600]/25 bg-[linear-gradient(135deg,#120909_0%,#090909_100%)]">
                     <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                         <div>
-                            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F56D67]">Right Now</p>
+                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F56D67]">Right Now</p>
                             <p className="mt-1 text-xs text-gray-400">
                                 {weekendPulse.liveSession
                                     ? "Live session"
@@ -90,7 +93,7 @@ export default function RaceIntelPanel({
                                         : "Latest result"}
                             </p>
                         </div>
-                        <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+                        <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white">
                             {weekendPulse.liveSession ? "Live" : weekendPulse.nextSession ? "Up next" : "Done"}
                         </span>
                     </div>
@@ -100,11 +103,11 @@ export default function RaceIntelPanel({
                             <div>
                                 <p className="text-lg font-black text-white">{featuredSession.label}</p>
                                 {hasUsableSessionResult(featuredSession) ? (
-                                    <p className="mt-1 text-[11px] text-gray-300">
+                                    <p className="mt-1 text-xs text-gray-300">
                                         {featuredSession.resultLabel}: {featuredSession.resultValue}
                                     </p>
                                 ) : (
-                                    <p className="mt-1 text-[11px] text-gray-400">
+                                    <p className="mt-1 text-xs text-gray-400">
                                         <LocalDateTimeText
                                             iso={featuredSession.startsAt}
                                             options={{
@@ -126,7 +129,7 @@ export default function RaceIntelPanel({
                                     href="https://www.fancode.com"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 rounded-lg border border-[#E10600]/40 bg-[#1B0909] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:border-[#E10600] hover:bg-[#230A0A]"
+                                    className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-[#E10600]/40 bg-[#1B0909] px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-white transition-colors hover:border-[#E10600] hover:bg-[#230A0A]"
                                 >
                                     <span className="material-icons text-sm">live_tv</span>
                                     Watch Live
@@ -134,7 +137,7 @@ export default function RaceIntelPanel({
                             ) : null}
                         </div>
 
-                        <p className="mt-3 text-[11px] leading-relaxed text-gray-300">
+                        <p className="mt-3 text-xs leading-relaxed text-gray-300">
                             {weekendPulse.liveSession
                                 ? "This session is on right now."
                                 : weekendPulse.nextSession
@@ -146,10 +149,10 @@ export default function RaceIntelPanel({
             ) : null}
 
             <details className="group mb-6 rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 marker:content-none">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 marker:content-none sm:px-5">
                     <div>
                         <p className="text-xs font-bold uppercase tracking-widest text-grid-primary">Circuit</p>
-                        <p className="mt-1 text-[11px] text-gray-500">The numbers that matter here.</p>
+                        <p className="mt-1 text-xs text-gray-500">The numbers that matter here.</p>
                     </div>
                     <span className="material-icons text-grid-primary transition-transform duration-200 group-open:rotate-180">
                         expand_more
@@ -190,7 +193,7 @@ export default function RaceIntelPanel({
                                 <span className="material-icons text-sm group-hover:text-grid-primary transition-colors">
                                     {stat.icon}
                                 </span>
-                                <span className="text-[10px] uppercase font-bold tracking-wider">{stat.label}</span>
+                                <span className="text-xs uppercase font-bold tracking-wider">{stat.label}</span>
                             </div>
                             <p className="text-2xl font-mono font-bold text-white">
                                 {stat.val}
@@ -223,10 +226,10 @@ export default function RaceIntelPanel({
             </div>
 
             <details className="group mb-6 rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 marker:content-none">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 marker:content-none sm:px-5">
                     <div>
                         <p className="text-xs font-bold uppercase tracking-widest text-grid-primary">Track Traits</p>
-                        <p className="mt-1 text-[11px] text-gray-500">{trackDna.archetype}</p>
+                        <p className="mt-1 text-xs text-gray-500">{trackDna.archetype}</p>
                     </div>
                     <span className="material-icons text-grid-primary transition-transform duration-200 group-open:rotate-180">
                         expand_more
@@ -234,16 +237,16 @@ export default function RaceIntelPanel({
                 </summary>
                 <div className="border-t border-white/10 px-5 pb-5 pt-4">
                     <p className="text-sm leading-relaxed text-gray-300">{trackDna.summary}</p>
-                    <p className="mt-3 text-[11px] text-gray-500">{trackDna.fanHook}</p>
+                    <p className="mt-3 text-xs text-gray-500">{trackDna.fanHook}</p>
 
                     <div className="mt-4 grid gap-2">
                         {trackDna.metrics.map((metric) => (
                             <div key={metric.label} className="rounded-lg border border-white/10 bg-black/20 px-3 py-3">
                                 <div className="flex items-center justify-between gap-3">
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">{metric.label}</p>
-                                    <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white">{metric.value}</span>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">{metric.label}</p>
+                                    <span className="text-xs font-bold uppercase tracking-[0.14em] text-white">{metric.value}</span>
                                 </div>
-                                <p className="mt-2 text-[11px] leading-relaxed text-gray-400">{metric.detail}</p>
+                                <p className="mt-2 text-xs leading-relaxed text-gray-400">{metric.detail}</p>
                             </div>
                         ))}
                     </div>
@@ -251,10 +254,10 @@ export default function RaceIntelPanel({
             </details>
 
             <details className="group mb-8 rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 marker:content-none">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 marker:content-none sm:px-5">
                     <div>
                         <p className="text-xs font-bold uppercase tracking-widest text-grid-primary">{watchlistHeading.title}</p>
-                        <p className="mt-1 text-[11px] text-gray-500">{watchlistHeading.subtitle}</p>
+                        <p className="mt-1 text-xs text-gray-500">{watchlistHeading.subtitle}</p>
                     </div>
                     <span className="material-icons text-grid-primary transition-transform duration-200 group-open:rotate-180">
                         expand_more
@@ -264,11 +267,11 @@ export default function RaceIntelPanel({
                     {trackDna.watchpoints.map((watchpoint) => (
                         <div key={`${watchpoint.phase}-${watchpoint.title}`} className="rounded-lg border border-white/10 bg-black/20 p-4">
                             <div className="flex items-center justify-between gap-3">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-grid-primary">{watchpoint.phase}</p>
+                                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-grid-primary">{watchpoint.phase}</p>
                                 <span className="h-2 w-2 rounded-full bg-grid-primary" />
                             </div>
                             <p className="mt-2 text-sm font-bold text-white">{watchpoint.title}</p>
-                            <p className="mt-2 text-[11px] leading-relaxed text-gray-400">{watchpoint.detail}</p>
+                            <p className="mt-2 text-xs leading-relaxed text-gray-400">{watchpoint.detail}</p>
                         </div>
                     ))}
                 </div>
@@ -278,8 +281,8 @@ export default function RaceIntelPanel({
             {lastWinner && (
                 <div className="mb-8 overflow-hidden rounded-2xl border border-[#F86B6B]/35 bg-[radial-gradient(circle_at_top_right,rgba(248,107,107,0.26),transparent_42%),linear-gradient(145deg,#140809_0%,#0A0A0A_64%)] shadow-[0_14px_35px_rgba(225,6,0,0.22)]">
                     <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#FF8F8F]">Last Winner Here</p>
-                        <span className="rounded-full border border-[#FF7E7E]/50 bg-[#2A0F10] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#FFD4D4]">
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#FF8F8F]">Last Winner Here</p>
+                        <span className="rounded-full border border-[#FF7E7E]/50 bg-[#2A0F10] px-2 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-[#FFD4D4]">
                             Recent
                         </span>
                     </div>
@@ -287,11 +290,11 @@ export default function RaceIntelPanel({
                         <div className="pointer-events-none absolute right-3 top-3 h-14 w-14 rounded-full bg-[#E10600]/20 blur-xl" />
                         <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-2 py-1">
                             <span className="material-icons text-sm text-[#FFD9B8]">emoji_events</span>
-                            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#FFD9B8]">Last winner here</span>
+                            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#FFD9B8]">Last winner here</span>
                         </div>
                         <WinnerHypeButton
                             driver={lastWinner.driver}
-                            className="mt-3 inline-flex rounded-md border border-transparent px-1 text-left text-2xl font-black tracking-tight text-white transition-colors hover:border-[#FF9A9A]/40 hover:bg-[#220B0C]"
+                            className="mt-3 inline-flex min-h-11 items-center rounded-md border border-transparent px-2 text-left text-2xl font-black tracking-tight text-white transition-colors hover:border-[#FF9A9A]/40 hover:bg-[#220B0C]"
                         />
                         <p className="mt-1 text-xs text-[#F0B3B3]">{lastWinner.constructor} • {lastWinner.year}</p>
                     </div>
@@ -322,11 +325,11 @@ export default function RaceIntelPanel({
             {/* Race Recap */}
             {recap && (
                 <details className="group mb-8 rounded-xl border border-grid-primary/25 bg-gradient-to-br from-[#120808] to-[#080808]">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 marker:content-none">
+                    <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 p-4 marker:content-none sm:p-5">
                         <div>
                             <p className="text-xs font-bold uppercase tracking-widest text-grid-primary">Race Recap</p>
                             <p className="mt-2 text-sm font-bold text-white">{recap.headline}</p>
-                            <p className="mt-1 text-[11px] text-gray-400">Open for the key moments and the pit window.</p>
+                            <p className="mt-1 text-xs text-gray-400">Open for the key moments and the pit window.</p>
                         </div>
                         <span className="material-icons text-grid-primary transition-transform duration-200 group-open:rotate-180">
                             expand_more
@@ -335,16 +338,16 @@ export default function RaceIntelPanel({
 
                     <div className="border-t border-white/10 px-5 pb-5 pt-4">
                         <p className="text-xs leading-relaxed text-gray-300">{recap.winnerStory}</p>
-                        <p className="mt-3 text-[11px] text-gray-300">{recap.decisivePitWindow}</p>
+                        <p className="mt-3 text-xs text-gray-300">{recap.decisivePitWindow}</p>
 
                         {recap.fastestLap && (
-                            <p className="mt-2 text-[11px] text-accent-green">
+                            <p className="mt-2 text-xs text-accent-green">
                                 Fastest lap: {recap.fastestLap.driver} • {recap.fastestLap.lapTime} (Lap {recap.fastestLap.lap})
                             </p>
                         )}
 
                         {recap.biggestGainer && (
-                            <p className="mt-2 text-[11px] text-gray-300">
+                            <p className="mt-2 text-xs text-gray-300">
                                 Biggest gainer: {recap.biggestGainer.driver} (+{recap.biggestGainer.positionsGained}, P
                                 {recap.biggestGainer.started} to P{recap.biggestGainer.finished})
                             </p>
@@ -353,13 +356,13 @@ export default function RaceIntelPanel({
                         <div className="mt-4 space-y-2">
                             {recap.keyMoments.map((moment) => (
                                 <details key={moment.title} className="group/moment rounded-lg border border-white/10 bg-black/30">
-                                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-3 marker:content-none">
-                                        <p className="text-[10px] font-bold uppercase tracking-wider text-grid-primary">{moment.title}</p>
+                                    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 p-3 marker:content-none">
+                                        <p className="text-xs font-bold uppercase tracking-wider text-grid-primary">{moment.title}</p>
                                         <span className="material-icons text-sm text-grid-primary/80 transition-transform duration-200 group-open/moment:rotate-180">
                                             expand_more
                                         </span>
                                     </summary>
-                                    <p className="border-t border-white/10 px-3 pb-3 pt-2 text-[11px] leading-relaxed text-gray-300">
+                                    <p className="border-t border-white/10 px-3 pb-3 pt-2 text-xs leading-relaxed text-gray-300">
                                         {moment.detail}
                                     </p>
                                 </details>
@@ -369,13 +372,13 @@ export default function RaceIntelPanel({
                         <div className="mt-4 grid gap-2">
                             {recap.sectorNarrative.map((sector) => (
                                 <details key={sector.sector} className="group/sector rounded-lg border border-white/10 bg-black/20">
-                                    <summary className="flex cursor-pointer list-none items-center justify-between p-3 marker:content-none">
-                                        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-200">{sector.sector}</p>
+                                    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between p-3 marker:content-none">
+                                        <p className="text-xs font-bold uppercase tracking-wider text-gray-200">{sector.sector}</p>
                                         <span className="material-icons text-sm text-gray-400 transition-transform duration-200 group-open/sector:rotate-180">
                                             expand_more
                                         </span>
                                     </summary>
-                                    <p className="border-t border-white/10 px-3 pb-3 pt-2 text-[11px] leading-relaxed text-gray-400">
+                                    <p className="border-t border-white/10 px-3 pb-3 pt-2 text-xs leading-relaxed text-gray-400">
                                         {sector.summary}
                                     </p>
                                 </details>
@@ -388,7 +391,7 @@ export default function RaceIntelPanel({
             {!recap && raceState === "finished" && (
                 <div className="mb-8 rounded-xl border border-white/10 bg-white/5 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-300">Race Recap</p>
-                    <p className="mt-2 text-[11px] text-gray-400">Recap not available yet.</p>
+                    <p className="mt-2 text-xs text-gray-400">Recap not available yet.</p>
                 </div>
             )}
 

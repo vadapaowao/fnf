@@ -38,7 +38,7 @@ export default function WeekendSchedule({ sessions, runtime }: WeekendSchedulePr
                                         {session.label}
                                     </p>
                                     {sessionDate && (
-                                        <p className="text-[10px] text-gray-500">
+                                        <p className="text-xs text-gray-500">
                                             <LocalDateTimeText
                                                 iso={session.startsAt}
                                                 options={{
@@ -54,13 +54,13 @@ export default function WeekendSchedule({ sessions, runtime }: WeekendSchedulePr
                             <div className="text-right">
                                 {showResult ? (
                                     <>
-                                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-grid-primary">{session.resultLabel}</p>
+                                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-grid-primary">{session.resultLabel}</p>
                                         <p className="mt-1 text-xs font-bold text-white">{session.resultValue}</p>
                                     </>
                                 ) : sessionState === "live" ? (
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-grid-primary">Live now</p>
+                                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-grid-primary">Live now</p>
                                 ) : sessionState === "awaiting-result" ? (
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500">Awaiting result</p>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">Awaiting result</p>
                                 ) : sessionDate ? (
                                     <span className="text-xs font-mono text-gray-400">
                                         <LocalDateTimeText

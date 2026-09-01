@@ -18,9 +18,11 @@ export const metadata: Metadata = {
 
 export default function F1Layout({ children }: { children: React.ReactNode }) {
     return (
-        <div className="h-screen flex flex-col overflow-hidden bg-background-dark">
+        <div className="flex h-dvh min-h-dvh flex-col overflow-hidden bg-background-dark">
             <F1Navigation season="2026" />
-            {children}
+            <div className="flex min-h-0 flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+                {children}
+            </div>
         </div>
     );
 }

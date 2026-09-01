@@ -105,10 +105,10 @@ function StatTile({
   hint?: string;
 }) {
   return (
-    <div className="rounded-lg border border-white/5 bg-black/20 p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">{label}</p>
-      <p className="mt-2 text-2xl font-black tracking-tight text-white">{value}</p>
-      {hint ? <p className="mt-1 text-[11px] text-gray-500">{hint}</p> : null}
+    <div className="min-w-0 rounded-lg border border-white/5 bg-black/20 p-3 sm:p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">{label}</p>
+      <p className="mt-2 break-words text-xl font-black tracking-tight text-white sm:text-2xl">{value}</p>
+      {hint ? <p className="mt-1 text-xs text-gray-500">{hint}</p> : null}
     </div>
   );
 }
@@ -153,24 +153,24 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
 
   return (
     <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background-dark">
-      <div className="container mx-auto px-6 py-12">
+      <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8 md:py-12">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <Link
             href="/f1/drivers"
-            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-300 transition-colors hover:border-grid-primary/40 hover:text-white"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-300 transition-colors hover:border-grid-primary/40 hover:text-white"
           >
             <span className="material-icons text-sm">arrow_back</span>
             Back to Drivers
           </Link>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded border border-grid-primary/30 bg-grid-primary/10 px-3 py-2 text-[11px] font-mono font-bold uppercase tracking-[0.16em] text-grid-primary">
+            <span className="rounded border border-grid-primary/30 bg-grid-primary/10 px-3 py-2 text-xs font-mono font-bold uppercase tracking-[0.16em] text-grid-primary">
               {selectedSeason.season} Season
             </span>
             {selectedTeamId ? (
               <Link
                 href={`/f1/team/${selectedTeamId}`}
-                className="rounded border border-white/10 bg-black/20 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-300 transition-colors hover:border-white/30 hover:text-white"
+                className="inline-flex min-h-11 items-center rounded border border-white/10 bg-black/20 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-300 transition-colors hover:border-white/30 hover:text-white"
               >
                 View Team
               </Link>
@@ -188,7 +188,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
           </div>
         </div>
 
-        <section className="relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+        <section className="relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
           <div
             className="pointer-events-none absolute inset-y-0 right-0 w-1/2 opacity-70 blur-3xl"
             style={{ background: `radial-gradient(circle at top right, ${selectedAccentColor}40, transparent 65%)` }}
@@ -197,23 +197,23 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
           <div className="relative">
             <div className="flex flex-wrap items-center gap-2">
               <span
-                className="rounded px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
+                className="rounded px-2 py-1 text-xs font-bold uppercase tracking-[0.16em]"
                 style={{ backgroundColor: `${selectedAccentColor}22`, color: selectedAccentColor }}
               >
                 {formatPosition(selectedSeason.position)}
               </span>
-              <span className="rounded border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-300">
+              <span className="rounded border border-white/10 bg-black/20 px-2 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300">
                 #{driver.permanentNumber || driver.code || "—"}
               </span>
-              <span className="rounded border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-300">
+              <span className="rounded border border-white/10 bg-black/20 px-2 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300">
                 {nationalityCode}
               </span>
-              <span className="rounded border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-300">
+              <span className="rounded border border-white/10 bg-black/20 px-2 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300">
                 {selectedSeason.teamName}
               </span>
             </div>
 
-            <h1 className="mt-4 font-display text-5xl font-bold leading-[0.9] tracking-tight text-white md:text-6xl">
+            <h1 className="mt-4 break-words font-display text-4xl font-bold leading-[0.9] tracking-tight text-white sm:text-5xl md:text-6xl">
               {driver.givenName}
               <span className="block" style={{ color: selectedAccentColor }}>
                 {driver.familyName}
@@ -232,7 +232,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
               {buildSeasonSummary(selectedSeason, driverName, selectedSeason.season === season.season)}
             </p>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-4">
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
               <StatTile label="Points" value={formatNumber(selectedSeason.points)} hint={formatSeasonProgress(selectedSeason.completedRounds)} />
               <StatTile label="Wins" value={formatNumber(selectedSeason.wins)} hint={`${selectedSeason.podiums} podiums`} />
               <StatTile label="Average Finish" value={selectedSeason.averageFinish} />
@@ -241,8 +241,8 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
           </div>
         </section>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[1.12fr_0.88fr]">
-          <div className="min-w-0 space-y-6">
+        <section className="mt-5 grid gap-4 sm:mt-6 sm:gap-6 xl:grid-cols-[1.12fr_0.88fr]">
+          <div className="min-w-0 space-y-4 sm:space-y-6">
             {archive2025 ? (
               <SeasonToggle
                 eyebrow="Season"
@@ -267,7 +267,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
 
             <SeasonPaceChart data={selectedSeason.paceSeries} accentColor={selectedAccentColor} season={selectedSeason.season} />
 
-            <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+            <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Driver vs Teammate</p>
@@ -279,7 +279,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                 {selectedHeadToHead ? (
                   <Link
                     href={`/f1/driver/${selectedHeadToHead.teammate.driverId}`}
-                    className="rounded border border-white/10 bg-black/20 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-300 transition-colors hover:border-white/30 hover:text-white"
+                    className="inline-flex min-h-11 items-center rounded border border-white/10 bg-black/20 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-300 transition-colors hover:border-white/30 hover:text-white"
                   >
                     Open {selectedHeadToHead.teammate.code || "Teammate"}
                   </Link>
@@ -290,16 +290,16 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                 <div className="mt-5 space-y-4">
                   <div className="grid gap-3 md:grid-cols-2">
                     <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Teammate</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Teammate</p>
                       <p className="mt-2 text-lg font-bold text-white">{selectedHeadToHead.teammate.name}</p>
-                      <p className="mt-1 text-[11px] text-gray-500">{selectedHeadToHead.teamName}</p>
+                      <p className="mt-1 text-xs text-gray-500">{selectedHeadToHead.teamName}</p>
                     </div>
                     <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Points split</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Points split</p>
                       <p className="mt-2 text-lg font-bold text-white">
                         {formatNumber(selectedHeadToHead.pointsSplit.driver)} vs {formatNumber(selectedHeadToHead.pointsSplit.teammate)}
                       </p>
-                      <p className="mt-1 text-[11px] text-gray-500">
+                      <p className="mt-1 text-xs text-gray-500">
                         Delta {formatDelta(selectedHeadToHead.pointsSplit.delta)} pts
                       </p>
                     </div>
@@ -307,25 +307,25 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
 
                   <div className="grid gap-3 md:grid-cols-3">
                     <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Grid head-to-head</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Grid head-to-head</p>
                       <p className="mt-2 text-lg font-bold text-white">
                         {selectedHeadToHead.gridHeadToHead.driver}-{selectedHeadToHead.gridHeadToHead.teammate}
                       </p>
-                      <p className="mt-1 text-[11px] text-gray-500">{selectedHeadToHead.gridHeadToHead.ties} ties</p>
+                      <p className="mt-1 text-xs text-gray-500">{selectedHeadToHead.gridHeadToHead.ties} ties</p>
                     </div>
                     <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Race finish H2H</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Race finish H2H</p>
                       <p className="mt-2 text-lg font-bold text-white">
                         {selectedHeadToHead.finishHeadToHead.driver}-{selectedHeadToHead.finishHeadToHead.teammate}
                       </p>
-                      <p className="mt-1 text-[11px] text-gray-500">{selectedHeadToHead.finishHeadToHead.ties} ties</p>
+                      <p className="mt-1 text-xs text-gray-500">{selectedHeadToHead.finishHeadToHead.ties} ties</p>
                     </div>
                     <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Avg finish</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Avg finish</p>
                       <p className="mt-2 text-lg font-bold text-white">
                         {formatAverageFinishValue(selectedHeadToHead.averageFinish.driver)} vs {formatAverageFinishValue(selectedHeadToHead.averageFinish.teammate)}
                       </p>
-                      <p className="mt-1 text-[11px] text-gray-500">
+                      <p className="mt-1 text-xs text-gray-500">
                         Delta {formatAverageFinishDelta(selectedHeadToHead.averageFinish.delta)}
                       </p>
                     </div>
@@ -335,9 +335,9 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-sm font-bold text-white">Recent race duels</p>
-                        <p className="mt-1 text-[11px] text-gray-500">Latest shared rounds in this season.</p>
+                        <p className="mt-1 text-xs text-gray-500">Latest shared rounds in this season.</p>
                       </div>
-                      <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-300">
+                      <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-gray-300">
                         {selectedHeadToHead.season}
                       </span>
                     </div>
@@ -350,16 +350,16 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                             className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-[#090909] px-4 py-3"
                           >
                             <div>
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Round {duel.round}</p>
+                              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Round {duel.round}</p>
                               <p className="mt-1 text-sm font-bold text-white">{duel.raceName}</p>
-                              <p className="mt-1 text-[11px] text-gray-500">{duel.circuitName}</p>
+                              <p className="mt-1 text-xs text-gray-500">{duel.circuitName}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Finish</p>
+                              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Finish</p>
                               <p className="mt-1 text-sm font-bold text-white">
                                 {duel.finishDriver ? `P${duel.finishDriver}` : "—"} / {duel.finishTeammate ? `P${duel.finishTeammate}` : "—"}
                               </p>
-                              <p className="mt-1 text-[11px] text-gray-500">
+                              <p className="mt-1 text-xs text-gray-500">
                                 Winner: {duel.winner === "driver" ? driver.familyName : duel.winner === "teammate" ? selectedHeadToHead.teammate.name.split(" ").slice(-1)[0] : "Tie"}
                               </p>
                             </div>
@@ -380,14 +380,14 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
               )}
             </article>
 
-            <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
-              <div className="flex items-center justify-between gap-3">
+            <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
+              <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
                 <div>
                   <h2 className="font-display text-2xl font-bold text-white">{selectedSeason.season} Results</h2>
                   <p className="mt-1 text-sm text-gray-500">Full race log for the selected season.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
+                  <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-xs font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
                     {formatSeasonProgress(selectedSeason.completedRounds)}
                   </span>
                   <div className="flex flex-wrap gap-1 rounded-lg border border-white/10 bg-black/20 p-1">
@@ -404,7 +404,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                           key={filter.id}
                           type="button"
                           onClick={() => setResultFilter(filter.id as typeof resultFilter)}
-                          className={`rounded px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors ${active ? "bg-grid-primary text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                          className={`min-h-11 rounded px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] transition-colors ${active ? "bg-grid-primary text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
                         >
                           {filter.label}
                         </button>
@@ -423,26 +423,26 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
                             Round {result.round} • {formatDate(result.date)}
                           </p>
                           <h3 className="mt-1 text-base font-bold text-white">{result.raceName}</h3>
                           <p className="mt-1 text-sm text-gray-500">{result.circuitName}</p>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-3 text-right">
+                        <div className="grid w-full grid-cols-3 gap-2 text-left sm:w-auto sm:gap-3 sm:text-right">
                           <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Grid</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Grid</p>
                             <p className="mt-1 text-lg font-black text-white">{result.grid ? `P${result.grid}` : "—"}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Finish</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Finish</p>
                             <p className="mt-1 text-lg font-black" style={{ color: result.finish !== null && result.finish <= 3 ? selectedAccentColor : "#FFFFFF" }}>
                               {result.finishLabel}
                             </p>
                           </div>
                           <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Points</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Points</p>
                             <p className="mt-1 text-lg font-black text-white">{formatNumber(result.points)}</p>
                           </div>
                         </div>
@@ -457,7 +457,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
               )}
             </article>
 
-            <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+            <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
               <h2 className="font-display text-2xl font-bold text-white">Career Timeline</h2>
               <div className="mt-5 space-y-4">
                 {timeline.map((event, index) => (
@@ -473,7 +473,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                       {index !== timeline.length - 1 ? <div className="mt-2 h-full w-px bg-white/10" /> : null}
                     </div>
                     <div className="pb-4">
-                      <p className="text-[10px] font-mono font-bold uppercase tracking-[0.16em]" style={{ color: event.highlight || event.active ? selectedAccentColor : "#6B7280" }}>
+                      <p className="text-xs font-mono font-bold uppercase tracking-[0.16em]" style={{ color: event.highlight || event.active ? selectedAccentColor : "#6B7280" }}>
                         {event.year}
                       </p>
                       <p className="mt-1 text-lg font-bold text-white">{event.title}</p>
@@ -485,8 +485,8 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
             </article>
           </div>
 
-          <aside className="min-w-0 space-y-6 xl:sticky xl:top-24 xl:self-start">
-            <article className="overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+          <aside className="order-first min-w-0 space-y-4 sm:space-y-6 xl:order-none xl:sticky xl:top-24 xl:self-start">
+            <article className="overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
               <div className="flex justify-center">
                 <DriverIdentityAvatar
                   givenName={driver.givenName}
@@ -511,14 +511,14 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
               </div>
             </article>
 
-            <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+            <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="font-display text-2xl font-bold text-white">This Season</h2>
                   <p className="mt-1 text-sm text-gray-500">{selectedSeason.season}</p>
                 </div>
                 <span
-                  className="rounded px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
+                  className="rounded px-2 py-1 text-xs font-bold uppercase tracking-[0.16em]"
                   style={{ backgroundColor: `${selectedAccentColor}22`, color: selectedAccentColor }}
                 >
                   {selectedSeason.teamName}
@@ -535,16 +535,16 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
               </div>
             </article>
 
-            <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+            <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
               <h2 className="font-display text-2xl font-bold text-white">Driver Details</h2>
               <div className="mt-5 space-y-4 text-sm">
                 <div className="flex items-center justify-between gap-4 border-b border-white/5 pb-3">
                   <span className="text-gray-500">Nationality</span>
-                  <span className="font-semibold text-white">{driver.nationality} ({nationalityCode})</span>
+                  <span className="min-w-0 break-words text-right font-semibold text-white">{driver.nationality} ({nationalityCode})</span>
                 </div>
                 <div className="flex items-center justify-between gap-4 border-b border-white/5 pb-3">
                   <span className="text-gray-500">Date of Birth</span>
-                  <span className="font-semibold text-white">{formatDate(driver.dateOfBirth)}</span>
+                  <span className="min-w-0 break-words text-right font-semibold text-white">{formatDate(driver.dateOfBirth)}</span>
                 </div>
                 <div className="flex items-center justify-between gap-4 border-b border-white/5 pb-3">
                   <span className="text-gray-500">Age</span>
@@ -552,7 +552,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
                 </div>
                 <div className="flex items-center justify-between gap-4 border-b border-white/5 pb-3">
                   <span className="text-gray-500">Season Team</span>
-                  <span className="font-semibold text-white">{selectedSeason.teamName}</span>
+                  <span className="min-w-0 break-words text-right font-semibold text-white">{selectedSeason.teamName}</span>
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-gray-500">Rounds Run</span>
@@ -561,7 +561,7 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
               </div>
             </article>
 
-            <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+            <article className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
               <h2 className="font-display text-2xl font-bold text-white">Career Totals</h2>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <StatTile label="Starts" value={formatNumber(stats.starts)} />
@@ -580,9 +580,9 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
             {neighbors.previous ? (
               <Link
                 href={`/f1/driver/${neighbors.previous.driverId}`}
-                className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-5 transition-colors hover:border-white/20"
+                className="min-h-24 rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-5 transition-colors hover:border-white/20"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Previous</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Previous</p>
                 <p className="mt-2 font-display text-2xl font-bold text-white">
                   {neighbors.previous.name}
                 </p>
@@ -593,9 +593,9 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
             {neighbors.next ? (
               <Link
                 href={`/f1/driver/${neighbors.next.driverId}`}
-                className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-5 text-right transition-colors hover:border-white/20"
+                className="min-h-24 rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-5 text-right transition-colors hover:border-white/20"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">Next</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Next</p>
                 <p className="mt-2 font-display text-2xl font-bold text-white">
                   {neighbors.next.name}
                 </p>

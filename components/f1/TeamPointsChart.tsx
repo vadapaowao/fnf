@@ -39,7 +39,7 @@ export default function TeamPointsChart({
             {snapshot.season} points scored per round
           </p>
         </div>
-        <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-300">
+        <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-gray-300">
           Avg {snapshot.averagePoints} pts
         </span>
       </div>
@@ -65,13 +65,13 @@ export default function TeamPointsChart({
                   />
 
                   <div className="pointer-events-none absolute bottom-full mb-3 min-w-[160px] rounded-lg border border-white/10 bg-[#0B0B0B] px-3 py-2 text-left opacity-0 shadow-2xl transition-opacity duration-150 group-hover:opacity-100">
-                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-grid-primary">{race.raceName}</p>
-                    <p className="mt-1 text-[11px] text-gray-200">{race.points.toFixed(0)} points • Best {race.bestFinish}</p>
-                    <p className="mt-1 text-[10px] text-gray-500">{race.podiums} podiums • {race.wins} wins</p>
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-grid-primary">{race.raceName}</p>
+                    <p className="mt-1 text-xs text-gray-200">{race.points.toFixed(0)} points • Best {race.bestFinish}</p>
+                    <p className="mt-1 text-xs text-gray-500">{race.podiums} podiums • {race.wins} wins</p>
                   </div>
                 </div>
 
-                <p className="mt-3 text-[10px] font-mono font-bold uppercase tracking-[0.12em] text-gray-500">
+                <p className="mt-3 text-xs font-mono font-bold uppercase tracking-[0.12em] text-gray-500">
                   {race.label}
                 </p>
               </div>

@@ -24,7 +24,7 @@ const primaryCards = [
 
 export default function LandingHero({ nextRace }: LandingHeroProps) {
   return (
-    <header id="hero" className="relative overflow-hidden bg-black px-4 pb-14 pt-28 md:pb-18 md:pt-32">
+    <header id="hero" className="relative overflow-hidden bg-black px-4 pb-12 pt-24 sm:pt-28 md:pb-16 md:pt-32">
       <div className="absolute inset-0 z-0 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(180,20,0,0.36)_0%,rgba(17,4,4,0.94)_42%,#000_74%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:52px_52px] opacity-15" />
@@ -51,25 +51,25 @@ export default function LandingHero({ nextRace }: LandingHeroProps) {
       </div>
 
       <div className="relative z-10 mx-auto max-w-6xl">
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] lg:items-end">
+        <div className="grid gap-9 md:gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] lg:items-end">
           <div className="max-w-3xl">
             <h1
-              className="hero-card-reveal font-display text-6xl font-black italic leading-[0.88] tracking-[-0.06em] text-white drop-shadow-[0_0_28px_rgba(225,6,0,0.58)] md:text-8xl lg:text-[8rem]"
+              className="hero-card-reveal font-display text-[3.35rem] font-black italic leading-[0.88] tracking-[-0.055em] text-white drop-shadow-[0_0_28px_rgba(225,6,0,0.58)] min-[360px]:text-6xl md:text-8xl lg:text-[8rem]"
               style={{ animationDelay: "120ms" }}
             >
               THE GRID
             </h1>
             <p
-              className="hero-card-reveal mt-6 max-w-2xl text-lg leading-relaxed text-gray-300 md:text-xl"
+              className="hero-card-reveal mt-5 max-w-2xl text-base leading-relaxed text-gray-300 sm:text-lg md:mt-6 md:text-xl"
               style={{ animationDelay: "220ms" }}
             >
               Drivers, circuits, standings, and the whole weekend story without the filler.
             </p>
             <div
-              className="hero-card-reveal mt-8 inline-flex max-w-full flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-black/35 px-4 py-3"
+              className="hero-card-reveal mt-6 flex max-w-full flex-col items-start gap-2 rounded-2xl border border-white/10 bg-black/35 px-4 py-3 sm:mt-8 sm:inline-flex sm:flex-row sm:flex-wrap sm:items-center sm:gap-3"
               style={{ animationDelay: "300ms" }}
             >
-              <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+              <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-primary">
                 Next lights out
               </span>
               <p className="text-sm text-gray-300">
@@ -104,14 +104,14 @@ export default function LandingHero({ nextRace }: LandingHeroProps) {
                   <Link
                     key={card.title}
                     href={card.href}
-                    className="hero-card-reveal group relative overflow-hidden rounded-[1.9rem] border border-white/10 bg-[linear-gradient(160deg,rgba(18,18,18,0.92),rgba(6,6,6,0.98))] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30"
+                    className="hero-card-reveal group relative min-h-44 overflow-hidden rounded-[1.5rem] border border-white/10 bg-[linear-gradient(160deg,rgba(18,18,18,0.92),rgba(6,6,6,0.98))] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 sm:rounded-[1.9rem] sm:p-6"
                     style={{ animationDelay: `${380 + index * 120}ms` }}
                   >
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(225,6,0,0.14),transparent_42%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                     <div className="relative flex h-full flex-col justify-between gap-8">
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">{card.eyebrow}</p>
-                        <h2 className="mt-3 font-display text-3xl font-black italic text-white">{card.title}</h2>
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary sm:tracking-[0.2em]">{card.eyebrow}</p>
+                        <h2 className="mt-3 font-display text-2xl font-black italic text-white sm:text-3xl">{card.title}</h2>
                         <p className="mt-3 text-sm leading-relaxed text-gray-400">{card.copy}</p>
                       </div>
                       <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
@@ -127,12 +127,12 @@ export default function LandingHero({ nextRace }: LandingHeroProps) {
 
               <Link
                 href="/f1/leclerc"
-                className="hero-card-reveal group relative overflow-hidden rounded-[1.6rem] border border-[#FF9F6A]/28 bg-[radial-gradient(circle_at_top_right,rgba(255,159,106,0.14),transparent_42%),linear-gradient(135deg,#17100E_0%,#090909_100%)] px-5 py-4 transition-all duration-300 hover:-translate-y-1 hover:border-[#FF9F6A]/45"
+                className="hero-card-reveal group relative min-h-24 overflow-hidden rounded-[1.4rem] border border-[#FF9F6A]/28 bg-[radial-gradient(circle_at_top_right,rgba(255,159,106,0.14),transparent_42%),linear-gradient(135deg,#17100E_0%,#090909_100%)] px-5 py-4 transition-all duration-300 hover:-translate-y-1 hover:border-[#FF9F6A]/45 sm:rounded-[1.6rem]"
                 style={{ animationDelay: "620ms" }}
               >
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h3 className="font-display text-2xl font-black italic text-white">
+                    <h3 className="font-display text-xl font-black italic leading-tight text-white sm:text-2xl">
                       I just came here for Charles Leclerc 🌶️
                     </h3>
                     <p className="mt-2 text-sm leading-relaxed text-gray-300">Understandable ;)</p>

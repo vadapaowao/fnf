@@ -48,11 +48,11 @@ export default function FollowToggleButton({
         })
       }
       className={cn(
-        "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors",
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition-colors",
         followed
           ? "border-transparent bg-white text-black hover:bg-white/90"
           : "border-white/10 bg-black/20 text-gray-300 hover:border-white/30 hover:text-white",
-        compact ? "px-2.5 py-1.5 text-[10px]" : "",
+        compact ? "min-h-11 px-3 py-2 text-xs" : "",
         className
       )}
       style={followed ? { boxShadow: `0 0 0 1px ${accentColor}55 inset` } : undefined}

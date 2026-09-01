@@ -8,30 +8,31 @@ export default function LandingNav() {
 
   return (
     <nav className="fixed inset-x-0 top-0 z-50">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/90 via-black/55 to-transparent" />
-      <div className="relative flex justify-center px-4 pb-3 pt-4">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/90 via-black/55 to-transparent md:h-24" />
+      <div className="relative flex justify-center px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] md:px-4 md:pb-3 md:pt-4">
         <div className="w-full max-w-3xl rounded-full border border-white/10 bg-[rgba(8,8,8,0.8)] shadow-2xl shadow-black/40 backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-4 rounded-full px-5 py-3 md:px-6">
+          <div className="flex min-h-14 items-center justify-between gap-3 rounded-full px-3 py-1.5 sm:px-5 md:px-6 md:py-3">
             <div className="flex items-center gap-3">
               <Link
                 href="/"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/30 text-lg text-white"
+                aria-label="The Grid home"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/30 text-lg text-white"
               >
                 🏎️
               </Link>
-              <Link href="/f1" className="font-display text-sm font-bold uppercase tracking-[0.28em] text-white md:text-base">
+              <Link href="/f1" className="inline-flex min-h-11 items-center font-display text-sm font-bold uppercase tracking-[0.22em] text-white sm:tracking-[0.28em] md:text-base">
                 The Grid
               </Link>
             </div>
 
             <div className="hidden items-center gap-8 font-display text-sm font-medium uppercase tracking-widest text-gray-400 md:flex">
-              <Link href="/f1" className="transition-colors hover:text-primary">
+              <Link href="/f1" className="inline-flex min-h-11 items-center transition-colors hover:text-primary">
                 Race
               </Link>
-              <Link href="/f1/standings" className="transition-colors hover:text-white">
+              <Link href="/f1/standings" className="inline-flex min-h-11 items-center transition-colors hover:text-white">
                 Standings
               </Link>
-              <Link href="/f1/calendar" className="transition-colors hover:text-white">
+              <Link href="/f1/calendar" className="inline-flex min-h-11 items-center transition-colors hover:text-white">
                 Calendar
               </Link>
             </div>
@@ -41,7 +42,7 @@ export default function LandingNav() {
               aria-expanded={menuOpen}
               aria-label={menuOpen ? "Close navigation" : "Open navigation"}
               onClick={() => setMenuOpen((current) => !current)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/20 text-white transition-colors hover:border-primary/40 hover:text-primary md:hidden"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/20 text-white transition-colors hover:border-primary/40 hover:text-primary md:hidden"
             >
               <span className="material-icons text-[20px]">{menuOpen ? "close" : "menu"}</span>
             </button>

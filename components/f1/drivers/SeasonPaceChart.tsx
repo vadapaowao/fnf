@@ -19,7 +19,7 @@ export default function SeasonPaceChart({ data, accentColor = "#E10600", season 
 
     if (data.length === 0) {
         return (
-            <div className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+            <div className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <h3 className="font-display text-lg font-bold uppercase text-white">Season Pace</h3>
@@ -34,13 +34,13 @@ export default function SeasonPaceChart({ data, accentColor = "#E10600", season 
     }
 
     return (
-        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-6">
+        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark p-4 sm:p-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
                     <h3 className="font-display text-lg font-bold uppercase text-white">Season Pace</h3>
                     <p className="mt-1 text-xs font-mono uppercase tracking-[0.14em] text-gray-500">{season} grid versus finish trend</p>
                 </div>
-                <div className="flex items-center gap-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400">
+                <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">
                     <span className="inline-flex items-center gap-2">
                         <span className="h-2.5 w-2.5 rounded-full bg-white/60" />
                         Grid
@@ -53,7 +53,7 @@ export default function SeasonPaceChart({ data, accentColor = "#E10600", season 
             </div>
 
             <div className="mt-6 overflow-x-auto pb-2 custom-scrollbar">
-                <div className="relative min-w-[720px]">
+                <div className="relative min-w-[640px] sm:min-w-[720px]">
                     <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
                         {Array.from({ length: 5 }).map((_, index) => (
                             <div key={index} className="border-t border-white/5" />
@@ -86,15 +86,15 @@ export default function SeasonPaceChart({ data, accentColor = "#E10600", season 
                                     )}
 
                                     <div className="pointer-events-none absolute bottom-full mb-3 min-w-[140px] rounded-lg border border-white/10 bg-[#0B0B0B] px-3 py-2 text-left opacity-0 shadow-2xl transition-opacity duration-150 group-hover:opacity-100">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-grid-primary">{entry.raceName}</p>
-                                        <p className="mt-1 text-[11px] text-gray-200">
+                                        <p className="text-xs font-black uppercase tracking-[0.12em] text-grid-primary">{entry.raceName}</p>
+                                        <p className="mt-1 text-xs text-gray-200">
                                             Grid {entry.grid ? `P${entry.grid}` : "TBD"} • Finish {entry.finishLabel}
                                         </p>
-                                        <p className="mt-1 text-[10px] text-gray-500">{entry.points.toFixed(0)} pts • {entry.status}</p>
+                                        <p className="mt-1 text-xs text-gray-500">{entry.points.toFixed(0)} pts • {entry.status}</p>
                                     </div>
                                 </div>
 
-                                <p className="mt-3 text-[10px] font-mono font-bold uppercase tracking-[0.12em] text-gray-500">
+                                <p className="mt-3 text-xs font-mono font-bold uppercase tracking-[0.12em] text-gray-500">
                                     {entry.label}
                                 </p>
                             </div>

@@ -68,11 +68,11 @@ export default function RaceStoryMode({ recap, dna, state }: RaceStoryModeProps)
 
   return (
     <details className="group/story rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
-      <summary className="flex cursor-pointer list-none items-start justify-between gap-4 p-5 marker:content-none">
+      <summary className="flex min-h-14 cursor-pointer list-none items-start justify-between gap-4 p-4 marker:content-none sm:p-5">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Race Story</p>
-            <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-300">
+            <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-gray-300">
               {getStateLabel(state)}
             </span>
           </div>
@@ -87,7 +87,7 @@ export default function RaceStoryMode({ recap, dna, state }: RaceStoryModeProps)
         </span>
       </summary>
 
-      <div className="border-t border-white/10 p-5">
+      <div className="border-t border-white/10 p-4 sm:p-5">
         <div className="grid gap-2 md:grid-cols-3">
           {chapters.map((chapter, index) => {
             const isActive = chapter.id === activeChapterId;
@@ -98,11 +98,11 @@ export default function RaceStoryMode({ recap, dna, state }: RaceStoryModeProps)
                 type="button"
                 onClick={() => setActiveChapterId(chapter.id)}
                 className={cn(
-                  "rounded-lg border px-4 py-3 text-left transition-colors",
+                    "min-h-14 rounded-lg border px-4 py-3 text-left transition-colors",
                   isActive ? "border-grid-primary/40 bg-grid-primary/10" : "border-white/10 bg-black/20 hover:border-white/20"
                 )}
               >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
                   {String(index + 1).padStart(2, "0")} • {chapter.eyebrow}
                 </p>
                 <p className="mt-2 text-sm font-bold text-white">{chapter.title}</p>
@@ -112,13 +112,13 @@ export default function RaceStoryMode({ recap, dna, state }: RaceStoryModeProps)
         </div>
 
         {activeChapter ? (
-          <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-5">
+          <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-grid-primary">{activeChapter.tag}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-grid-primary">{activeChapter.tag}</p>
                 <h3 className="mt-2 text-xl font-black text-white">{activeChapter.title}</h3>
               </div>
-              <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-300">
+              <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-gray-300">
                 {dna.archetype}
               </span>
             </div>
@@ -128,9 +128,9 @@ export default function RaceStoryMode({ recap, dna, state }: RaceStoryModeProps)
               <div className="mt-4 grid gap-2 md:grid-cols-3">
                 {recap.podium.map((entry) => (
                   <div key={`${entry.position}-${entry.driver}`} className="rounded-lg border border-white/10 bg-[#090909] px-3 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">P{entry.position}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">P{entry.position}</p>
                     <p className="mt-1 text-sm font-bold text-white">{entry.driver}</p>
-                    <p className="mt-1 text-[11px] text-gray-500">{entry.constructor}</p>
+                    <p className="mt-1 text-xs text-gray-500">{entry.constructor}</p>
                   </div>
                 ))}
               </div>

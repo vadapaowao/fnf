@@ -72,25 +72,25 @@ export default function DriverCard({ driver, teamId, teamName, standing }: Drive
                 style={{ background: `linear-gradient(90deg, ${accentColor}55, transparent 65%)` }}
             />
 
-            <div className="relative p-6">
-                <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="relative p-4 sm:p-6">
+                <div className="mb-4 flex items-center justify-between gap-2 sm:mb-5 sm:gap-3">
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-300">
+                        <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300">
                             #{number}
                         </span>
-                        <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-300">
+                        <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-gray-300">
                             {getNationalityCode(driver.nationality)}
                         </span>
                     </div>
-                    <span className="rounded px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ backgroundColor: `${accentColor}22`, color: accentColor }}>
+                    <span className="rounded px-2 py-1 text-xs font-bold uppercase tracking-[0.14em]" style={{ backgroundColor: `${accentColor}22`, color: accentColor }}>
                         {standing ? "2026 season" : "Profile"}
                     </span>
                 </div>
 
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">{resolvedTeamName}</p>
-                        <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
+                <div className="flex min-w-0 items-start justify-between gap-3 sm:gap-4">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">{resolvedTeamName}</p>
+                        <h3 className="mt-2 break-words font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
                             {driver.givenName} {driver.familyName}
                         </h3>
                         <p className="mt-2 text-sm text-gray-400">
@@ -107,26 +107,26 @@ export default function DriverCard({ driver, teamId, teamName, standing }: Drive
                     />
                 </div>
 
-                <div className="mt-6 rounded-lg border border-white/5 bg-black/20 p-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">At a Glance</p>
-                    <div className="flex items-center justify-between gap-4">
+                <div className="mt-5 rounded-lg border border-white/5 bg-black/20 p-3 sm:mt-6 sm:p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">At a Glance</p>
+                    <div className="grid grid-cols-3 items-end gap-2 sm:gap-4">
                         <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
                                 Code
                             </p>
-                            <p className="mt-1 text-xl font-bold text-white">{driver.code || "—"}</p>
+                            <p className="mt-1 text-lg font-bold text-white sm:text-xl">{driver.code || "—"}</p>
                         </div>
                         <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
                                 {standing ? "2026 Pts" : "Number"}
                             </p>
-                            <p className="mt-1 text-xl font-bold text-white">{standing ? `${points}` : number}</p>
+                            <p className="mt-1 text-lg font-bold text-white sm:text-xl">{standing ? `${points}` : number}</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
                                 {standing ? "Wins" : "Number"}
                             </p>
-                            <p className="mt-1 text-xl font-bold" style={{ color: accentColor }}>
+                            <p className="mt-1 text-lg font-bold sm:text-xl" style={{ color: accentColor }}>
                                 {standing ? standing.wins : number}
                             </p>
                         </div>
@@ -138,7 +138,7 @@ export default function DriverCard({ driver, teamId, teamName, standing }: Drive
                     />
                 </div>
 
-                <div className="mt-4 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+                <div className="mt-4 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
                     <span>{resolvedTeamName}</span>
                     <span className="text-grid-primary transition-colors group-hover:text-white">Open Profile</span>
                 </div>

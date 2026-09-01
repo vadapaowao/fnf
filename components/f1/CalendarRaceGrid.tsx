@@ -81,8 +81,8 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
   }, [resolvedSelectedRound, scheduledRaces, selectedRound]);
 
   return (
-    <div className="space-y-10">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-8 sm:space-y-10">
+      <div className="grid grid-cols-1 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
         {scheduledRaces.map((race) => {
         const raceStartMs = getRaceStartMs(race);
         const referenceNowMs = nowMs ?? 0;
@@ -105,14 +105,14 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
             <button
               type="button"
               onClick={() => setSelectedRound(race.round)}
-              className="w-full p-6 text-left"
+              className="w-full p-4 text-left sm:p-6"
             >
-              <div className="mb-4 flex items-center justify-between">
+              <div className="mb-3 flex items-center justify-between sm:mb-4">
                 <span className="text-xs font-mono text-gray-500">
                   ROUND {String(race.round).padStart(2, "0")}
                 </span>
                 <span
-                  className={`rounded px-2 py-1 text-[10px] font-bold ${isPast
+                  className={`rounded px-2 py-1 text-xs font-bold ${isPast
                     ? "bg-gray-800 text-gray-500"
                     : "bg-grid-primary/20 text-grid-primary"
                     }`}
@@ -122,39 +122,39 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
               </div>
 
               <div className="mb-2 flex items-start justify-between gap-3">
-                <h3 className="font-display text-xl font-bold text-white transition-colors group-hover:text-grid-primary">
+                <h3 className="font-display text-lg font-bold leading-tight text-white transition-colors group-hover:text-grid-primary sm:text-xl">
                   {race.raceName}
                 </h3>
                 {isSelected && raceState === "upcoming" && countdown ? (
-                  <span className="rounded border border-grid-primary/40 bg-grid-primary/10 px-2 py-1 text-[10px] font-mono font-bold text-grid-primary">
+                  <span className="rounded border border-grid-primary/40 bg-grid-primary/10 px-2 py-1 text-xs font-mono font-bold text-grid-primary">
                     {countdown}
                   </span>
                 ) : null}
               </div>
 
-              <div className="mb-4 flex items-center gap-2 text-gray-400">
+              <div className="mb-2 flex items-center gap-2 text-gray-400 sm:mb-4">
                 <span className="material-icons text-sm">location_on</span>
-                <span className="text-sm">
+                <span className="text-xs sm:text-sm">
                   {race.locality}, {race.country}
                 </span>
               </div>
 
               <div className="flex items-center gap-2 text-gray-300">
                 <span className="material-icons text-sm">event</span>
-                <span className="text-sm font-mono">
+                <span className="text-xs font-mono sm:text-sm">
                   {formatRaceDate(race.date)}
                 </span>
               </div>
 
-              <div className="mt-4 border-t border-white/5 pt-4">
+              <div className="mt-3 border-t border-white/5 pt-3 sm:mt-4 sm:pt-4">
                 <p className="truncate text-xs text-gray-500">{race.circuitName}</p>
               </div>
             </button>
 
-            <div className="flex items-center justify-between gap-3 border-t border-white/5 px-6 py-3">
+            <div className="flex items-center justify-between gap-2 border-t border-white/5 px-3 py-2 sm:gap-3 sm:px-6 sm:py-3">
               <Link
                 href={`/f1/race/${race.round}`}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-grid-primary hover:text-white"
+                className="inline-flex min-h-11 items-center gap-1 rounded-lg px-2 text-xs font-semibold uppercase tracking-wider text-grid-primary hover:bg-white/5 hover:text-white"
               >
                 Open Race
                 <span className="material-icons text-sm">arrow_forward</span>
@@ -179,26 +179,26 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
 
       {canceledRaces.length > 0 ? (
         <section className="space-y-4">
-          <div className="flex items-end justify-between gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">Canceled</p>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">Canceled</p>
               <h2 className="mt-2 font-display text-2xl font-black italic text-white">Calendar changes</h2>
             </div>
-            <p className="max-w-sm text-right text-xs text-gray-500">
+            <p className="max-w-sm text-left text-xs text-gray-500 sm:text-right">
               These rounds are off the calendar and stay here for reference only.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
             {canceledRaces.map((race) => (
               <article
                 key={`${race.circuitId}-${race.date}-canceled`}
                 className="rounded-xl border border-dashed border-white/10 bg-background-dark/40 opacity-80"
               >
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   <div className="mb-4 flex items-center justify-between">
                     <span className="text-xs font-mono text-gray-500">Canceled</span>
-                    <span className="rounded bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-300">
+                    <span className="rounded bg-red-500/15 px-2 py-1 text-xs font-bold text-red-300">
                       CANCELED
                     </span>
                   </div>

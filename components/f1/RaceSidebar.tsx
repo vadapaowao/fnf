@@ -123,7 +123,7 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound,
                 <div className="absolute -right-8 -top-8 h-16 w-16 rounded-bl-full bg-gradient-to-br from-grid-primary/20 to-transparent" />
               ) : null}
               <div className="relative z-10 mb-2 flex items-start justify-between">
-                <span className={`text-[10px] font-mono ${isActive ? "font-bold text-grid-primary" : "text-gray-500"}`}>
+                <span className={`text-xs font-mono ${isActive ? "font-bold text-grid-primary" : "text-gray-500"}`}>
                   R{String(race.round).padStart(2, "0")} • {new Date(race.date).toLocaleDateString("en-US", {
                     month: "short",
                     day: "2-digit",
@@ -137,9 +137,9 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound,
                       event.stopPropagation();
                       window.open("https://www.fancode.com", "_blank", "noopener,noreferrer");
                     }}
-                    className="flex items-center gap-1 rounded bg-grid-primary px-1.5 py-0.5 text-[10px] font-bold text-black animate-pulse hover:bg-white"
+                    className="flex items-center gap-1 rounded bg-grid-primary px-1.5 py-0.5 text-xs font-bold text-black animate-pulse hover:bg-white"
                   >
-                    <span className="material-icons text-[10px]">live_tv</span>
+                    <span className="material-icons text-xs">live_tv</span>
                     WATCH LIVE
                   </button>
                 ) : null}

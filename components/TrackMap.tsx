@@ -895,10 +895,10 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
                 />
               </svg>
             </div>
-            <p className="font-mono text-6xl font-bold uppercase tracking-[0.24em] text-gray-700 opacity-20 md:text-8xl">
+            <p className="font-mono text-3xl font-bold uppercase tracking-[0.16em] text-gray-700 opacity-20 sm:text-5xl sm:tracking-[0.24em] md:text-8xl">
               TRACK MAP
             </p>
-            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-600">
+            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-gray-600">
               Circuit visualization
             </p>
           </div>
@@ -910,11 +910,11 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
   return (
     <div className={cn("border border-[#2A2A2A] bg-[#090909] p-3", className)}>
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7B7B7B]">Track Overlay</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7B7B7B]">Track Overlay</p>
         <button
           type="button"
           onClick={resetOverlay}
-          className="border border-[#2A2A2A] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9B9B9B] hover:border-[#4A4A4A] hover:text-[#D0D0D0]"
+          className="inline-flex min-h-11 items-center border border-[#2A2A2A] px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#9B9B9B] hover:border-[#4A4A4A] hover:text-[#D0D0D0]"
         >
           Reset
         </button>
@@ -1083,12 +1083,12 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
               boxShadow: "0 0 14px rgba(225,6,0,0.24)"
             }}
           >
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#E10600]">{tooltipCopy.title}</p>
-            <p className="mt-1 text-[11px] font-medium leading-snug text-[#C9C9C9]">
+            <p className="text-xs font-extrabold uppercase tracking-[0.08em] text-[#E10600]">{tooltipCopy.title}</p>
+            <p className="mt-1 text-xs font-medium leading-snug text-[#C9C9C9]">
               {tooltipCopy.body || getFallbackTelemetry(circuitId)}
             </p>
             {tooltipCopy.detail ? (
-              <p className="mt-2 text-[10px] font-semibold leading-snug text-[#9D9D9D]">{tooltipCopy.detail}</p>
+              <p className="mt-2 text-xs font-semibold leading-snug text-[#9D9D9D]">{tooltipCopy.detail}</p>
             ) : null}
           </motion.div>
         ) : null}
@@ -1100,9 +1100,9 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
           <button
             type="button"
             onClick={() => setIsTrackReplayOpen((previous) => !previous)}
-            className="flex w-full items-center justify-between px-3 py-2 text-left"
+            className="flex min-h-12 w-full items-center justify-between px-3 py-2 text-left"
           >
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#E6A3A0]">
+            <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#E6A3A0]">
               {isTrackReplayOpen ? "Hide Highlights" : "Watch Race Highlights"}
             </span>
             <span className={cn("material-icons text-base text-[#E10600] transition-transform", isTrackReplayOpen ? "rotate-180" : "")}>
@@ -1113,23 +1113,23 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
           {isTrackReplayOpen ? (
             <div className="border-t border-[#232323] p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-[10px] text-[#888]">
+                <p className="text-xs text-[#888]">
                   {replayModeLabel} • Lap {replayCurrentLap}
                   {hasReplayTelemetry && replay ? ` / ${replay.totalLaps}` : ""}
                 </p>
-                <p className="text-[10px] font-semibold text-[#B1B1B1]">
+                <p className="text-xs font-semibold text-[#B1B1B1]">
                   {isReplayPlaying ? "Playing" : "Paused"} • {replaySpeed}x
                 </p>
               </div>
 
-              <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#F3F3F3]">{replayActiveMoment.title}</p>
-              <p className="mt-1 text-[11px] leading-snug text-[#BDBDBD]">{replayActiveMoment.detail}</p>
+              <p className="mt-2 text-xs font-bold uppercase tracking-[0.08em] text-[#F3F3F3]">{replayActiveMoment.title}</p>
+              <p className="mt-1 text-xs leading-snug text-[#BDBDBD]">{replayActiveMoment.detail}</p>
 
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => stepReplayTime(-1)}
-                  className="inline-flex items-center justify-center border border-[#2D2D2D] bg-[#111] px-2 py-1 text-[10px] font-semibold text-[#D8D8D8] hover:border-[#6A6A6A]"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center border border-[#2D2D2D] bg-[#111] px-2 py-2 text-xs font-semibold text-[#D8D8D8] hover:border-[#6A6A6A]"
                   aria-label="Previous replay checkpoint"
                 >
                   <span className="material-icons text-sm">fast_rewind</span>
@@ -1137,7 +1137,7 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
                 <button
                   type="button"
                   onClick={() => setIsReplayPlaying((previous) => !previous)}
-                  className="inline-flex items-center gap-1 border border-[#7D2A28] bg-[#190909] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#FDE8E8] hover:border-[#E10600]"
+                  className="inline-flex min-h-11 items-center gap-1 border border-[#7D2A28] bg-[#190909] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-[#FDE8E8] hover:border-[#E10600]"
                   aria-label={isReplayPlaying ? "Pause replay" : "Play replay"}
                 >
                   <span className="material-icons text-sm">{isReplayPlaying ? "pause" : "play_arrow"}</span>
@@ -1146,20 +1146,20 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
                 <button
                   type="button"
                   onClick={() => stepReplayTime(1)}
-                  className="inline-flex items-center justify-center border border-[#2D2D2D] bg-[#111] px-2 py-1 text-[10px] font-semibold text-[#D8D8D8] hover:border-[#6A6A6A]"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center border border-[#2D2D2D] bg-[#111] px-2 py-2 text-xs font-semibold text-[#D8D8D8] hover:border-[#6A6A6A]"
                   aria-label="Next replay checkpoint"
                 >
                   <span className="material-icons text-sm">fast_forward</span>
                 </button>
 
-                <div className="ml-auto flex items-center gap-1">
+                <div className="flex w-full items-center justify-end gap-1 sm:ml-auto sm:w-auto">
                   {REPLAY_SPEEDS.map((speed, index) => (
                     <button
                       key={speed}
                       type="button"
                       onClick={() => setReplaySpeedIndex(index)}
                       className={cn(
-                        "border px-1.5 py-0.5 text-[10px] font-semibold",
+                        "min-h-11 min-w-11 border px-2 py-2 text-xs font-semibold",
                         replaySpeedIndex === index
                           ? "border-[#E10600] bg-[#180707] text-[#FDEAEA]"
                           : "border-[#2D2D2D] bg-[#111] text-[#969696] hover:border-[#7D2A28]"
@@ -1178,7 +1178,7 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
                 max={Math.max(replayDurationMs, 1)}
                 value={replayTimeMs}
                 onChange={(event) => setReplayTimeMs(Number(event.target.value))}
-                className="mt-3 h-1 w-full cursor-pointer appearance-none rounded bg-[#282828]"
+                className="mt-3 h-11 w-full cursor-pointer appearance-none rounded bg-transparent accent-[#E10600]"
                 aria-label="Replay timeline scrubber"
               />
 
@@ -1189,7 +1189,7 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
                     type="button"
                     onClick={() => jumpToReplayMoment(moment)}
                     className={cn(
-                      "border px-2 py-0.5 text-[10px] font-semibold",
+                      "min-h-11 border px-3 py-2 text-xs font-semibold",
                       index === replayActiveMomentIndex
                         ? "border-[#E10600] bg-[#180707] text-[#FDEAEA]"
                         : "border-[#2D2D2D] bg-[#101010] text-[#959595] hover:border-[#7D2A28] hover:text-[#D4D4D4]"
@@ -1202,7 +1202,7 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
               </div>
 
               <div className="mt-2 max-h-24 overflow-y-auto pr-1 custom-scrollbar">
-                <div className="grid gap-1 text-[10px] text-[#ABABAB] sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-1 text-xs text-[#ABABAB] sm:grid-cols-2 lg:grid-cols-3">
                   {replayMarkers.map((marker) => (
                     <p key={`${marker.id}-legend`} className="inline-flex items-center gap-1">
                       <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: marker.color }} />
@@ -1218,8 +1218,8 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
 
       <div className="mt-3 max-h-[250px] space-y-1.5 overflow-y-auto pr-1 custom-scrollbar">
         <div className="mb-1 flex items-center justify-between">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8D8D8D]">Sectors</p>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8D8D8D]">DRS Zones</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8D8D8D]">Sectors</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8D8D8D]">DRS Zones</p>
         </div>
 
         <div className="grid gap-1.5 md:grid-cols-[1.2fr_0.9fr]">
@@ -1235,22 +1235,22 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
                   onFocus={() => activateSector(segment.id)}
                   onClick={() => activateSector(segment.id)}
                   className={cn(
-                    "w-full border px-2.5 py-2 text-left transition-colors",
+                    "min-h-12 w-full border px-2.5 py-2 text-left transition-colors",
                     isActive
                       ? "border-[#E10600] bg-[#180707] text-[#FBE8E8]"
                       : "border-[#2A2A2A] bg-[#0D0D0D] text-[#A4A4A4] hover:border-[#7D2A28] hover:text-[#D2D2D2]"
                   )}
                 >
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-black tracking-[0.08em]">{segment.name}</p>
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[#C3C3C3]">
+                    <p className="text-xs font-black tracking-[0.08em]">{segment.name}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#C3C3C3]">
                       {segment.turnRange}
                     </p>
                   </div>
-                  <p className="mt-0.5 text-[9px] font-semibold leading-snug text-[#919191]">
+                  <p className="mt-0.5 text-xs font-semibold leading-snug text-[#919191]">
                     {segment.lengthPct}% lap share
                   </p>
-                  <p className="mt-0.5 text-[9px] font-medium leading-snug text-[#B1B1B1]">{segment.phaseFocus}</p>
+                  <p className="mt-0.5 text-xs font-medium leading-snug text-[#B1B1B1]">{segment.phaseFocus}</p>
                 </button>
               );
             })}
@@ -1269,14 +1269,14 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
                   onFocus={() => activateDrs(drsId)}
                   onClick={() => activateDrs(drsId)}
                   className={cn(
-                    "min-w-0 border px-2 py-2 text-left transition-colors",
+                    "min-h-12 min-w-0 border px-2 py-2 text-left transition-colors",
                     isActive
                       ? "border-[#E10600] bg-[#180707] text-[#FBE8E8]"
                       : "border-[#2A2A2A] bg-[#0D0D0D] text-[#A4A4A4] hover:border-[#7D2A28] hover:text-[#D2D2D2]"
                   )}
                 >
-                  <p className="text-[10px] font-black tracking-[0.08em] text-[#E10600]">{drsId.replace("-", " ")}</p>
-                  <p className="mt-0.5 text-[9px] font-semibold leading-tight text-[#8B8B8B]">Detection + Activation</p>
+                  <p className="text-xs font-black tracking-[0.08em] text-[#E10600]">{drsId.replace("-", " ")}</p>
+                  <p className="mt-0.5 text-xs font-semibold leading-tight text-[#8B8B8B]">Detection + Activation</p>
                 </button>
               );
             })}
@@ -1285,12 +1285,12 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
 
         {selectedSectorIntel ? (
           <div className="border border-[#2A2A2A] bg-[#0C0C0C] p-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8D8D8D]">Focused Sector Briefing</p>
-            <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#EFEFEF]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8D8D8D]">Focused Sector Briefing</p>
+            <p className="mt-2 text-xs font-bold uppercase tracking-[0.08em] text-[#EFEFEF]">
               {selectedSectorIntel.name} · {selectedSectorIntel.turnRange}
             </p>
-            <p className="mt-1 text-[11px] font-medium leading-snug text-[#C4C4C4]">{selectedSectorIntel.telemetry}</p>
-            <p className="mt-2 text-[10px] font-semibold leading-snug text-[#AFAFAF]">{selectedSectorIntel.pressureProfile}</p>
+            <p className="mt-1 text-xs font-medium leading-snug text-[#C4C4C4]">{selectedSectorIntel.telemetry}</p>
+            <p className="mt-2 text-xs font-semibold leading-snug text-[#AFAFAF]">{selectedSectorIntel.pressureProfile}</p>
           </div>
         ) : null}
       </div>

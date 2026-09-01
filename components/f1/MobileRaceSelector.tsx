@@ -13,8 +13,8 @@ export default function MobileRaceSelector({ races, currentRound }: MobileRaceSe
   const router = useRouter();
 
   return (
-    <div className="border-b border-white/10 bg-[#080808] px-4 py-3 xl:hidden">
-      <label htmlFor="mobile-race-selector" className="mb-2 block text-[10px] font-bold uppercase tracking-[0.18em] text-grid-primary">
+    <div className="border-b border-white/10 bg-[#080808] px-3 py-2.5 sm:px-4 sm:py-3 xl:hidden">
+      <label htmlFor="mobile-race-selector" className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-grid-primary">
         Select race
       </label>
       <div className="relative">
@@ -22,7 +22,7 @@ export default function MobileRaceSelector({ races, currentRound }: MobileRaceSe
           id="mobile-race-selector"
           value={currentRound}
           onChange={(event) => router.push(`/f1/race/${event.target.value}`)}
-          className="w-full appearance-none rounded-lg border border-white/10 bg-[#111] px-3 py-2.5 pr-10 text-sm font-semibold text-white outline-none focus:border-grid-primary"
+          className="min-h-12 w-full appearance-none rounded-lg border border-white/10 bg-[#111] px-3 py-2.5 pr-10 text-sm font-semibold text-white outline-none focus:border-grid-primary"
         >
           {races.map((race) => (
             <option key={race.round} value={race.round}>

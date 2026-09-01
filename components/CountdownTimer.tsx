@@ -60,7 +60,7 @@ function FlipUnit({ label, value, minDigits = 2 }: FlipUnitProps) {
           </motion.span>
         </AnimatePresence>
       </div>
-      <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8C8C8C]">{label}</p>
+      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#8C8C8C]">{label}</p>
     </div>
   );
 }
@@ -84,7 +84,7 @@ function CompactFlipUnit({ label, value, minDigits = 2 }: FlipUnitProps) {
           </motion.span>
         </AnimatePresence>
       </div>
-      <p className="mt-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-[#8C8C8C]">{label}</p>
+      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#8C8C8C]">{label}</p>
     </div>
   );
 }
@@ -145,7 +145,7 @@ export default function CountdownTimer({ targetIso, variant = "full" }: Countdow
   if (variant === "compact") {
     return (
       <div className="w-full max-w-[420px] border border-[#2D2D2D] bg-[#080808] p-2.5">
-        <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#E10600]">Race Countdown</p>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#E10600]">Race Countdown</p>
         <div className="grid grid-cols-4 gap-1.5">
           <CompactFlipUnit label="Days" value={state.days} minDigits={2} />
           <CompactFlipUnit label="Hours" value={state.hours} />
@@ -164,7 +164,7 @@ export default function CountdownTimer({ targetIso, variant = "full" }: Countdow
       style={lessThan24Hours ? { boxShadow: "0 0 18px rgba(225,6,0,0.24)" } : undefined}
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#E10600]">Race Countdown</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#E10600]">Race Countdown</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">

@@ -1,4 +1,4 @@
-type StandingsAccordionRow = {
+export type StandingsAccordionRow = {
   rank: string;
   name: string;
   context: string;
@@ -24,7 +24,7 @@ export default function StandingsAccordion({
 
   return (
     <details open className="group/standings min-w-0 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark">
-      <summary className="flex cursor-pointer list-none flex-col items-start justify-between gap-4 p-4 marker:content-none sm:flex-row sm:p-6">
+      <summary className="flex min-h-14 cursor-pointer list-none flex-col items-start justify-between gap-4 p-4 marker:content-none sm:flex-row sm:p-6">
         <div className="min-w-0 max-w-full">
           <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">{eyebrow}</p>
           <h2 className="mt-2 font-display text-3xl font-bold text-white">{title}</h2>
@@ -32,12 +32,12 @@ export default function StandingsAccordion({
 
           {leader ? (
             <div className="mt-4 inline-grid max-w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-3 sm:gap-3 sm:px-4">
-              <span className="rounded-full border border-white/10 bg-black/30 px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
+              <span className="rounded-full border border-white/10 bg-black/30 px-2 py-1 text-xs font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
                 P{leader.rank}
               </span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-white">{leader.name}</p>
-                <p className="truncate text-[11px] text-gray-500">{leader.context}</p>
+                <p className="truncate text-xs text-gray-500">{leader.context}</p>
               </div>
               <span className="shrink-0 text-sm font-black" style={{ color: leader.accentColor ?? "#E10600" }}>
                 {leader.value}
@@ -46,8 +46,8 @@ export default function StandingsAccordion({
           ) : null}
         </div>
 
-        <div className="flex shrink-0 self-start items-center gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-3">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-400">Full table</span>
+        <div className="flex min-h-11 shrink-0 self-start items-center gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-2.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">Full table</span>
           <span className="material-icons text-base text-grid-primary transition-transform duration-200 group-open/standings:rotate-180">
             expand_more
           </span>
@@ -61,14 +61,14 @@ export default function StandingsAccordion({
               key={`${row.rank}-${row.name}`}
               className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-3 sm:gap-4 sm:px-4"
             >
-              <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
+              <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-xs font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
                 P{row.rank}
               </span>
 
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-white">{row.name}</p>
-                <p className="truncate text-[11px] text-gray-500">{row.context}</p>
-                {row.meta ? <p className="truncate text-[10px] uppercase tracking-[0.14em] text-gray-600">{row.meta}</p> : null}
+                <p className="truncate text-xs text-gray-500">{row.context}</p>
+                {row.meta ? <p className="truncate text-xs uppercase tracking-[0.14em] text-gray-600">{row.meta}</p> : null}
               </div>
 
               <span className="whitespace-nowrap text-right text-xs font-black text-white sm:text-sm" style={{ color: row.accentColor ?? "#FFFFFF" }}>
