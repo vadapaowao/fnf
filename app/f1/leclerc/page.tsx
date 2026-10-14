@@ -3,7 +3,6 @@ import path from "node:path";
 
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
 import LeclercSoundboard from "@/components/f1/LeclercSoundboard";
 import TrackedExternalLink from "@/components/f1/TrackedExternalLink";
@@ -34,7 +33,21 @@ export default async function LeclercPage() {
   const [profile, standings] = await Promise.all([getDriverProfile("leclerc", F1_SEASON), getDriverStandings(F1_SEASON)]);
 
   if (!profile) {
-    notFound();
+    return (
+      <main className="flex flex-1 items-center justify-center bg-black px-4 py-16">
+        <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(18,18,18,0.96),rgba(6,6,6,0.99))] p-6 text-center sm:p-8">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#FFB48A]">Charles Leclerc</p>
+          <h1 className="mt-3 font-display text-3xl font-black italic text-white sm:text-4xl">Data took a pit stop.</h1>
+          <p className="mt-3 text-sm leading-relaxed text-gray-400">The profile could not load right now. Try again in a moment.</p>
+          <Link
+            href="/"
+            className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full border border-[#FF9F6A]/35 bg-[#FF9F6A]/10 px-5 py-2 text-xs font-bold uppercase tracking-[0.16em] text-white transition-colors hover:border-[#FF9F6A]/60"
+          >
+            Back to grid
+          </Link>
+        </div>
+      </main>
+    );
   }
 
   const leclercIndex = standings.findIndex((entry) => entry.driver.driverId === "leclerc");
