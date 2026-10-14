@@ -1,6 +1,7 @@
 import CountdownTimer from "@/components/CountdownTimer";
 import TrackMap from "@/components/TrackMap";
 import FollowToggleButton from "@/components/f1/FollowToggleButton";
+import DataStatus from "@/components/f1/DataStatus";
 import RaceBattleMode from "@/components/f1/RaceBattleMode";
 import RaceStoryMode from "@/components/f1/RaceStoryMode";
 import type { Race, RaceRecap, RaceReplayData, TrackSector } from "@/lib/f1";
@@ -14,6 +15,7 @@ interface TrackHeroProps {
   recap?: RaceRecap | null;
   replay?: RaceReplayData | null;
   runtime: RaceRuntimeState;
+  checkedAt: string;
   mobileTab?: "track" | "weekend" | "story" | "compare";
   onSelectTrack?: () => void;
 }
@@ -26,6 +28,7 @@ export default function TrackHero({
   recap,
   replay,
   runtime,
+  checkedAt,
   mobileTab = "track",
   onSelectTrack
 }: TrackHeroProps) {
@@ -35,6 +38,10 @@ export default function TrackHero({
   const stateNarrative = getRaceStateNarrative(raceState, trackDna.fanHook, recap?.headline);
   const countdownTargetIso = `${race.date}T${race.time}`;
   const headerStatusCopy = raceState === "live" ? "Race Weekend Live" : "Race Complete";
+  const hasStory = raceState === "finished" && Boolean(recap);
+  const hasComparison = raceState === "finished" && Boolean(replay && replay.traces.length >= 2);
+  const dataSource = raceState === "live" ? "OpenF1 + Jolpica" : raceState === "finished" ? "FastF1 + Jolpica" : "Jolpica";
+  const dataStatus = raceState === "live" ? "Weekend data checked" : raceState === "finished" && runtime.raceResultConfirmed ? "Result confirmed" : "Schedule checked";
 
   return (
     <section className="custom-scrollbar w-full min-w-0 flex-none overflow-visible bg-[#0A0A0A] px-3 py-4 sm:px-4 sm:py-5 md:px-6 md:py-6 xl:min-h-0 xl:flex-1 xl:overflow-y-auto">
@@ -61,12 +68,13 @@ export default function TrackHero({
               href={`/f1/race/${race.round}`}
               season={race.season}
               compact
-              followCopy="Follow Race"
-              followingCopy="Race Followed"
+              followCopy="Save Race"
+              followingCopy="Saved"
               className="rounded-full border-[#E10600]/22 bg-[#090909] text-[#F4F4F4] hover:border-[#E10600]/45"
             />
           </div>
         </div>
+        <DataStatus checkedAt={checkedAt} source={dataSource} status={dataStatus} className="mt-3" />
 
         <div className="mt-4 border border-[#242424] bg-[#090909] px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -109,17 +117,25 @@ export default function TrackHero({
           drsZoneCount={drsZoneCount}
           recap={recap}
           replay={replay}
+          raceName={race.raceName}
+          raceRound={race.round}
         />
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)]">
-        <div className={mobileTab === "story" ? "block" : "hidden xl:block"}>
-          <RaceStoryMode recap={recap} dna={trackDna} state={raceState} />
+      {hasStory || hasComparison ? (
+        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)]">
+          {hasStory ? (
+            <div className={mobileTab === "story" ? "block" : "hidden xl:block"}>
+              <RaceStoryMode recap={recap} dna={trackDna} state={raceState} />
+            </div>
+          ) : null}
+          {hasComparison ? (
+            <div className={mobileTab === "compare" ? "block" : "hidden xl:block"}>
+              <RaceBattleMode replay={replay} />
+            </div>
+          ) : null}
         </div>
-        <div className={mobileTab === "compare" ? "block" : "hidden xl:block"}>
-          <RaceBattleMode replay={replay} />
-        </div>
-      </div>
+      ) : null}
     </section>
   );
 }

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 
 import type { RaceRecap, RaceReplayData, TrackSector } from "@/lib/f1";
+import { trackGridEvent } from "@/lib/analytics";
 import { TRACK_SHAPES } from "@/lib/track-shapes";
 import { getTrackSectorInsight } from "@/lib/track-sector-insights";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,8 @@ type TrackMapProps = {
   drsZoneCount?: number | string;
   recap?: RaceRecap | null;
   replay?: RaceReplayData | null;
+  raceName?: string;
+  raceRound?: string;
 };
 
 type TrackSvgData = {
@@ -314,7 +317,7 @@ function parseViewBox(viewBox: string): [number, number, number, number] | null 
 
   return [minX, minY, width, height];
 }
-export default function TrackMap({ circuitId, className, sectors, drsZoneCount, recap, replay }: TrackMapProps) {
+export default function TrackMap({ circuitId, className, sectors, drsZoneCount, recap, replay, raceName, raceRound }: TrackMapProps) {
   const [fittedViewBox, setFittedViewBox] = useState<string | null>(null);
   const [activeSectorId, setActiveSectorId] = useState<TrackSector["id"] | null>(null);
   const [activeDrsId, setActiveDrsId] = useState<string | null>(null);
@@ -328,6 +331,7 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
 
   const pathRef = useRef<SVGPathElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
+  const replayCompletedRef = useRef(false);
   const svgData = useMemo<TrackSvgData | null>(() => TRACK_SHAPES[circuitId] ?? null, [circuitId]);
   const hasError = !svgData;
 
@@ -613,6 +617,7 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
     setReplayTimeMs(0);
     setIsReplayPlaying(false);
     setReplaySpeedIndex(1);
+    replayCompletedRef.current = false;
   }, [circuitId, recap?.headline, recap?.winnerStory, replayDurationMs]);
 
   useEffect(() => {
@@ -636,6 +641,14 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
         const next = current + delta * replaySpeed;
         if (next >= replayDurationMs) {
           shouldStop = true;
+          if (!replayCompletedRef.current) {
+            replayCompletedRef.current = true;
+            trackGridEvent("replay_completed", {
+              circuit_id: circuitId,
+              race: raceName,
+              round: raceRound
+            });
+          }
           return replayDurationMs;
         }
 
@@ -655,7 +668,23 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [isReplayPlaying, replayDurationMs, replaySpeed]);
+  }, [circuitId, isReplayPlaying, raceName, raceRound, replayDurationMs, replaySpeed]);
+
+  const toggleReplayPlayback = useCallback(() => {
+    if (!isReplayPlaying) {
+      if (replayTimeMs >= replayDurationMs) {
+        setReplayTimeMs(0);
+      }
+      replayCompletedRef.current = false;
+      trackGridEvent("replay_started", {
+        circuit_id: circuitId,
+        race: raceName,
+        round: raceRound
+      });
+    }
+
+    setIsReplayPlaying((previous) => !previous);
+  }, [circuitId, isReplayPlaying, raceName, raceRound, replayDurationMs, replayTimeMs]);
 
   const jumpToReplayMoment = useCallback((moment: ReplayMoment) => {
     setReplayTimeMs(moment.checkpointMs);
@@ -1099,7 +1128,17 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
         <div id="race-highlights-player" className="mt-3 scroll-mt-24 border border-[#2C2C2C] bg-[#0B0B0B]">
           <button
             type="button"
-            onClick={() => setIsTrackReplayOpen((previous) => !previous)}
+            onClick={() => {
+              if (!isTrackReplayOpen) {
+                trackGridEvent("highlights_opened", {
+                  circuit_id: circuitId,
+                  race: raceName,
+                  round: raceRound,
+                  source: "track_player"
+                });
+              }
+              setIsTrackReplayOpen((previous) => !previous);
+            }}
             className="flex min-h-12 w-full items-center justify-between px-3 py-2 text-left"
           >
             <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#E6A3A0]">
@@ -1136,7 +1175,7 @@ export default function TrackMap({ circuitId, className, sectors, drsZoneCount, 
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsReplayPlaying((previous) => !previous)}
+                  onClick={toggleReplayPlayback}
                   className="inline-flex min-h-11 items-center gap-1 border border-[#7D2A28] bg-[#190909] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-[#FDE8E8] hover:border-[#E10600]"
                   aria-label={isReplayPlaying ? "Pause replay" : "Play replay"}
                 >

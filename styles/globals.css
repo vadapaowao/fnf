@@ -90,6 +90,16 @@
     animation: hero-card-reveal 850ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
+  .landing-replay-car {
+    left: 4%;
+    top: 65%;
+    animation: landing-replay-run 3.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  .landing-replay-car-b {
+    animation-delay: -1.35s;
+  }
+
   /* Text Outline */
   .text-outline {
     -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
@@ -179,6 +189,23 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes landing-replay-run {
+  0% {
+    left: 3%;
+    top: 68%;
+  }
+
+  42% {
+    left: 46%;
+    top: 25%;
+  }
+
+  100% {
+    left: 90%;
+    top: 52%;
   }
 }
 

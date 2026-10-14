@@ -1,6 +1,7 @@
 import MyPitWallCard from "@/components/f1/MyPitWallCard";
 import { getRaceCalendar, isScheduledRace } from "@/lib/f1";
 import CalendarRaceGrid from "@/components/f1/CalendarRaceGrid";
+import DataStatus from "@/components/f1/DataStatus";
 
 export const revalidate = 21600;
 
@@ -8,6 +9,7 @@ export default async function CalendarPage() {
     const races = await getRaceCalendar();
     const scheduledCount = races.filter(isScheduledRace).length;
     const canceledCount = races.length - scheduledCount;
+    const checkedAt = new Date().toISOString();
 
     return (
         <main className="flex-1 overflow-y-auto bg-background-dark">
@@ -19,6 +21,7 @@ export default async function CalendarPage() {
                     <p className="text-gray-400">
                         {scheduledCount} scheduled races{canceledCount > 0 ? `, ${canceledCount} canceled` : ""}
                     </p>
+                    <DataStatus checkedAt={checkedAt} source="Jolpica schedule" status="Calendar checked" className="mt-3" />
                 </div>
                 <MyPitWallCard className="mb-6 max-w-xl sm:mb-8" />
                 <CalendarRaceGrid races={races} />

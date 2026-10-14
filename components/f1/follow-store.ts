@@ -29,8 +29,8 @@ type FollowStoreState = {
   hydrateLegacy: () => void;
 };
 
-const STORAGE_KEY = "arena-follows";
-const LEGACY_STORAGE_KEY = "arena-f1-following";
+const STORAGE_KEY = "grid-saved-items";
+const LEGACY_STORAGE_KEYS = ["arena-follows", "arena-f1-following"] as const;
 
 function buildKey(type: FollowEntityType, id: string) {
   return `${type}:${id}`;
@@ -76,13 +76,19 @@ function parseStoredItems(raw: string | null): FollowedEntity[] {
   }
 
   try {
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
+    const items = Array.isArray(parsed)
+      ? parsed
+      : parsed && typeof parsed === "object" && "state" in parsed &&
+        parsed.state && typeof parsed.state === "object" && "items" in parsed.state
+        ? parsed.state.items
+        : null;
 
-    if (!Array.isArray(parsed)) {
+    if (!Array.isArray(items)) {
       return [];
     }
 
-    return parsed
+    return items
       .map((item) => sanitizeEntity(item))
       .filter((item): item is FollowedEntity => item !== null)
       .sort((left, right) => right.updatedAt - left.updatedAt);
@@ -124,13 +130,14 @@ const useFollowStore = create<FollowStoreState>()(
           return;
         }
 
-        const legacyItems = parseStoredItems(window.localStorage.getItem(LEGACY_STORAGE_KEY));
+        const legacyKey = LEGACY_STORAGE_KEYS.find((key) => window.localStorage.getItem(key) !== null);
+        const legacyItems = parseStoredItems(legacyKey ? window.localStorage.getItem(legacyKey) : null);
 
         if (legacyItems.length === 0) {
           return;
         }
 
-        window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+        LEGACY_STORAGE_KEYS.forEach((key) => window.localStorage.removeItem(key));
         set({ items: legacyItems });
       }
     }),
@@ -158,7 +165,7 @@ export function useFollowedEntities() {
     }
 
     const sync = (event: StorageEvent) => {
-      if (event.key && event.key !== STORAGE_KEY && event.key !== LEGACY_STORAGE_KEY) {
+      if (event.key && event.key !== STORAGE_KEY && !LEGACY_STORAGE_KEYS.includes(event.key as (typeof LEGACY_STORAGE_KEYS)[number])) {
         return;
       }
 

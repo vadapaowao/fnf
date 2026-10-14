@@ -172,6 +172,7 @@ export type RacePageBundle = {
   replay: RaceReplayData | null;
   sessions: RaceSession[];
   runtime: RaceRuntimeState;
+  checkedAt: string;
 };
 
 export type Driver = {
@@ -1532,7 +1533,8 @@ async function buildRacePageBundle(races: Race[], race: Race): Promise<RacePageB
     recap,
     replay,
     sessions,
-    runtime
+    runtime,
+    checkedAt: new Date().toISOString()
   };
 }
 
@@ -2639,6 +2641,35 @@ async function fetchDriverStandingsForSeason(season: string): Promise<DriverStan
   const data: ErgastDriverStandingsResponse = await res.json();
   const standings = normalizeDriverStandings(data);
   return standings.length > 0 ? standings : null;
+}
+
+export async function getDriverStandingsAtRound(
+  season: string,
+  round: string,
+  options?: { silent?: boolean }
+): Promise<DriverStanding[]> {
+  if (!/^\d{4}$/.test(season) || !/^\d+$/.test(round)) {
+    return [];
+  }
+
+  try {
+    const url = `${ERGAST_BASE_URL}/${season}/${round}/driverStandings.json`;
+    const res = await fetch(url, {
+      next: { revalidate: STANDINGS_REVALIDATE_SECONDS }
+    });
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const standings = normalizeDriverStandings(await res.json() as ErgastDriverStandingsResponse);
+    return standings;
+  } catch {
+    if (!options?.silent) {
+      console.error(`Error fetching driver standings for ${season} after round ${round}.`);
+    }
+    return [];
+  }
 }
 
 async function fetchConstructorStandingsForSeason(

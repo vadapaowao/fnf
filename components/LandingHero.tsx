@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 
 import LocalDateTimeText from "@/components/f1/LocalDateTimeText";
 import type { Race } from "@/lib/f1";
+import { trackGridEvent } from "@/lib/analytics";
 
 type LandingHeroProps = {
   nextRace: Race | null;
@@ -104,6 +107,10 @@ export default function LandingHero({ nextRace }: LandingHeroProps) {
                   <Link
                     key={card.title}
                     href={card.href}
+                    onClick={() => trackGridEvent("landing_entry_clicked", {
+                      destination: card.href,
+                      entry: card.title
+                    })}
                     className="hero-card-reveal group relative min-h-44 overflow-hidden rounded-[1.5rem] border border-white/10 bg-[linear-gradient(160deg,rgba(18,18,18,0.92),rgba(6,6,6,0.98))] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 sm:rounded-[1.9rem] sm:p-6"
                     style={{ animationDelay: `${380 + index * 120}ms` }}
                   >
@@ -113,6 +120,21 @@ export default function LandingHero({ nextRace }: LandingHeroProps) {
                         <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary sm:tracking-[0.2em]">{card.eyebrow}</p>
                         <h2 className="mt-3 font-display text-2xl font-black italic text-white sm:text-3xl">{card.title}</h2>
                         <p className="mt-3 text-sm leading-relaxed text-gray-400">{card.copy}</p>
+                        {card.title === "Deep Dive" ? (
+                          <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-black/35 px-3 py-2.5">
+                            <div className="flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
+                              <span>Race replay</span>
+                              <span className="text-primary">Lap by lap</span>
+                            </div>
+                            <div className="relative mt-2 h-8 overflow-hidden" aria-hidden="true">
+                              <svg className="absolute inset-0 h-full w-full" viewBox="0 0 240 32" preserveAspectRatio="none">
+                                <path d="M5 24 C42 2 72 28 112 14 S183 4 235 19" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="2" strokeDasharray="5 5" />
+                              </svg>
+                              <span className="landing-replay-car landing-replay-car-a absolute h-2.5 w-4 rounded-sm bg-primary shadow-[0_0_10px_rgba(225,6,0,0.8)]" />
+                              <span className="landing-replay-car landing-replay-car-b absolute h-2.5 w-4 rounded-sm bg-white shadow-[0_0_8px_rgba(255,255,255,0.55)]" />
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
                       <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
                         <span>Open</span>
@@ -127,6 +149,10 @@ export default function LandingHero({ nextRace }: LandingHeroProps) {
 
               <Link
                 href="/f1/leclerc"
+                onClick={() => trackGridEvent("landing_entry_clicked", {
+                  destination: "/f1/leclerc",
+                  entry: "Charles Leclerc"
+                })}
                 className="hero-card-reveal group relative min-h-24 overflow-hidden rounded-[1.4rem] border border-[#FF9F6A]/28 bg-[radial-gradient(circle_at_top_right,rgba(255,159,106,0.14),transparent_42%),linear-gradient(135deg,#17100E_0%,#090909_100%)] px-5 py-4 transition-all duration-300 hover:-translate-y-1 hover:border-[#FF9F6A]/45 sm:rounded-[1.6rem]"
                 style={{ animationDelay: "620ms" }}
               >

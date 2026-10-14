@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import type { Race } from "@/lib/f1";
+import { trackGridEvent } from "@/lib/analytics";
 
 type MobileRaceSelectorProps = {
   races: Race[];
@@ -21,7 +22,16 @@ export default function MobileRaceSelector({ races, currentRound }: MobileRaceSe
         <select
           id="mobile-race-selector"
           value={currentRound}
-          onChange={(event) => router.push(`/f1/race/${event.target.value}`)}
+          onChange={(event) => {
+            const round = event.target.value;
+            const selectedRace = races.find((race) => race.round === round);
+            trackGridEvent("race_selected", {
+              race: selectedRace?.raceName,
+              round,
+              source: "mobile_selector"
+            });
+            router.push(`/f1/race/${round}`);
+          }}
           className="min-h-12 w-full appearance-none rounded-lg border border-white/10 bg-[#111] px-3 py-2.5 pr-10 text-sm font-semibold text-white outline-none focus:border-grid-primary"
         >
           {races.map((race) => (

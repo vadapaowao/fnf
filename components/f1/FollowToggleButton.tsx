@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { type FollowEntityType, useFollowedEntities } from "@/components/f1/follow-store";
+import { trackGridEvent } from "@/lib/analytics";
 
 type FollowToggleButtonProps = {
   type: FollowEntityType;
@@ -27,8 +28,8 @@ export default function FollowToggleButton({
   season,
   className,
   compact = false,
-  followCopy = "Follow",
-  followingCopy = "Following"
+  followCopy = "Save",
+  followingCopy = "Saved"
 }: FollowToggleButtonProps) {
   const { hasLoaded, isFollowed, toggle } = useFollowedEntities();
   const followed = hasLoaded ? isFollowed(type, id) : false;
@@ -36,7 +37,12 @@ export default function FollowToggleButton({
   return (
     <button
       type="button"
-      onClick={() =>
+      onClick={() => {
+        trackGridEvent("item_saved", {
+          action: followed ? "removed" : "saved",
+          entity_id: id,
+          entity_type: type
+        });
         toggle({
           type,
           id,
@@ -45,8 +51,8 @@ export default function FollowToggleButton({
           href,
           accentColor,
           season
-        })
-      }
+        });
+      }}
       className={cn(
         "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition-colors",
         followed

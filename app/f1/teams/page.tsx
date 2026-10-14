@@ -1,6 +1,7 @@
 import { F1_SEASON, getConstructorStandings, getDriverStandings } from "@/lib/f1";
 import StandingsAccordion from "@/components/f1/StandingsAccordion";
 import TeamCard from "@/components/f1/TeamCard";
+import DataStatus from "@/components/f1/DataStatus";
 
 const TEAM_TONES: Record<string, string> = {
     red_bull: "#1E41FF",
@@ -21,6 +22,7 @@ export default async function TeamsPage() {
         getDriverStandings(F1_SEASON),
     ]);
     const totalWins = teamStandings.reduce((sum, standing) => sum + Number(standing.wins), 0);
+    const checkedAt = new Date().toISOString();
 
     return (
         <main className="flex-1 overflow-y-auto bg-background-dark">
@@ -29,7 +31,8 @@ export default async function TeamsPage() {
                     <h1 className="mb-2 font-display text-3xl font-bold text-white sm:text-4xl md:text-5xl">
                         {F1_SEASON} TEAMS
                     </h1>
-                    <p className="text-gray-400">Every team on the grid, with lineups and season form.</p>
+                    <p className="text-gray-400">Every constructor in the {F1_SEASON} standings, with season form and drivers used.</p>
+                    <DataStatus checkedAt={checkedAt} source="Jolpica standings" status="Standings checked" className="mt-3" />
                 </div>
 
                 {teamStandings.length > 0 ? (
@@ -51,7 +54,7 @@ export default async function TeamsPage() {
                                     <p className="mt-2 text-2xl font-black text-white sm:text-3xl">{teamStandings.length}</p>
                                 </div>
                                 <div className="min-w-0 rounded-lg border border-white/5 bg-black/20 p-3 sm:p-4">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Grid Drivers</p>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Season Drivers</p>
                                     <p className="mt-2 text-2xl font-black text-white sm:text-3xl">{driverStandings.length}</p>
                                 </div>
                                 <div className="min-w-0 rounded-lg border border-white/5 bg-black/20 p-3 sm:p-4">

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import LeclercSoundboard from "@/components/f1/LeclercSoundboard";
+import TrackedExternalLink from "@/components/f1/TrackedExternalLink";
 import DriverIdentityAvatar from "@/components/f1/drivers/DriverIdentityAvatar";
 import { getDriverProfile } from "@/lib/driver-profile";
 import { F1_SEASON, getDriverStandings } from "@/lib/f1";
@@ -104,15 +105,17 @@ export default async function LeclercPage() {
 
               <div className="mt-6 flex flex-wrap gap-3">
                 {profileLinks.slice(0, 2).map((link) => (
-                  <a
+                  <TrackedExternalLink
                     key={link.href}
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
+                    eventName="external_profile_clicked"
+                    eventProperties={{ destination: link.label, profile: "charles_leclerc", source: "hero" }}
                     className={`inline-flex min-h-11 items-center rounded-full border bg-black/30 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-white transition-colors ${link.tone}`}
                   >
                     {link.label}
-                  </a>
+                  </TrackedExternalLink>
                 ))}
               </div>
             </div>
@@ -178,16 +181,18 @@ export default async function LeclercPage() {
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#FFB48A]">Profiles</p>
               <div className="mt-4 space-y-3">
                 {profileLinks.map((link) => (
-                  <a
+                  <TrackedExternalLink
                     key={link.href}
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
+                    eventName="external_profile_clicked"
+                    eventProperties={{ destination: link.label, profile: "charles_leclerc", source: "profiles" }}
                     className={`flex min-h-12 items-center justify-between rounded-xl border bg-black/20 px-4 py-3 text-sm font-bold text-white transition-colors ${link.tone}`}
                   >
                     <span>{link.label}</span>
                     <span className="material-icons text-base">open_in_new</span>
-                  </a>
+                  </TrackedExternalLink>
                 ))}
               </div>
             </div>

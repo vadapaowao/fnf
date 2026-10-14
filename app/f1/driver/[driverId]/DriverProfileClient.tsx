@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import SeasonToggle from "@/components/f1/SeasonToggle";
 import FollowToggleButton from "@/components/f1/FollowToggleButton";
 import DriverIdentityAvatar from "@/components/f1/drivers/DriverIdentityAvatar";
 import SeasonPaceChart from "@/components/f1/drivers/SeasonPaceChart";
 import type { DriverHeadToHead, DriverProfileData, DriverSeasonResult, DriverSeasonSnapshot } from "@/lib/driver-profile";
+import { trackGridEvent } from "@/lib/analytics";
 
 type DriverProfileClientProps = {
   profile: DriverProfileData;
@@ -118,6 +119,13 @@ export default function DriverProfileClient({ profile }: DriverProfileClientProp
   const { driver } = standing;
   const [selectedSeasonId, setSelectedSeasonId] = useState(season.season);
   const [resultFilter, setResultFilter] = useState<"all" | "podiums" | "points" | "dnf">("all");
+
+  useEffect(() => {
+    trackGridEvent("driver_profile_opened", {
+      driver_id: driver.driverId,
+      season: season.season
+    });
+  }, [driver.driverId, season.season]);
 
   const selectedSeason = useMemo(() => {
     if (archive2025 && selectedSeasonId === archive2025.season) {

@@ -45,7 +45,7 @@ export default function MyPitWallCard({ race, className }: MyPitWallCardProps) {
     <details className={`group rounded-xl border border-white/10 bg-gradient-to-br from-surface-dark to-background-dark ${className ?? ""}`}>
       <summary className="flex min-h-14 cursor-pointer list-none items-start justify-between gap-3 px-4 py-4 marker:content-none sm:px-5">
         <div>
-          <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Following</p>
+          <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Saved</p>
           <h2 className="mt-2 font-display text-xl font-bold text-white">Saved list</h2>
           <p className="mt-1 text-sm leading-relaxed text-gray-400">{getStateCopy(state)}</p>
         </div>
@@ -70,6 +70,7 @@ export default function MyPitWallCard({ race, className }: MyPitWallCardProps) {
             <p className="mt-2 text-xs leading-relaxed text-gray-500">
               Save a race, driver, or team and it lands here.
             </p>
+            <p className="mt-3 text-xs text-gray-600">Saved on this device.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -93,6 +94,9 @@ export default function MyPitWallCard({ race, className }: MyPitWallCardProps) {
             ))}
           </div>
         )}
+        {hasLoaded && recentItems.length > 0 ? (
+          <p className="mt-3 text-xs text-gray-600">Saved on this device.</p>
+        ) : null}
       </div>
     </details>
   );

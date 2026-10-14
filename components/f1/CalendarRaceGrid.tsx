@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import FollowToggleButton from "@/components/f1/FollowToggleButton";
 import type { Race } from "@/lib/f1";
 import { getProductRaceState } from "@/lib/f1-product";
+import { trackGridEvent } from "@/lib/analytics";
 
 type CalendarRaceGridProps = {
   races: Race[];
@@ -154,6 +155,11 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
             <div className="flex items-center justify-between gap-2 border-t border-white/5 px-3 py-2 sm:gap-3 sm:px-6 sm:py-3">
               <Link
                 href={`/f1/race/${race.round}`}
+                onClick={() => trackGridEvent("race_selected", {
+                  race: race.raceName,
+                  round: race.round,
+                  source: "calendar"
+                })}
                 className="inline-flex min-h-11 items-center gap-1 rounded-lg px-2 text-xs font-semibold uppercase tracking-wider text-grid-primary hover:bg-white/5 hover:text-white"
               >
                 Open Race
@@ -167,7 +173,7 @@ export default function CalendarRaceGrid({ races }: CalendarRaceGridProps) {
                 href={`/f1/race/${race.round}`}
                 season={race.season}
                 compact
-                followCopy="Follow Race"
+                followCopy="Save Race"
                 followingCopy="Saved"
                 className="rounded-full"
               />

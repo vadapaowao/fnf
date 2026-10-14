@@ -1,6 +1,7 @@
 import DriverCard from "@/components/f1/drivers/DriverCard";
 import StandingsAccordion from "@/components/f1/StandingsAccordion";
 import { F1_SEASON, getDriverStandings } from "@/lib/f1";
+import DataStatus from "@/components/f1/DataStatus";
 
 const TEAM_TONES: Record<string, string> = {
   red_bull: "#1E41FF",
@@ -19,6 +20,7 @@ export default async function DriversPage() {
   const standings = await getDriverStandings(F1_SEASON);
   const teamsRepresented = new Set(standings.map((standing) => standing.constructors[0]?.constructorId).filter(Boolean)).size;
   const nationalitiesRepresented = new Set(standings.map((standing) => standing.driver.nationality)).size;
+  const checkedAt = new Date().toISOString();
 
   return (
     <main className="flex-1 overflow-y-auto bg-background-dark">
@@ -28,8 +30,9 @@ export default async function DriversPage() {
             {F1_SEASON} DRIVERS
           </h1>
           <p className="text-gray-400">
-            Full grid, one page. Pick a driver and get the season quickly.
+            Every driver listed in the {F1_SEASON} championship standings.
           </p>
+          <DataStatus checkedAt={checkedAt} source="Jolpica standings" status="Standings checked" className="mt-3" />
         </div>
 
         {standings.length > 0 ? (
@@ -38,7 +41,7 @@ export default async function DriversPage() {
               <div className="border-b border-white/5 px-4 py-4 sm:px-6">
                 <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-grid-primary">Driver Directory</p>
                 <h2 className="mt-2 font-display text-2xl font-bold text-white sm:text-3xl">
-                  {`${standings.length} drivers on the ${F1_SEASON} grid`}
+                  {`${standings.length} season participants`}
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-400">
                   Pick a driver and go straight to results, teammate numbers, and season form.
@@ -47,7 +50,7 @@ export default async function DriversPage() {
 
               <div className="grid grid-cols-3 gap-2 px-4 py-4 sm:gap-4 sm:px-6 sm:py-5">
                 <div className="min-w-0 rounded-lg border border-white/5 bg-black/20 p-3 sm:p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Grid Size</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Participants</p>
                   <p className="mt-2 text-2xl font-black text-white sm:text-3xl">{standings.length}</p>
                 </div>
                 <div className="min-w-0 rounded-lg border border-white/5 bg-black/20 p-3 sm:p-4">

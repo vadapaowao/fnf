@@ -20,7 +20,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://the-grid.vercel.app"),
+  metadataBase: new URL(process.env.URL ?? "https://gridf1.vercel.app"),
   title: "The Grid — Formula 1 2026",
   description: "Formula 1 race intel, driver profiles, team pages, calendar, and standings for the 2026 season.",
   openGraph: {
@@ -42,8 +42,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className="dark">
       <body className={`${chakraPetch.variable} ${spaceGrotesk.variable} min-h-screen bg-background-light dark:bg-background-dark text-slate-800 dark:text-white font-body antialiased selection:bg-primary selection:text-white`}>
         {children}
-        <Analytics />
-        <SpeedInsights />
+        {process.env.VERCEL === "1" ? <Analytics /> : null}
+        {process.env.VERCEL === "1" ? <SpeedInsights /> : null}
       </body>
     </html>
   );

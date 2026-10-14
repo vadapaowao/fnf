@@ -37,7 +37,7 @@ export default async function RaceDetailPage({ params }: RaceDetailPageProps) {
   if (!bundle) {
     notFound();
   }
-  const { races, race, detail, recap, replay, sessions, runtime } = bundle;
+  const { races, race, detail, recap, replay, sessions, runtime, checkedAt } = bundle;
 
   return (
     <main className="relative flex flex-1 flex-col overflow-hidden">
@@ -52,6 +52,7 @@ export default async function RaceDetailPage({ params }: RaceDetailPageProps) {
         replay={replay}
         sessions={sessions}
         runtime={runtime}
+        checkedAt={checkedAt}
         circuitStats={{
           lengthKm: detail.circuit.lengthKm,
           turns: detail.circuit.turns,

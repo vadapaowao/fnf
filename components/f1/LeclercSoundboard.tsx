@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { trackGridEvent } from "@/lib/analytics";
 
 export default function LeclercSoundboard() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -19,6 +20,7 @@ export default function LeclercSoundboard() {
       return;
     }
 
+    trackGridEvent("leclerc_audio_played", { profile: "charles_leclerc" });
     void audio.play().then(() => {
       setPlaying(true);
     }).catch(() => {

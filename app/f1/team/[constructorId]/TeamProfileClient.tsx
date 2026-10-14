@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import DriverCard from "@/components/f1/drivers/DriverCard";
 import SeasonToggle from "@/components/f1/SeasonToggle";
@@ -8,6 +8,7 @@ import TeamPointsChart from "@/components/f1/TeamPointsChart";
 import FollowToggleButton from "@/components/f1/FollowToggleButton";
 import { formatTeamBadge } from "@/lib/f1-formatting";
 import type { TeamProfileData, TeamSeasonSnapshot } from "@/lib/team-profile";
+import { trackGridEvent } from "@/lib/analytics";
 
 type TeamProfileClientProps = {
   profile: TeamProfileData;
@@ -52,6 +53,13 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
   const [selectedSeasonId, setSelectedSeasonId] = useState(currentSeason.season);
   const [ledgerFilter, setLedgerFilter] = useState<"all" | "podiums" | "wins" | "scoreless">("all");
 
+  useEffect(() => {
+    trackGridEvent("team_profile_opened", {
+      constructor_id: team.constructorId,
+      season: currentSeason.season
+    });
+  }, [currentSeason.season, team.constructorId]);
+
   const selectedSeason = useMemo(() => {
     if (archive2025 && selectedSeasonId === archive2025.season) {
       return archive2025;
@@ -63,7 +71,7 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
   const selectedDrivers =
     archive2025 && selectedSeasonId === archive2025.season ? archiveDrivers ?? currentDrivers : currentDrivers;
   const lineupLabel =
-    archive2025 && selectedSeasonId === archive2025.season ? `${archive2025.season} Lineup` : "Current Lineup";
+    archive2025 && selectedSeasonId === archive2025.season ? `${archive2025.season} Drivers` : `${currentSeason.season} Drivers`;
   const filteredRaceSeries = [...selectedSeason.raceSeries].reverse().filter((race) => {
     if (ledgerFilter === "podiums") {
       return race.podiums > 0;
@@ -162,7 +170,7 @@ export default function TeamProfileClient({ profile }: TeamProfileClientProps) {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="font-display text-2xl font-bold text-white">{lineupLabel}</h2>
-                  <p className="mt-1 text-sm text-gray-500">The two cars for this season.</p>
+                  <p className="mt-1 text-sm text-gray-500">Drivers listed for this constructor this season.</p>
                 </div>
               <span className="rounded border border-white/10 bg-black/20 px-3 py-1 text-xs font-mono font-bold uppercase tracking-[0.16em] text-gray-300">
                 {selectedDrivers.length} drivers

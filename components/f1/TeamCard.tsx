@@ -68,7 +68,7 @@ export default function TeamCard({ standing, drivers = [] }: TeamCardProps) {
                             <p className="mt-1 text-2xl font-black text-white">{wins}</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Drivers</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Season Drivers</p>
                             <p className="mt-1 text-2xl font-black" style={{ color: accentColor }}>{drivers.length || "—"}</p>
                         </div>
                     </div>
@@ -80,7 +80,7 @@ export default function TeamCard({ standing, drivers = [] }: TeamCardProps) {
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                    {drivers.slice(0, 2).map((driver) => (
+                    {drivers.slice(0, 3).map((driver) => (
                         <span
                             key={driver.driver.driverId}
                             className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-gray-300"

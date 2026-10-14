@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import MobileRaceSelector from "@/components/f1/MobileRaceSelector";
 import RaceIntelPanel from "@/components/f1/RaceIntelPanel";
@@ -8,6 +8,7 @@ import RaceSidebar from "@/components/f1/RaceSidebar";
 import TrackHero from "@/components/f1/TrackHero";
 import type { Race, RaceRecap, RaceReplayData, RaceSession, TrackSector } from "@/lib/f1";
 import type { RaceRuntimeState } from "@/lib/f1-product";
+import { trackGridEvent } from "@/lib/analytics";
 
 type MobileRaceTab = "track" | "weekend" | "story" | "compare";
 
@@ -21,6 +22,7 @@ type RaceWorkspaceProps = {
   replay?: RaceReplayData | null;
   sessions: RaceSession[];
   runtime: RaceRuntimeState;
+  checkedAt: string;
   circuitStats: {
     lengthKm: string;
     turns: string;
@@ -39,7 +41,7 @@ type RaceWorkspaceProps = {
   };
 };
 
-const tabs: Array<{ id: MobileRaceTab; label: string; icon: string }> = [
+const baseTabs: Array<{ id: MobileRaceTab; label: string; icon: string }> = [
   { id: "track", label: "Track", icon: "route" },
   { id: "weekend", label: "Weekend", icon: "schedule" },
   { id: "story", label: "Story", icon: "auto_stories" },
@@ -56,13 +58,31 @@ export default function RaceWorkspace({
   replay,
   sessions,
   runtime,
+  checkedAt,
   circuitStats,
   lastWinner,
   fastestLap
 }: RaceWorkspaceProps) {
-  const [mobileTab, setMobileTab] = useState<MobileRaceTab>(runtime.raceState === "live" ? "weekend" : "track");
+  const [mobileTab, setMobileTab] = useState<MobileRaceTab>(runtime.raceState === "finished" ? "track" : "weekend");
+  const hasStory = runtime.raceState === "finished" && Boolean(recap);
+  const hasComparison = runtime.raceState === "finished" && Boolean(replay && replay.traces.length >= 2);
+  const tabs = useMemo(
+    () => baseTabs.filter((tab) => tab.id !== "story" || hasStory).filter((tab) => tab.id !== "compare" || hasComparison),
+    [hasComparison, hasStory]
+  );
+
+  useEffect(() => {
+    if (!tabs.some((tab) => tab.id === mobileTab)) {
+      setMobileTab(runtime.raceState === "finished" ? "track" : "weekend");
+    }
+  }, [mobileTab, runtime.raceState, tabs]);
 
   const showTrack = () => {
+    trackGridEvent("highlights_opened", {
+      race: race.raceName,
+      round: race.round,
+      source: "race_header"
+    });
     setMobileTab("track");
     window.setTimeout(() => {
       document.getElementById("race-highlights-player")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -75,7 +95,12 @@ export default function RaceWorkspace({
       <MobileRaceSelector races={races} currentRound={race.round} />
 
       <div className="border-b border-white/10 bg-[#080808] px-3 py-2 xl:hidden">
-        <div className="grid grid-cols-4 gap-1 rounded-xl border border-white/10 bg-black/30 p-1" role="tablist" aria-label="Race sections">
+        <div
+          className="grid gap-1 rounded-xl border border-white/10 bg-black/30 p-1"
+          style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
+          role="tablist"
+          aria-label="Race sections"
+        >
           {tabs.map((tab) => {
             const active = mobileTab === tab.id;
             return (
@@ -84,7 +109,15 @@ export default function RaceWorkspace({
                 type="button"
                 role="tab"
                 aria-selected={active}
-                onClick={() => setMobileTab(tab.id)}
+                onClick={() => {
+                  setMobileTab(tab.id);
+                  trackGridEvent("race_tab_opened", {
+                    race: race.raceName,
+                    race_state: runtime.raceState,
+                    round: race.round,
+                    tab: tab.id
+                  });
+                }}
                 className={`flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-xs font-semibold transition-colors ${
                   active ? "bg-grid-primary text-white" : "text-gray-500"
                 }`}
@@ -105,6 +138,7 @@ export default function RaceWorkspace({
         recap={recap}
         replay={replay}
         runtime={runtime}
+        checkedAt={checkedAt}
         mobileTab={mobileTab}
         onSelectTrack={showTrack}
       />

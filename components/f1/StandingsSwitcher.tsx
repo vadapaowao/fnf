@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import StandingsAccordion, { type StandingsAccordionRow } from "@/components/f1/StandingsAccordion";
+import { trackGridEvent } from "@/lib/analytics";
 
 type StandingsSwitcherProps = {
   driverRows: StandingsAccordionRow[];
@@ -43,7 +44,10 @@ export default function StandingsSwitcher({ driverRows, constructorRows }: Stand
                 type="button"
                 role="tab"
                 aria-selected={active}
-                onClick={() => setActiveView(view.id)}
+                onClick={() => {
+                  setActiveView(view.id);
+                  trackGridEvent("standings_view_changed", { view: view.id });
+                }}
                 className={`min-h-11 rounded-lg px-3 text-sm font-bold transition-colors ${
                   active ? "bg-grid-primary text-white" : "text-gray-500"
                 }`}

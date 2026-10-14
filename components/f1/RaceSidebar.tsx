@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Race } from "@/lib/f1";
 import { getFeaturedRace, getProductRaceState } from "@/lib/f1-product";
+import { trackGridEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 interface RaceSidebarProps {
@@ -20,7 +21,6 @@ function isScheduledSidebarRace(race: Race) {
 }
 
 export default function RaceSidebar({ races, currentRaceRound, highlightedRound, className }: RaceSidebarProps) {
-  const SIDEBAR_SCROLL_KEY = "f1-race-sidebar-scroll-top";
   const SIDEBAR_SEARCH_KEY = "f1-race-sidebar-search";
 
   const scheduledRaces = useMemo(() => races.filter(isScheduledSidebarRace), [races]);
@@ -30,6 +30,7 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound,
   const pathname = usePathname();
   const listRef = useRef<HTMLDivElement | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [raceFilter, setRaceFilter] = useState<"all" | "next" | "finished">("all");
 
   useEffect(() => {
     const savedQuery = sessionStorage.getItem(SIDEBAR_SEARCH_KEY);
@@ -42,27 +43,6 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound,
     sessionStorage.setItem(SIDEBAR_SEARCH_KEY, searchTerm);
   }, [searchTerm]);
 
-  useEffect(() => {
-    const list = listRef.current;
-    if (!list) {
-      return;
-    }
-
-    const savedScroll = Number(sessionStorage.getItem(SIDEBAR_SCROLL_KEY) ?? "0");
-    if (Number.isFinite(savedScroll) && savedScroll > 0) {
-      list.scrollTop = savedScroll;
-    }
-  }, [pathname]);
-
-  const persistScroll = () => {
-    const list = listRef.current;
-    if (!list) {
-      return;
-    }
-
-    sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(list.scrollTop));
-  };
-
   const getRaceStatus = (race: Race) => {
     const state = getProductRaceState(race, now);
     if (state === "live") return "LIVE";
@@ -72,17 +52,31 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound,
 
   const filteredRaces = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    if (!query) {
-      return scheduledRaces;
-    }
+    const stateFilteredRaces = scheduledRaces.filter((race) => {
+      const state = getProductRaceState(race);
+      if (raceFilter === "next") return state === "upcoming" || state === "live";
+      if (raceFilter === "finished") return state === "finished";
+      return true;
+    });
 
-    return scheduledRaces.filter((race) =>
+    if (!query) return stateFilteredRaces;
+
+    return stateFilteredRaces.filter((race) =>
       [race.raceName, race.circuitName, race.locality, race.country, `round ${race.round}`]
         .join(" ")
         .toLowerCase()
         .includes(query)
     );
-  }, [scheduledRaces, searchTerm]);
+  }, [raceFilter, scheduledRaces, searchTerm]);
+
+  useEffect(() => {
+    const list = listRef.current;
+    const activeRace = list?.querySelector<HTMLElement>(`[data-race-round="${activeRound}"]`);
+
+    if (!list || !activeRace) return;
+
+    list.scrollTop = Math.max(activeRace.offsetTop - (list.clientHeight - activeRace.clientHeight) / 2, 0);
+  }, [activeRound, filteredRaces, pathname]);
 
   return (
     <aside className={cn("z-10 flex h-full w-80 shrink-0 flex-col overflow-hidden border-r border-white/10 bg-background-dark/80 backdrop-blur-sm", className)}>
@@ -102,8 +96,22 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound,
             type="text"
           />
         </div>
+        <div className="mt-3 grid grid-cols-3 gap-1 rounded-lg border border-white/10 bg-black/25 p-1" aria-label="Filter races">
+          {(["all", "next", "finished"] as const).map((filter) => (
+            <button
+              key={filter}
+              type="button"
+              onClick={() => setRaceFilter(filter)}
+              className={`min-h-9 rounded-md px-2 text-xs font-bold uppercase tracking-[0.1em] transition-colors ${
+                raceFilter === filter ? "bg-white text-black" : "text-gray-500 hover:text-white"
+              }`}
+            >
+              {filter === "next" ? "Next" : filter}
+            </button>
+          ))}
+        </div>
       </div>
-      <div ref={listRef} onScroll={persistScroll} className="custom-scrollbar flex-1 space-y-3 overflow-y-auto p-4">
+      <div ref={listRef} className="custom-scrollbar flex-1 space-y-3 overflow-y-auto p-4">
         {filteredRaces.map((race) => {
           const status = getRaceStatus(race);
           const isActive = activeRound && race.round === String(activeRound);
@@ -112,7 +120,13 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound,
             <Link
               key={race.round}
               href={`/f1/race/${race.round}`}
-              onClick={persistScroll}
+              data-race-round={race.round}
+              onClick={() => trackGridEvent("race_selected", {
+                race: race.raceName,
+                round: race.round,
+                source: "desktop_sidebar",
+                status: status.toLowerCase()
+              })}
               className={`group relative block cursor-pointer rounded-lg border p-4 transition-all ${
                 isActive
                   ? "neon-border scale-[1.02] overflow-hidden border-grid-primary bg-grid-primary/10 bg-stripes"
@@ -129,21 +143,9 @@ export default function RaceSidebar({ races, currentRaceRound, highlightedRound,
                     day: "2-digit",
                   })}
                 </span>
-                {isActive && status === "LIVE" ? (
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      window.open("https://www.fancode.com", "_blank", "noopener,noreferrer");
-                    }}
-                    className="flex items-center gap-1 rounded bg-grid-primary px-1.5 py-0.5 text-xs font-bold text-black animate-pulse hover:bg-white"
-                  >
-                    <span className="material-icons text-xs">live_tv</span>
-                    WATCH LIVE
-                  </button>
-                ) : null}
-                {!isActive ? <span className="font-mono text-xs text-gray-500">{status}</span> : null}
+                <span className={`font-mono text-xs ${status === "LIVE" ? "font-bold text-grid-primary" : "text-gray-500"}`}>
+                  {status}
+                </span>
               </div>
               <div className="relative z-10 flex items-center gap-3">
                 <div
